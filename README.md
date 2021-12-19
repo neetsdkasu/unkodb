@@ -1,5 +1,9 @@
 # unkodb
 
+SQLにする気はないのでsql/driverを実装しない
+
+アドレス(インデックス?)を4byteに固定するので
+保持可能なデータ総数は、かなり少ない
 
 DBヘッダ
     先頭??byte  ファイルシグネチャ(?)
@@ -60,4 +64,20 @@ encoding/binaryパッケージを使う
 カラムの定義方法
 を
 決めないと・・・
+
+
+
+カラムの型
+bool(int32?)
+int32
+int64
+float64
+datetime(int64)
+固定容量データ(int32,[]byte)
+任意容量データ(int32,[]byte)
+固定容量文字列(int32,[]byte)(UTF-8)
+任意容量文字列(int32,[]byte)(UTF-8)
+
+
+
 
