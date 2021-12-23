@@ -116,20 +116,30 @@ datetime(int64)
 
 
 Keyの型
-counter(int32)
+counter(uint32)
 int32
+uint32
 int64
-固定長(uint8,[]byte)
-固定長(uint8,[]byte(string),UTF-8)
+uint64
+容量固定長(uint8,[]byte)
+容量固定長(uint8,[]byte(string),UTF-8)
 
 カラムの型
-boolean(int32)
+boolean(int8)
+int8
+uint8
+int16
+uint16
 int32
+uint32
 int64
-固定長(uint8,[]byte)
-可変長(int32,[]byte)
-固定長(uint8,[]byte(string),UTF-8)
-可変長(int32,[]byte(string),UTF-8)
+uint64
+float32
+float64
+容量固定長(uint8,[]byte)
+容量可変長(int32,[]byte)
+容量固定長(uint8,[]byte(string),UTF-8)
+容量可変長(int32,[]byte(string),UTF-8)
 
 
 エントリ1セットあたりサイズ上限65500byteくらい(ツリー構成部も含む)
@@ -161,7 +171,6 @@ DBヘッダ
 テーブルに必要な情報(共通?)
  - テーブル名(固定容量文字列)
  - データ総数
- - (テーブルのタイプ別情報)
  - ルートノードアイテムの先頭アドレス
  - キーの型
  - キーの値に割り当てるカラム名(固定容量文字列)
@@ -172,3 +181,8 @@ DBヘッダ
     + カラム名(固定容量文字列)
  
 
+
+テーブルIDテーブル
+    キー　固定長文字列(最大30文字)
+
+ 
