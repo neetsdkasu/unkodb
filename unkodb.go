@@ -84,26 +84,25 @@ func Open(file io.ReadWriteSeeker) (*UnkoDB, error) {
 }
 
 func (db *UnkoDB) writeHeader() error {
-	_, err := db.file.Seek(db.fileOffset, io.SeekStart)
-	if err != nil {
+	if _, err := db.file.Seek(db.fileOffset, io.SeekStart); err != nil {
 		return err
 	}
-	if err = db.writeBytes(signature); err != nil {
+	if err := db.writeBytes(signature); err != nil {
 		return fmt.Errorf("FAILED TO WRITE SIGNATURE (%w)", err)
 	}
-	if err = db.writeUint16(headerSize); err != nil {
+	if err := db.writeUint16(headerSize); err != nil {
 		return fmt.Errorf("FAILED TO WRITE HEADER SIZE VALUE (%w)", err)
 	}
-	if err = db.writeUint16(FormatVersion); err != nil {
+	if err := db.writeUint16(FormatVersion); err != nil {
 		return fmt.Errorf("FAILED TO WRITE FORMAT VERSION (%w)", err)
 	}
-	if err = db.writeInt32(int32(db.tableIdTableRootAddress)); err != nil {
+	if err := db.writeInt32(int32(db.tableIdTableRootAddress)); err != nil {
 		return fmt.Errorf("FAILED TO WRITE tableIdTableRootAddress (%w)", err)
 	}
-	if err = db.writeInt32(int32(db.idleEntryTableRootAddress)); err != nil {
+	if err := db.writeInt32(int32(db.idleEntryTableRootAddress)); err != nil {
 		return fmt.Errorf("FAILED TO WRITE idleEntryTableRootAddress (%w)", err)
 	}
-	if err = db.writeUint32(uint32(db.entriesTotalByteSize)); err != nil {
+	if err := db.writeUint32(uint32(db.entriesTotalByteSize)); err != nil {
 		return fmt.Errorf("FAILED TO WRITE entriesTotalByteSize (%w)", err)
 	}
 	return nil
@@ -148,7 +147,7 @@ func (db *UnkoDB) readHeader() error {
 	if err != nil {
 		return fmt.Errorf("FAILED TO READ entriesTotalByteSize (%w)", err)
 	}
-	db.entriesOffset = int64(hSize)
+	db.entriesOffset = db.fileOffset + int64(hSize)
 	db.tableIdTableRootAddress = int64(tableIdTableRootAddress)
 	db.idleEntryTableRootAddress = int64(idleEntryTableRootAddress)
 	db.entriesTotalByteSize = int64(entriesTotalByteSize)
