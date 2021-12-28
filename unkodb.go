@@ -55,7 +55,7 @@ func Create(file io.ReadWriteSeeker) (*UnkoDB, error) {
 	db := &UnkoDB{
 		file:                      file,
 		fileOffset:                offset,
-		entriesOffset:             headerSize,
+		entriesOffset:             offset + headerSize,
 		tables:                    nil,
 		tableIdTableRootAddress:   noAddress,
 		idleEntryTableRootAddress: noAddress,
@@ -84,56 +84,48 @@ func Open(file io.ReadWriteSeeker) (*UnkoDB, error) {
 }
 
 func (db *UnkoDB) writeHeader() error {
-	var buf [headerSize]byte
-	header := bytes.NewBuffer(buf[:0])
-	header.Write(signature)
-	binary.Write(header, binary.BigEndian, uint16(headerSize))
-	binary.Write(header, binary.BigEndian, uint16(FormatVersion))
-	binary.Write(header, binary.BigEndian, int32(db.tableIdTableRootAddress))
-	binary.Write(header, binary.BigEndian, int32(db.idleEntryTableRootAddress))
-	binary.Write(header, binary.BigEndian, uint32(db.entriesTotalByteSize))
 	_, err := db.file.Seek(db.fileOffset, io.SeekStart)
 	if err != nil {
 		return err
 	}
-	if headerSize != header.Len() {
-		return fmt.Errorf("[BUG] WRONG HEADER SIZE: %d (expect %d)", header.Len(), headerSize)
+	if err = db.writeBytes(signature); err != nil {
+		return fmt.Errorf("FAILED TO WRITE SIGNATURE (%w)", err)
 	}
-	_, err = header.WriteTo(db.file)
-	return err
+	if err = db.writeUint16(headerSize); err != nil {
+		return fmt.Errorf("FAILED TO WRITE HEADER SIZE VALUE (%w)", err)
+	}
+	if err = db.writeUint16(FormatVersion); err != nil {
+		return fmt.Errorf("FAILED TO WRITE FORMAT VERSION (%w)", err)
+	}
+	if err = db.writeInt32(int32(db.tableIdTableRootAddress)); err != nil {
+		return fmt.Errorf("FAILED TO WRITE tableIdTableRootAddress (%w)", err)
+	}
+	if err = db.writeInt32(int32(db.idleEntryTableRootAddress)); err != nil {
+		return fmt.Errorf("FAILED TO WRITE idleEntryTableRootAddress (%w)", err)
+	}
+	if err = db.writeUint32(uint32(db.entriesTotalByteSize)); err != nil {
+		return fmt.Errorf("FAILED TO WRITE entriesTotalByteSize (%w)", err)
+	}
+	return nil
 }
 
 func (db *UnkoDB) readHeader() error {
 	var sig [signatureAreaSize]byte
-	_, err := db.file.Seek(db.fileOffset, io.SeekStart)
-	if err != nil {
+	if _, err := db.file.Seek(db.fileOffset, io.SeekStart); err != nil {
 		return err
 	}
-	n, err := io.ReadFull(db.file, sig[:])
-	if err != nil {
+	if err := db.readBytes(sig[:]); err != nil {
 		return fmt.Errorf("FAILED TO READ SIGNATURE (%w)", err)
-	}
-	if signatureAreaSize != n {
-		return fmt.Errorf("FAILED TO READ SIGNATURE")
 	}
 	if !bytes.Equal(signature, sig[:]) {
 		return fmt.Errorf("INVALID SIGNATURE: %#v", sig[:])
 	}
-	var hSize uint16
-	if err = binary.Read(db.file, binary.BigEndian, &hSize); err != nil {
+	hSize, err := db.readUint16()
+	if err != nil {
 		return fmt.Errorf("FAILED TO READ HEADER SIZE (%w)", err)
 	}
-	buf := make([]byte, int(hSize)-signatureAreaSize-headerSizeAreaSize)
-	n, err = io.ReadFull(db.file, buf)
+	fVer, err := db.readUint16()
 	if err != nil {
-		return fmt.Errorf("FAILED TO READ HEADER (%w)", err)
-	}
-	if len(buf) != n {
-		return fmt.Errorf("FAILED TO READ HEADER")
-	}
-	r := bytes.NewReader(buf)
-	var fVer uint16
-	if err = binary.Read(r, binary.BigEndian, &fVer); err != nil {
 		return fmt.Errorf("FAILED TO READ FORMAT VERSION (%w)", err)
 	}
 	if FormatVersion != fVer {
@@ -144,18 +136,16 @@ func (db *UnkoDB) readHeader() error {
 		// まだ FormatVersion=1だからheaderSizeに変化はない・・・
 		return fmt.Errorf("INFALID HEADER SIZE VALUE: %d", hSize)
 	}
-	var (
-		tableIdTableRootAddress   int32
-		idleEntryTableRootAddress int32
-		entriesTotalByteSize      uint32
-	)
-	if err = binary.Read(r, binary.BigEndian, &tableIdTableRootAddress); err != nil {
+	tableIdTableRootAddress, err := db.readInt32()
+	if err != nil {
 		return fmt.Errorf("FAILED TO READ tableIdTableRootAddress (%w)", err)
 	}
-	if err = binary.Read(r, binary.BigEndian, &idleEntryTableRootAddress); err != nil {
+	idleEntryTableRootAddress, err := db.readInt32()
+	if err != nil {
 		return fmt.Errorf("FAILED TO READ idleEntryTableRootAddress (%w)", err)
 	}
-	if err = binary.Read(r, binary.BigEndian, &entriesTotalByteSize); err != nil {
+	entriesTotalByteSize, err := db.readUint32()
+	if err != nil {
 		return fmt.Errorf("FAILED TO READ entriesTotalByteSize (%w)", err)
 	}
 	db.entriesOffset = int64(hSize)
@@ -163,4 +153,39 @@ func (db *UnkoDB) readHeader() error {
 	db.idleEntryTableRootAddress = int64(idleEntryTableRootAddress)
 	db.entriesTotalByteSize = int64(entriesTotalByteSize)
 	return nil
+}
+
+func (db *UnkoDB) writeBytes(b []byte) error {
+	return binary.Write(db.file, binary.BigEndian, b)
+}
+
+func (db *UnkoDB) readBytes(b []byte) error {
+	return binary.Read(db.file, binary.BigEndian, b)
+}
+
+func (db *UnkoDB) writeUint16(v uint16) error {
+	return binary.Write(db.file, binary.BigEndian, v)
+}
+
+func (db *UnkoDB) readUint16() (v uint16, err error) {
+	err = binary.Read(db.file, binary.BigEndian, &v)
+	return
+}
+
+func (db *UnkoDB) writeInt32(v int32) error {
+	return binary.Write(db.file, binary.BigEndian, v)
+}
+
+func (db *UnkoDB) readInt32() (v int32, err error) {
+	err = binary.Read(db.file, binary.BigEndian, &v)
+	return
+}
+
+func (db *UnkoDB) writeUint32(v uint32) error {
+	return binary.Write(db.file, binary.BigEndian, v)
+}
+
+func (db *UnkoDB) readUint32() (v uint32, err error) {
+	err = binary.Read(db.file, binary.BigEndian, &v)
+	return
 }

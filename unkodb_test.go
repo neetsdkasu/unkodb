@@ -80,7 +80,7 @@ func TestCreateDB(t *testing.T) {
 	}
 }
 
-func TestOpenDB(t *testing.T) {
+func TestOpenDB1(t *testing.T) {
 	f := &dummyFile{}
 	f.Offset = 0
 	f.Buf = []byte{
@@ -117,6 +117,51 @@ func TestOpenDB(t *testing.T) {
 	// TODO 他のパラメータチェック必要ね
 
 	const expectEntriesTotalByteSize = 0
+	if expectEntriesTotalByteSize != db.entriesTotalByteSize {
+		t.Fatal("umatch db.entriesTotalByteSize:",
+			"expect:", expectEntriesTotalByteSize,
+			"actual", db.entriesTotalByteSize,
+		)
+	}
+}
+
+func TestOpenDB2(t *testing.T) {
+	f := &dummyFile{}
+	f.Offset = 0
+	f.Buf = []byte{
+		0, 0, 0, 0, 0,
+		'U', 'N', 'K', 'O', 'D', 'B',
+		0, 0, 0, 0, 0,
+		0, 32,
+		0, 1,
+		1, 3, 5, 7,
+		2, 4, 6, 8,
+		1, 0, 2, 4,
+	}
+	db, err := Open(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f != db.file {
+		t.Fatal("db.file is wrong")
+	}
+	const expectOffset = 0
+	if expectOffset != db.fileOffset {
+		t.Fatal("umatch db.fileOffset:",
+			"expect:", expectOffset,
+			"actual", db.fileOffset,
+		)
+	}
+	if headerSize != db.entriesOffset {
+		t.Fatal("umatch db.entriesOffset:",
+			"expect:", headerSize,
+			"actual", db.entriesOffset,
+		)
+	}
+
+	// TODO 他のパラメータチェック必要ね
+
+	const expectEntriesTotalByteSize = 0x01_00_02_04
 	if expectEntriesTotalByteSize != db.entriesTotalByteSize {
 		t.Fatal("umatch db.entriesTotalByteSize:",
 			"expect:", expectEntriesTotalByteSize,

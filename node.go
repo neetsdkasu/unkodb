@@ -1,71 +1,65 @@
 package unkodb
 
-import (
-	"encoding/binary"
-	"io"
-)
-
-const entryHeightOffset = 2
+import "io"
 
 type nodeInfo struct {
 	address    int
+	size       int
+	height     int
 	leftChild  int
 	rightChild int
-	height     int
-	key        interface{}
+}
+
+func (db *UnkoDB) seekNodeHead(address int) (err error) {
+	_, err = db.file.Seek(db.entriesOffset+int64(address), io.SeekStart)
+	return
 }
 
 func (db *UnkoDB) writeNodeInfo(node *nodeInfo) error {
-	if _, err := db.file.Seek(db.entriesOffset+int64(node.address)+entryHeightOffset, io.SeekStart); err != nil {
+	if err := db.seekNodeHead(node.address); err != nil {
 		return err
 	}
-	if err := binary.Write(db.file, binary.BigEndian, uint16(node.height)); err != nil {
+	if err := db.writeUint16(uint16(node.size)); err != nil {
 		return err
 	}
-	if err := binary.Write(db.file, binary.BigEndian, int32(node.leftChild)); err != nil {
+	if err := db.writeUint16(uint16(node.height)); err != nil {
 		return err
 	}
-	if err := binary.Write(db.file, binary.BigEndian, int32(node.rightChild)); err != nil {
+	if err := db.writeInt32(int32(node.leftChild)); err != nil {
+		return err
+	}
+	if err := db.writeInt32(int32(node.rightChild)); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (db *UnkoDB) readNodeInfo(address int) (*nodeInfo, error) {
-	if _, err := db.file.Seek(db.entriesOffset+int64(address)+entryHeightOffset, io.SeekStart); err != nil {
+	if err := db.seekNodeHead(address); err != nil {
 		return nil, err
 	}
-	var height uint16
-	if err := binary.Read(db.file, binary.BigEndian, &height); err != nil {
+	size, err := db.readUint16()
+	if err != nil {
 		return nil, err
 	}
-	var leftChild int32
-	if err := binary.Read(db.file, binary.BigEndian, &leftChild); err != nil {
+	height, err := db.readUint16()
+	if err != nil {
 		return nil, err
 	}
-	var rightChild int32
-	if err := binary.Read(db.file, binary.BigEndian, &rightChild); err != nil {
+	leftChild, err := db.readInt32()
+	if err != nil {
+		return nil, err
+	}
+	rightChild, err := db.readInt32()
+	if err != nil {
 		return nil, err
 	}
 	node := &nodeInfo{
 		address:    address,
+		size:       int(size),
+		height:     int(height),
 		leftChild:  int(leftChild),
 		rightChild: int(rightChild),
-		height:     int(height),
-		key:        nil,
 	}
-	return node, nil
-}
-
-func (db *UnkoDB) readUint32KeyNode(address int) (*nodeInfo, error) {
-	node, err := db.readNodeInfo(address)
-	if err != nil {
-		return nil, err
-	}
-	var key uint32
-	if err = binary.Read(db.file, binary.BigEndian, &key); err != nil {
-		return nil, err
-	}
-	node.key = key
 	return node, nil
 }
