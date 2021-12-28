@@ -107,9 +107,9 @@ func TestOpenDB1(t *testing.T) {
 			"actual", db.fileOffset,
 		)
 	}
-	if headerSize != db.entriesOffset {
+	if expectOffset+headerSize != db.entriesOffset {
 		t.Fatal("umatch db.entriesOffset:",
-			"expect:", headerSize,
+			"expect:", expectOffset+headerSize,
 			"actual", db.entriesOffset,
 		)
 	}
@@ -152,9 +152,9 @@ func TestOpenDB2(t *testing.T) {
 			"actual", db.fileOffset,
 		)
 	}
-	if headerSize != db.entriesOffset {
+	if expectOffset+headerSize != db.entriesOffset {
 		t.Fatal("umatch db.entriesOffset:",
-			"expect:", headerSize,
+			"expect:", expectOffset+headerSize,
 			"actual", db.entriesOffset,
 		)
 	}
