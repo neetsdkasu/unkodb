@@ -107,7 +107,9 @@ func TestOpenDB1(t *testing.T) {
 			"actual", db.fileOffset,
 		)
 	}
-	if expectOffset+headerSize != db.entriesOffset {
+
+	const expectEntriesOffset = expectOffset + 32
+	if expectEntriesOffset != db.entriesOffset {
 		t.Fatal("umatch db.entriesOffset:",
 			"expect:", expectOffset+headerSize,
 			"actual", db.entriesOffset,
@@ -127,14 +129,15 @@ func TestOpenDB1(t *testing.T) {
 
 func TestOpenDB2(t *testing.T) {
 	f := &dummyFile{}
-	f.Offset = 0
+	f.Offset = 5
 	f.Buf = []byte{
+		1, 2, 3, 4, 5,
 		0, 0, 0, 0, 0,
 		'U', 'N', 'K', 'O', 'D', 'B',
 		0, 0, 0, 0, 0,
 		0, 32,
 		0, 1,
-		1, 3, 5, 7,
+		255, 255, 255, 255,
 		2, 4, 6, 8,
 		1, 0, 2, 4,
 	}
@@ -145,14 +148,16 @@ func TestOpenDB2(t *testing.T) {
 	if f != db.file {
 		t.Fatal("db.file is wrong")
 	}
-	const expectOffset = 0
+	const expectOffset = 5
 	if expectOffset != db.fileOffset {
 		t.Fatal("umatch db.fileOffset:",
 			"expect:", expectOffset,
 			"actual", db.fileOffset,
 		)
 	}
-	if expectOffset+headerSize != db.entriesOffset {
+
+	const expectEntriesOffset = expectOffset + 32
+	if expectEntriesOffset != db.entriesOffset {
 		t.Fatal("umatch db.entriesOffset:",
 			"expect:", expectOffset+headerSize,
 			"actual", db.entriesOffset,

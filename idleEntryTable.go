@@ -13,6 +13,28 @@ type idleEntry struct {
 	key   IntKey
 }
 
+func (table *idleEntryTable) take(size int) (address int, ok bool, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if e, ok := r.(error); ok {
+				err = e
+			} else {
+				panic(r)
+			}
+		}
+	}()
+	oldRoot := table.db.idleEntryTableRootAddress
+	_, kv := avltree.Delete(table, IntKey(size))
+	if kv != nil {
+		address = kv.Value().(int)
+		ok = true
+	}
+	if oldRoot != table.db.idleEntryTableRootAddress {
+		err = table.db.writeHeader()
+	}
+	return
+}
+
 func (table *idleEntryTable) add(size, address int) (ok bool, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -25,7 +47,6 @@ func (table *idleEntryTable) add(size, address int) (ok bool, err error) {
 	}()
 	oldRoot := table.db.idleEntryTableRootAddress
 	_, ok = avltree.Insert(table, false, IntKey(size), address)
-	// TODO SetRootが呼ばれているかもしれんので保存する必要あり・・・？
 	if oldRoot != table.db.idleEntryTableRootAddress {
 		err = table.db.writeHeader()
 	}

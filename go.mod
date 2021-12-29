@@ -1,4 +1,4 @@
-module unkodb
+module github.com/neetsdkasu/unkodb
 
 go 1.17
 

@@ -2,12 +2,11 @@ package unkodb
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"io"
 )
 
-const FormatVersion = 1
+const dbFormatVersion = 1
 
 var signature = []byte{
 	0, 0, 0, 0, 0,
@@ -31,6 +30,8 @@ const (
 		idleEntryTableRootAddressAreaSize +
 		entriesTotalByteSizeAreaSize
 )
+
+const limitEntriesTotalByteSize = 0x7FFF_FFFF - headerSize
 
 const noAddress = -1
 
@@ -93,7 +94,7 @@ func (db *UnkoDB) writeHeader() error {
 	if err := db.writeUint16(headerSize); err != nil {
 		return fmt.Errorf("FAILED TO WRITE HEADER SIZE VALUE (%w)", err)
 	}
-	if err := db.writeUint16(FormatVersion); err != nil {
+	if err := db.writeUint16(dbFormatVersion); err != nil {
 		return fmt.Errorf("FAILED TO WRITE FORMAT VERSION (%w)", err)
 	}
 	if err := db.writeInt32(int32(db.tableIdTableRootAddress)); err != nil {
@@ -127,12 +128,12 @@ func (db *UnkoDB) readHeader() error {
 	if err != nil {
 		return fmt.Errorf("FAILED TO READ FORMAT VERSION (%w)", err)
 	}
-	if FormatVersion != fVer {
-		// まだ FormatVersion=1だから・・・
+	if dbFormatVersion != fVer {
+		// まだ dbFormatVersion=1だから・・・
 		return fmt.Errorf("INFALID FORMAT VERSION: %d", fVer)
 	}
 	if headerSize != hSize {
-		// まだ FormatVersion=1だからheaderSizeに変化はない・・・
+		// まだ dbFormatVersion=1だからheaderSizeに変化はない・・・
 		return fmt.Errorf("INFALID HEADER SIZE VALUE: %d", hSize)
 	}
 	tableIdTableRootAddress, err := db.readInt32()
@@ -154,37 +155,25 @@ func (db *UnkoDB) readHeader() error {
 	return nil
 }
 
-func (db *UnkoDB) writeBytes(b []byte) error {
-	return binary.Write(db.file, binary.BigEndian, b)
-}
-
-func (db *UnkoDB) readBytes(b []byte) error {
-	return binary.Read(db.file, binary.BigEndian, b)
-}
-
-func (db *UnkoDB) writeUint16(v uint16) error {
-	return binary.Write(db.file, binary.BigEndian, v)
-}
-
-func (db *UnkoDB) readUint16() (v uint16, err error) {
-	err = binary.Read(db.file, binary.BigEndian, &v)
-	return
-}
-
-func (db *UnkoDB) writeInt32(v int32) error {
-	return binary.Write(db.file, binary.BigEndian, v)
-}
-
-func (db *UnkoDB) readInt32() (v int32, err error) {
-	err = binary.Read(db.file, binary.BigEndian, &v)
-	return
-}
-
-func (db *UnkoDB) writeUint32(v uint32) error {
-	return binary.Write(db.file, binary.BigEndian, v)
-}
-
-func (db *UnkoDB) readUint32() (v uint32, err error) {
-	err = binary.Read(db.file, binary.BigEndian, &v)
+func (db *UnkoDB) newEmptyEntry(size int) (address int, err error) {
+	table := idleEntryTable{db}
+	var ok bool
+	address, ok, err = table.take(size)
+	if ok || err != nil {
+		return
+	}
+	if limitEntriesTotalByteSize < db.entriesTotalByteSize+int64(size) {
+		err = fmt.Errorf("EXCEED LIMIT DB-ENTRIES SIZE: %d", db.entriesTotalByteSize+int64(size))
+		return
+	}
+	address64 := db.entriesOffset + db.entriesTotalByteSize
+	if _, err = db.file.Seek(address64, io.SeekStart); err != nil {
+		return
+	}
+	if _, err = db.file.Write(make([]byte, size)); err != nil {
+		return
+	}
+	address = int(address64 - db.entriesOffset)
+	db.entriesTotalByteSize += int64(size)
 	return
 }
