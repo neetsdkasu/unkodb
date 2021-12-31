@@ -2,66 +2,14 @@ package unkodb
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"testing"
+
+	. "github.com/neetsdkasu/unkodb/dummyfile"
 )
 
-type dummyFile struct {
-	Buf    []byte
-	Offset int
-}
-
-func (f *dummyFile) Read(p []byte) (n int, err error) {
-	n = len(p)
-	rem := len(f.Buf) - f.Offset
-	if rem < n {
-		if rem == 0 {
-			return 0, io.EOF
-		}
-		n = rem
-	}
-	copy(p[:n], f.Buf[f.Offset:f.Offset+n])
-	f.Offset += n
-	return
-}
-
-func (f *dummyFile) Write(p []byte) (n int, err error) {
-	n = len(p)
-	rem := len(f.Buf) - f.Offset
-	if rem < n {
-		copy(f.Buf[f.Offset:], p[:rem])
-		f.Buf = append(f.Buf, p[rem:]...)
-	} else {
-		copy(f.Buf[f.Offset:f.Offset+n], p)
-	}
-	f.Offset += n
-	return
-}
-
-func (f *dummyFile) Seek(offset int64, whence int) (int64, error) {
-	var newOffset int64
-	switch whence {
-	case io.SeekStart:
-		newOffset = offset
-	case io.SeekCurrent:
-		newOffset = int64(f.Offset) + offset
-	case io.SeekEnd:
-		newOffset = int64(len(f.Buf)) + offset
-	default:
-		return int64(f.Offset), fmt.Errorf("invalid whence %d", whence)
-	}
-	if newOffset < 0 {
-		return int64(f.Offset), fmt.Errorf("invalid offset %d", offset)
-	} else if int64(len(f.Buf)) < newOffset {
-		return int64(f.Offset), fmt.Errorf("unsupported extending file")
-	}
-	f.Offset = int(newOffset)
-	return newOffset, nil
-}
-
 func TestCreateDB(t *testing.T) {
-	f := &dummyFile{}
+	f := &DummyFile{}
 	if _, err := Create(f); err != nil {
 		t.Fatal(err)
 	}
@@ -75,15 +23,14 @@ func TestCreateDB(t *testing.T) {
 		255, 255, 255, 255,
 		0, 0, 0, 0,
 	}
-	if !bytes.Equal(f.Buf, expectBuf) {
-		t.Fatal("unmatch buf:", "expect:", expectBuf, "actual", f.Buf)
+	if !bytes.Equal(f.Bytes(), expectBuf) {
+		t.Fatal("unmatch buf:", "expect:", expectBuf, "actual", f.Bytes())
 	}
 }
 
 func TestOpenDB1(t *testing.T) {
-	f := &dummyFile{}
-	f.Offset = 0
-	f.Buf = []byte{
+	f := &DummyFile{}
+	f.Write([]byte{
 		0, 0, 0, 0, 0,
 		'U', 'N', 'K', 'O', 'D', 'B',
 		0, 0, 0, 0, 0,
@@ -92,7 +39,9 @@ func TestOpenDB1(t *testing.T) {
 		255, 255, 255, 255,
 		255, 255, 255, 255,
 		0, 0, 0, 0,
-	}
+	})
+	f.Seek(0, io.SeekStart)
+
 	db, err := Open(f)
 	if err != nil {
 		t.Fatal(err)
@@ -128,9 +77,8 @@ func TestOpenDB1(t *testing.T) {
 }
 
 func TestOpenDB2(t *testing.T) {
-	f := &dummyFile{}
-	f.Offset = 5
-	f.Buf = []byte{
+	f := &DummyFile{}
+	f.Write([]byte{
 		1, 2, 3, 4, 5,
 		0, 0, 0, 0, 0,
 		'U', 'N', 'K', 'O', 'D', 'B',
@@ -140,7 +88,9 @@ func TestOpenDB2(t *testing.T) {
 		255, 255, 255, 255,
 		2, 4, 6, 8,
 		1, 0, 2, 4,
-	}
+	})
+	f.Seek(5, io.SeekStart)
+
 	db, err := Open(f)
 	if err != nil {
 		t.Fatal(err)
