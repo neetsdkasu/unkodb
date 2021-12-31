@@ -31,7 +31,10 @@ const (
 		entriesTotalByteSizeAreaSize
 )
 
-const limitEntriesTotalByteSize = 0x7FFF_FFFF - headerSize
+const (
+	limitEntriesTotalByteSize = 0x7FFF_FFFF - headerSize
+	limitEntryByteSize        = 0x8000
+)
 
 const noAddress = -1
 
@@ -155,25 +158,33 @@ func (db *UnkoDB) readHeader() error {
 	return nil
 }
 
-func (db *UnkoDB) newEmptyEntry(size int) (address int, err error) {
+func (db *UnkoDB) newEmptyEntry(size int) (address, realSize int, err error) {
+	if size <= 0 || limitEntryByteSize < size {
+		err = fmt.Errorf("EXCEED LIMIT ENTRY SIZE: %d (must be 0 < size <= %d)", size, limitEntryByteSize)
+		return
+	}
+	realSize = ((size + 3) >> 2) << 2
 	table := idleEntryTable{db}
 	var ok bool
-	address, ok, err = table.take(size)
+	address, ok, err = table.take(realSize)
 	if ok || err != nil {
 		return
 	}
-	if limitEntriesTotalByteSize < db.entriesTotalByteSize+int64(size) {
-		err = fmt.Errorf("EXCEED LIMIT DB-ENTRIES SIZE: %d", db.entriesTotalByteSize+int64(size))
+	if limitEntriesTotalByteSize < db.entriesTotalByteSize+int64(realSize) {
+		err = fmt.Errorf("EXCEED LIMIT DB-ENTRIES SIZE: %d", db.entriesTotalByteSize+int64(realSize))
 		return
 	}
 	address64 := db.entriesOffset + db.entriesTotalByteSize
 	if _, err = db.file.Seek(address64, io.SeekStart); err != nil {
 		return
 	}
-	if _, err = db.file.Write(make([]byte, size)); err != nil {
+	if err = db.writeUint16(uint16(realSize)); err != nil {
+		return
+	}
+	if err = db.writeBytes(make([]byte, realSize-2)); err != nil {
 		return
 	}
 	address = int(address64 - db.entriesOffset)
-	db.entriesTotalByteSize += int64(size)
+	db.entriesTotalByteSize += int64(realSize)
 	return
 }
