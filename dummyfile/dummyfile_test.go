@@ -1,3 +1,6 @@
+// Author:  Leonardone @ NEETSDKASU
+// License: MIT
+
 package dummyfile
 
 import (
@@ -107,7 +110,8 @@ func TestWrite(t *testing.T) {
 		file.Write(bufUpper)
 		file.Write(bufLower)
 	}
-	// Bytesを使わずに確認すべき・・・
+	// SeekやBytesを使わずに確認すべき・・・
+	file.Seek(0, io.SeekStart)
 	if !bytes.Equal(buf, file.Bytes()) {
 		t.Fatal("unmatch buffer")
 	}

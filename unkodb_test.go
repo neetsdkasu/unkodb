@@ -5,11 +5,11 @@ import (
 	"io"
 	"testing"
 
-	. "github.com/neetsdkasu/unkodb/dummyfile"
+	"github.com/neetsdkasu/unkodb/dummyfile"
 )
 
 func TestCreateDB(t *testing.T) {
-	f := &DummyFile{}
+	f := &dummyfile.DummyFile{}
 	if _, err := Create(f); err != nil {
 		t.Fatal(err)
 	}
@@ -23,13 +23,14 @@ func TestCreateDB(t *testing.T) {
 		255, 255, 255, 255,
 		0, 0, 0, 0,
 	}
+	f.Seek(0, io.SeekStart)
 	if !bytes.Equal(f.Bytes(), expectBuf) {
 		t.Fatal("unmatch buf:", "expect:", expectBuf, "actual", f.Bytes())
 	}
 }
 
 func TestOpenDB1(t *testing.T) {
-	f := &DummyFile{}
+	f := &dummyfile.DummyFile{}
 	f.Write([]byte{
 		0, 0, 0, 0, 0,
 		'U', 'N', 'K', 'O', 'D', 'B',
@@ -77,7 +78,7 @@ func TestOpenDB1(t *testing.T) {
 }
 
 func TestOpenDB2(t *testing.T) {
-	f := &DummyFile{}
+	f := &dummyfile.DummyFile{}
 	f.Write([]byte{
 		1, 2, 3, 4, 5,
 		0, 0, 0, 0, 0,

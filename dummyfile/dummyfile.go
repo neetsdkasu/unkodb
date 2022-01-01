@@ -1,3 +1,11 @@
+// Author:  Leonardone @ NEETSDKASU
+// License: MIT
+
+// io.ReadWriteSeeker を実装した構造体　DummyFile を定義する
+// DummyFile は github.com/neetsdkasu/unkodb の内部のテスト用に使う (それ以外の使われ方は想定されていない)
+// バッファを1024byte単位の断片としてデータを保持する
+// バッファ内の現在の位置の情報はRead,Writeで共通なためいずれかの実行で更新される
+// bytes.Bufferやos.Fileのメソッドとは挙動が異なるので注意
 package dummyfile
 
 import (
@@ -19,6 +27,8 @@ type DummyFile struct {
 	length       int
 }
 
+// 初期容量を指定してDummyFileのインスタンスを生成する
+// initialwCapacityは1024の倍数になるように切り上げされる
 func New(initialCapacity int) *DummyFile {
 	if initialCapacity < 0 {
 		panic("initialCapacity must be non-negative value")
@@ -42,14 +52,20 @@ func New(initialCapacity int) *DummyFile {
 	}
 }
 
+// 現在の容量を返す
 func (f *DummyFile) Cap() int {
 	return len(f.buffer) << bitWidth
 }
 
+// 現在位置から読み込み可能な残りサイズを返す
+// Readで使用することが想定されている
+// 現在の位置はWrite,Read,Seekで変わる
 func (f *DummyFile) Len() int {
-	return f.length
+	return f.length - f.position
 }
 
+// 現在の位置からデータを読み込む
+// 現在の位置は読み込んだ長さ分だけ進む
 func (f *DummyFile) Read(p []byte) (n int, err error) {
 	n = f.length - f.position
 	if n == 0 {
@@ -87,6 +103,9 @@ func (f *DummyFile) Read(p []byte) (n int, err error) {
 	return
 }
 
+// 現在の位置からデータを書き込む
+// 必要に応じて容量が増加される
+// 現在の位置は書き込んだ長さ分だけ進む
 func (f *DummyFile) Write(p []byte) (n int, err error) {
 	n = len(p)
 	newPosition := f.position + n
@@ -130,6 +149,8 @@ func (f *DummyFile) Write(p []byte) (n int, err error) {
 	return
 }
 
+// 現在の位置を変更する
+// 現在の容量より大きい位置が指定された場合はGrowの呼び出しで容量が拡張される
 func (f *DummyFile) Seek(offset int64, whence int) (int64, error) {
 	var newPosition int64
 	switch whence {
@@ -166,6 +187,10 @@ func (f *DummyFile) Seek(offset int64, whence int) (int64, error) {
 	return newPosition, nil
 }
 
+// 必要に応じて容量を増やす
+// newCapacityは1024の倍数になるように切り上げされる
+// 現在の容量がnewCapacity未満の場合は容量が増やされる
+// 現在の容量がnewCapacity居ｋ上の場合は何もしない
 func (f *DummyFile) Grow(newCapacity int) {
 	if newCapacity < 0 {
 		panic("invalid newCapacity")
@@ -192,6 +217,7 @@ func (f *DummyFile) Grow(newCapacity int) {
 	}
 }
 
+// 内部で保持してる全てのバッファ断片を結合して1つのバッファにする
 func (f *DummyFile) Unite() {
 	if f.singleBuffer != nil {
 		return
@@ -212,7 +238,18 @@ func (f *DummyFile) Unite() {
 	}
 }
 
+// 現在の位置から残り全部までのバッファのスライスを返す
+// 1つのバッファ断片内に収まる範囲の場合はその断片からスライスを返す
+// 1つのバッファ断片内に収まらない範囲の場合はUniteを呼び出し全ての断片を結合してからスライスを返す
+// f.Len() == len(f.Bytes()) となる
+// 現在の位置はWrite,Read,Seekで変わる
 func (f *DummyFile) Bytes() []byte {
-	f.Unite()
-	return f.singleBuffer[:f.length]
+	a := f.position >> bitWidth
+	b := f.position & bitMask
+	if f.Len() < cap(f.buffer[a])-b {
+		return f.buffer[a][b : b+f.Len()]
+	} else {
+		f.Unite()
+		return f.singleBuffer[f.position:f.length]
+	}
 }
