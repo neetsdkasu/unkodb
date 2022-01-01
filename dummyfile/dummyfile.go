@@ -192,7 +192,7 @@ func (f *DummyFile) Unite() {
 	newBuffer := make([]byte, newSize)
 	f.singleBuffer = newBuffer
 	p := 0
-	for p < newSize {
+	for p < newSize { // コピーは f.length まででもいいのかもしれないが
 		b := f.buffer[p>>bitWidth]
 		c := cap(b)
 		copy(newBuffer[p:p+c], b[:c])
