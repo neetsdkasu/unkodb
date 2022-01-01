@@ -66,6 +66,14 @@ func TestNew_sharing(t *testing.T) {
 	}
 }
 
+func TestCap(t *testing.T) {
+	t.Skip("テスト未実装")
+}
+
+func TestLen(t *testing.T) {
+	t.Skip("テスト未実装")
+}
+
 func TestSeek(t *testing.T) {
 	t.Skip("テスト未実装")
 }

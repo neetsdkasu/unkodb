@@ -42,6 +42,14 @@ func New(initialCapacity int) *DummyFile {
 	}
 }
 
+func (f *DummyFile) Cap() int {
+	return len(f.buffer) << bitWidth
+}
+
+func (f *DummyFile) Len() int {
+	return f.length
+}
+
 func (f *DummyFile) Read(p []byte) (n int, err error) {
 	n = f.length - f.position
 	if n == 0 {
