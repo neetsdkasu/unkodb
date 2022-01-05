@@ -5,12 +5,33 @@ import (
 	. "github.com/neetsdkasu/avltree/stringkey"
 )
 
-type tableIdTable struct{ db *UnkoDB }
+type Table interface {
+	Name() string
+	// Columns() []ColumnSpec
+	spec() *tableSpec
+}
+
+type tableIdTable struct {
+	db          *UnkoDB
+	loadingSpec bool
+}
+
+type tableSpec struct {
+	address int
+	name    string
+	// keyType KeyType
+	keyName     string
+	rootEntry   int
+	entryCount  int
+	nextEntryId int
+	// columns []columnSpec
+}
 
 type tableIdEntry struct {
 	table *tableIdTable
 	node  *nodeInfo
 	key   StringKey
+	spec  *tableSpec
 }
 
 func (table *tableIdTable) Root() avltree.Node {

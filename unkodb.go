@@ -48,8 +48,6 @@ type UnkoDB struct {
 	tables                    []Table
 }
 
-type Table interface{}
-
 // ファイル内の現在位置からUnkoDBフォーマットで書き込む
 func Create(file io.ReadWriteSeeker) (*UnkoDB, error) {
 	offset, err := file.Seek(0, io.SeekCurrent)
