@@ -2,35 +2,18 @@ package unkodb
 
 import (
 	"github.com/neetsdkasu/avltree"
-	. "github.com/neetsdkasu/avltree/stringkey"
+	avltreekey "github.com/neetsdkasu/avltree/stringkey"
 )
-
-type Table interface {
-	Name() string
-	// Columns() []ColumnSpec
-	spec() *tableSpec
-}
 
 type tableIdTable struct {
 	db          *UnkoDB
 	loadingSpec bool
 }
 
-type tableSpec struct {
-	address int
-	name    string
-	// keyType KeyType
-	keyName     string
-	rootEntry   int
-	entryCount  int
-	nextEntryId int
-	// columns []columnSpec
-}
-
 type tableIdEntry struct {
 	table *tableIdTable
 	node  *nodeInfo
-	key   StringKey
+	key   avltreekey.StringKey
 	spec  *tableSpec
 }
 
