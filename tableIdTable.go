@@ -2,7 +2,7 @@ package unkodb
 
 import (
 	"github.com/neetsdkasu/avltree"
-	avltreekey "github.com/neetsdkasu/avltree/stringkey"
+	. "github.com/neetsdkasu/avltree/stringkey"
 )
 
 type tableIdTable struct {
@@ -13,7 +13,7 @@ type tableIdTable struct {
 type tableIdEntry struct {
 	table *tableIdTable
 	node  *nodeInfo
-	key   avltreekey.StringKey
+	key   StringKey
 	spec  *tableSpec
 }
 
