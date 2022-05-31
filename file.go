@@ -1,7 +1,6 @@
 // unkodb
 // author: Leonardone @ NEETSDKASU
 
-//
 // ファイルヘッダフォーマット
 //  シグネチャ
 ///   16 byte
@@ -14,6 +13,7 @@
 //    4 byte (int32)
 //  空き領域断片のルートノードを示すメモリ位置（アドレス？） (0の場合は断片なし)
 //    4 byte (int32)
+
 package unkodb
 
 import (
@@ -72,7 +72,7 @@ func Signature() []byte {
 func NewFile(file io.ReadWriteSeeker) (*File, error) {
 	fileSize, err := file.Seek(0, io.SeekEnd)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed File.NewFile [%w]", err)
 	}
 	newFile := &File{
 		inner:    file,
@@ -83,7 +83,7 @@ func NewFile(file io.ReadWriteSeeker) (*File, error) {
 		// empty file
 		err = newFile.create()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Failed File.NewFile [%w]", err)
 		}
 	} else if fileSize < FileHeaderSize {
 		return nil, fmt.Errorf("Wrong File Format")
@@ -98,16 +98,16 @@ func (file *File) create() error {
 	var buffer [FileHeaderSize]byte
 	w := NewByteEncoder(bytes.NewBuffer(buffer[:0]), fileByteOrder)
 	if err := w.RawBytes(Signature()); err != nil {
-		return err
+		return fmt.Errorf("Failed write signature [%w]", err)
 	}
 	if err := w.Uint16(FileFormatVersion); err != nil {
-		return err
+		return fmt.Errorf("Failed write fileformatversion [%w]", err)
 	}
 	if err := file.Write(0, buffer[:]); err != nil {
-		return err
+		return fmt.Errorf("Failed write reservearea [%w]", err)
 	}
 	if fileSize, err := file.inner.Seek(0, io.SeekEnd); err != nil {
-		return err
+		return fmt.Errorf("Failed get file size [%w]", err)
 	} else {
 		file.fileSize = int(fileSize)
 	}
@@ -171,12 +171,12 @@ func (file *File) checkHeader() error {
 
 func (file *File) Read(position int, buffer []byte) error {
 	if _, err := file.inner.Seek(int64(position), io.SeekStart); err != nil {
-		return err
+		return fmt.Errorf("Failed File.Read (seek) [%w]", err)
 	}
 	if n, err := io.ReadFull(file.inner, buffer); err != nil {
-		return err
+		return fmt.Errorf("Failed File.Read (read) [%w]", err)
 	} else if n != len(buffer) {
-		return fmt.Errorf("Cannot Read (Position: %d, Length: %d, Read: %d)", position, len(buffer), n)
+		return fmt.Errorf("Failed File.Read [cannot read (Position: %d, Length: %d, Read: %d)]", position, len(buffer), n)
 	}
 	return nil
 }
@@ -185,19 +185,19 @@ func (file *File) ReadBytes(position, length int) ([]byte, error) {
 	buffer := make([]byte, length)
 	err := file.Read(position, buffer)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed File.ReadBytes [%w]", err)
 	}
 	return buffer, nil
 }
 
 func (file *File) Write(position int, data []byte) error {
 	if _, err := file.inner.Seek(int64(position), io.SeekStart); err != nil {
-		return err
+		return fmt.Errorf("Failed File.Write (seek) [%w]", err)
 	}
 	if n, err := file.inner.Write(data); err != nil {
-		return err
+		return fmt.Errorf("Failed File.Write (write) [%w]", err)
 	} else if n != len(data) {
-		return fmt.Errorf("Cannot Write (Position: %d, Data Length: %d, Wrote: %d)", position, len(data), n)
+		return fmt.Errorf("Failed File.Write [cannot write (Position: %d, Data Length: %d, Wrote: %d)]", position, len(data), n)
 	}
 	return nil
 }
@@ -228,7 +228,33 @@ func (file *File) ReadTableListRootAddress() (int, error) {
 }
 
 func (file *File) WriteTableListRootAddress(newAddress int) error {
-	panic("TODO")
+	var buffer [FileHeaderTableListRootAddressLength]byte
+	fileByteOrder.PutUint32(buffer[:], uint32(newAddress))
+	err := file.Write(FileHeaderTableListRootAddressPosition, buffer[:])
+	if err != nil {
+		return fmt.Errorf("Failed File.WriteTableListRootAddress [%w]", err)
+	}
+	return nil
+}
+
+func (file *File) ReadIdleSegmentListRootAddress() (int, error) {
+	var buffer [FileHeaderIdleSegmentListRootAddressLength]byte
+	err := file.Read(FileHeaderIdleSegmentListRootAddressPosition, buffer[:])
+	if err != nil {
+		return 0, fmt.Errorf("Failed File.ReadIdleSegmentListRootAddress [%w]", err)
+	}
+	address := int(fileByteOrder.Uint32(buffer[:]))
+	return address, nil
+}
+
+func (file *File) WriteIdleSegmentListRootAddress(newAddress int) error {
+	var buffer [FileHeaderIdleSegmentListRootAddressLength]byte
+	fileByteOrder.PutUint32(buffer[:], uint32(newAddress))
+	err := file.Write(FileHeaderIdleSegmentListRootAddressPosition, buffer[:])
+	if err != nil {
+		return fmt.Errorf("Failed File.WriteIdleSegmentListRootAddress [%w]", err)
+	}
+	return nil
 }
 
 func (seg *Segment) Position() int {
