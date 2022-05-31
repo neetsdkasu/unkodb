@@ -202,14 +202,37 @@ func (file *File) Write(position int, data []byte) error {
 	return nil
 }
 
+func (file *File) CreateSegment(length int) (*Segment, error) {
+	pos, err := file.inner.Seek(0, io.SeekEnd)
+	if err != nil {
+		return nil, fmt.Errorf("Failed File.CreateSegment (seek) [%w]", err)
+	}
+	length += SegmentHeaderSize
+	buffer := make([]byte, length)
+	err = NewByteEncoder(bytes.NewBuffer(buffer[:0]), fileByteOrder).Int32(int32(length))
+	if err != nil {
+		panic(err) // ここに到達する場合はバグがある
+	}
+	err = file.Write(int(pos), buffer)
+	if err != nil {
+		return nil, fmt.Errorf("Failed File.CreateSegment (write) [%w]", err)
+	}
+	seg := &Segment{
+		file:     file,
+		position: int(pos),
+		buffer:   buffer,
+	}
+	return seg, nil
+}
+
 func (file *File) ReadSegment(position int) (*Segment, error) {
 	var headerBuffer [SegmentHeaderSize]byte
 	err := file.Read(position, headerBuffer[:])
 	if err != nil {
-		return nil, fmt.Errorf("Failed File.ReadSegment (read size) [%w]", err)
+		return nil, fmt.Errorf("Failed File.ReadSegment (read header) [%w]", err)
 	}
-	size := int(fileByteOrder.Uint32(headerBuffer[:]))
-	buffer, err := file.ReadBytes(position, size)
+	length := int(fileByteOrder.Uint32(headerBuffer[:]))
+	buffer, err := file.ReadBytes(position, length)
 	if err != nil {
 		return nil, fmt.Errorf("Failed File.ReadSegment (read data) [%w]", err)
 	}
