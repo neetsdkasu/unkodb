@@ -55,17 +55,17 @@ func (decoder *ByteDecoder) Value(dst any) error {
 }
 
 func (encoder *ByteEncoder) Uint16(src uint16) error {
-	return binary.Write(encoder.writer, encoder.order, src)
+	return encoder.Value(src)
 }
 
 func (decoder *ByteDecoder) Uint16(dst *uint16) error {
-	return binary.Read(decoder.reader, decoder.order, dst)
+	return decoder.Value(dst)
 }
 
 func (encoder *ByteEncoder) Int32(src int32) error {
-	return binary.Write(encoder.writer, encoder.order, src)
+	return encoder.Value(src)
 }
 
 func (decoder *ByteDecoder) Int32(dst *int32) error {
-	return binary.Read(decoder.reader, decoder.order, dst)
+	return decoder.Value(dst)
 }
