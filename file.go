@@ -69,7 +69,7 @@ func Signature() []byte {
 	}
 }
 
-func NewFile(file io.ReadWriteSeeker) (*File, error) {
+func LoadFile(file io.ReadWriteSeeker) (*File, error) {
 	fileSize, err := file.Seek(0, io.SeekEnd)
 	if err != nil {
 		return nil, fmt.Errorf("Failed File.NewFile [%w]", err)
@@ -79,13 +79,7 @@ func NewFile(file io.ReadWriteSeeker) (*File, error) {
 		fileSize: int(fileSize),
 		version:  FileFormatVersion,
 	}
-	if fileSize == 0 {
-		// empty file
-		err = newFile.create()
-		if err != nil {
-			return nil, fmt.Errorf("Failed File.NewFile [%w]", err)
-		}
-	} else if fileSize < FileHeaderSize {
+	if fileSize < FileHeaderSize {
 		return nil, fmt.Errorf("Wrong File Format")
 	}
 	if err = newFile.checkHeader(); err != nil {
@@ -94,24 +88,29 @@ func NewFile(file io.ReadWriteSeeker) (*File, error) {
 	return newFile, nil
 }
 
-func (file *File) create() error {
+func CreateFile(file io.ReadWriteSeeker) (*File, error) {
+	newFile := &File{
+		inner:    file,
+		fileSize: 0,
+		version:  FileFormatVersion,
+	}
 	var buffer [FileHeaderSize]byte
 	w := NewByteEncoder(bytes.NewBuffer(buffer[:0]), fileByteOrder)
 	if err := w.RawBytes(Signature()); err != nil {
-		return fmt.Errorf("Failed write signature [%w]", err)
+		return nil, fmt.Errorf("Failed write signature [%w]", err)
 	}
 	if err := w.Uint16(FileFormatVersion); err != nil {
-		return fmt.Errorf("Failed write fileformatversion [%w]", err)
+		return nil, fmt.Errorf("Failed write fileformatversion [%w]", err)
 	}
-	if err := file.Write(0, buffer[:]); err != nil {
-		return fmt.Errorf("Failed write reservearea [%w]", err)
+	if err := newFile.Write(0, buffer[:]); err != nil {
+		return nil, fmt.Errorf("Failed write reservearea [%w]", err)
 	}
-	if fileSize, err := file.inner.Seek(0, io.SeekEnd); err != nil {
-		return fmt.Errorf("Failed get file size [%w]", err)
+	if fileSize, err := newFile.inner.Seek(0, io.SeekEnd); err != nil {
+		return nil, fmt.Errorf("Failed get file size [%w]", err)
 	} else {
-		file.fileSize = int(fileSize)
+		newFile.fileSize = int(fileSize)
 	}
-	return nil
+	return newFile, nil
 }
 
 func (file *File) checkHeader() error {

@@ -80,14 +80,14 @@ func TestSignature(t *testing.T) {
 	}
 }
 
-func TestNewFile(t *testing.T) {
+func TestCreateFile(t *testing.T) {
 	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tempfile.Close()
 
-	file, err := NewFile(tempfile)
+	file, err := CreateFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +98,47 @@ func TestNewFile(t *testing.T) {
 		t.Fatalf("Wrong File Size (%d)", file.fileSize)
 	}
 
-	file, err = NewFile(tempfile)
+	_, err = tempfile.Seek(0, io.SeekStart)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buf, err := ioutil.ReadAll(tempfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(buf) != FileHeaderSize {
+		t.Fatalf("Wrong File Size (%d)", len(buf))
+	}
+
+	comp := bytes.Equal(buf, []byte{
+		3, 5, 7, 11, 13, 17, 19, 23, 29, 31,
+		'U', 'N', 'K', 'O', 'D', 'B',
+		0, 1,
+		0, 0, 0, 0,
+		0, 0, 0, 0,
+		0, 0, 0, 0,
+	})
+
+	if !comp {
+		t.Fatalf("Wrong File Format (%#v)", buf)
+	}
+}
+
+func TestLoadFile(t *testing.T) {
+	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tempfile.Close()
+
+	file, err := CreateFile(tempfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	file, err = LoadFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,24 +177,24 @@ func TestNewFile(t *testing.T) {
 	}
 }
 
-func TestTableListRootAddress(t *testing.T) {
+func TestFile_TableListRootAddress(t *testing.T) {
 	// TODO
 	t.Skip("THIS TEST IS NOT IMPLEMENTED")
 }
 
-func TestIdleSegmentListRootAddress(t *testing.T) {
+func TestFile_IdleSegmentListRootAddress(t *testing.T) {
 	// TODO
 	t.Skip("THIS TEST IS NOT IMPLEMENTED")
 }
 
-func TestCreateSegment(t *testing.T) {
+func TestFile_CreateSegment(t *testing.T) {
 	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tempfile.Close()
 
-	file, err := NewFile(tempfile)
+	file, err := CreateFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -276,7 +316,7 @@ func TestCreateSegment(t *testing.T) {
 	}
 }
 
-func TestSegmentPosition(t *testing.T) {
+func TestSegment_Position(t *testing.T) {
 	f := func(v int) bool {
 		seg := &Segment{}
 		seg.position = v
@@ -297,7 +337,7 @@ func TestSegmentPosition(t *testing.T) {
 	}
 }
 
-func TestSegmentBuffer(t *testing.T) {
+func TestSegment_Buffer(t *testing.T) {
 	seg := &Segment{}
 	seg.buffer = []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}
 
@@ -329,14 +369,14 @@ func TestSegmentBuffer(t *testing.T) {
 	}
 }
 
-func TestSegmentFlush(t *testing.T) {
+func TestSegment_Flush(t *testing.T) {
 	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tempfile.Close()
 
-	file, err := NewFile(tempfile)
+	file, err := CreateFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -393,14 +433,14 @@ func TestSegmentFlush(t *testing.T) {
 	}
 }
 
-func TestReadSegment(t *testing.T) {
+func TestFile_ReadSegment(t *testing.T) {
 	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tempfile.Close()
 
-	file, err := NewFile(tempfile)
+	file, err := CreateFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
