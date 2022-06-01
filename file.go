@@ -36,7 +36,10 @@ const (
 	FileHeaderFileFormatVersionPosition = FileHeaderSignaturePosition + FileHeaderSignatureLength
 	FileHeaderFileFormatVersionLength   = 2
 
-	FileHeaderReserveAreaAddressPosition = FileHeaderFileFormatVersionPosition + FileHeaderFileFormatVersionLength
+	FileHeaderNextNewSegmentAddressPosition = FileHeaderFileFormatVersionPosition + FileHeaderFileFormatVersionLength
+	FileHeaderNextNewSegmentAddressLength   = AddressSize
+
+	FileHeaderReserveAreaAddressPosition = FileHeaderNextNewSegmentAddressPosition + FileHeaderNextNewSegmentAddressLength
 	FileHeaderReserveAreaAddressLength   = AddressSize
 
 	FileHeaderTableListRootAddressPosition = FileHeaderReserveAreaAddressPosition + FileHeaderReserveAreaAddressLength
@@ -47,13 +50,15 @@ const (
 
 	FileHeaderSize = FileHeaderIdleSegmentListRootAddressPosition + FileHeaderIdleSegmentListRootAddressLength
 
+	FirstNewSegmentAddress = FileHeaderSize
+
 	SegmentHeaderSize = AddressSize
 )
 
 type File struct {
-	inner    io.ReadWriteSeeker
-	fileSize int
-	version  int
+	inner                 io.ReadWriteSeeker
+	version               int
+	nextNewSegmentAddress int
 }
 
 type Segment struct {
@@ -75,9 +80,9 @@ func LoadFile(file io.ReadWriteSeeker) (*File, error) {
 		return nil, fmt.Errorf("Failed File.NewFile [%w]", err)
 	}
 	newFile := &File{
-		inner:    file,
-		fileSize: int(fileSize),
-		version:  FileFormatVersion,
+		inner:                 file,
+		version:               0,
+		nextNewSegmentAddress: 0,
 	}
 	if fileSize < FileHeaderSize {
 		return nil, fmt.Errorf("Wrong File Format")
@@ -90,9 +95,9 @@ func LoadFile(file io.ReadWriteSeeker) (*File, error) {
 
 func CreateFile(file io.ReadWriteSeeker) (*File, error) {
 	newFile := &File{
-		inner:    file,
-		fileSize: 0,
-		version:  FileFormatVersion,
+		inner:                 file,
+		version:               FileFormatVersion,
+		nextNewSegmentAddress: FirstNewSegmentAddress,
 	}
 	var buffer [FileHeaderSize]byte
 	w := NewByteEncoder(bytes.NewBuffer(buffer[:0]), fileByteOrder)
@@ -102,13 +107,11 @@ func CreateFile(file io.ReadWriteSeeker) (*File, error) {
 	if err := w.Uint16(FileFormatVersion); err != nil {
 		return nil, fmt.Errorf("Failed write fileformatversion [%w]", err)
 	}
+	if err := w.Int32(FirstNewSegmentAddress); err != nil {
+		return nil, fmt.Errorf("Failed write firstnewsegmentaddress [%w]", err)
+	}
 	if err := newFile.Write(0, buffer[:]); err != nil {
 		return nil, fmt.Errorf("Failed write reservearea [%w]", err)
-	}
-	if fileSize, err := newFile.inner.Seek(0, io.SeekEnd); err != nil {
-		return nil, fmt.Errorf("Failed get file size [%w]", err)
-	} else {
-		newFile.fileSize = int(fileSize)
 	}
 	return newFile, nil
 }
@@ -137,6 +140,16 @@ func (file *File) checkHeader() error {
 			return fmt.Errorf("Unsupported FileFormatVersion (%d)", version)
 		}
 		file.version = int(version)
+	}
+	{
+		var nextNewSegmentAddress int32
+		if err := r.Int32(&nextNewSegmentAddress); err != nil {
+			panic(err) // ここに到達する場合はバグがある
+		}
+		if nextNewSegmentAddress < FirstNewSegmentAddress {
+			return fmt.Errorf("Wrong NextNewSegmentAddress")
+		}
+		file.nextNewSegmentAddress = int(nextNewSegmentAddress)
 	}
 	{
 		var reserveArea int32
@@ -202,7 +215,8 @@ func (file *File) Write(position int, data []byte) error {
 }
 
 func (file *File) CreateSegment(length int) (*Segment, error) {
-	pos, err := file.inner.Seek(0, io.SeekEnd)
+	segmentAddress := file.nextNewSegmentAddress
+	_, err := file.inner.Seek(int64(segmentAddress), io.SeekStart)
 	if err != nil {
 		return nil, fmt.Errorf("Failed File.CreateSegment (seek) [%w]", err)
 	}
@@ -212,13 +226,18 @@ func (file *File) CreateSegment(length int) (*Segment, error) {
 	if err != nil {
 		panic(err) // ここに到達する場合はバグがある
 	}
-	err = file.Write(int(pos), buffer)
+	err = file.Write(segmentAddress, buffer)
 	if err != nil {
 		return nil, fmt.Errorf("Failed File.CreateSegment (write) [%w]", err)
 	}
+	nextNewSegmentAddress := segmentAddress + length
+	err = file.UpdateNextNewSegmentAddress(nextNewSegmentAddress)
+	if err != nil {
+		return nil, fmt.Errorf("Failed File.CreateSegment (update) [%w]", err)
+	}
 	seg := &Segment{
 		file:     file,
-		position: int(pos),
+		position: segmentAddress,
 		buffer:   buffer,
 	}
 	return seg, nil
@@ -247,6 +266,17 @@ func (file *File) ReadTableListRootAddress() (int, error) {
 	}
 	address := int(fileByteOrder.Uint32(buffer[:]))
 	return address, nil
+}
+
+func (file *File) UpdateNextNewSegmentAddress(newAddress int) error {
+	var buffer [FileHeaderNextNewSegmentAddressLength]byte
+	fileByteOrder.PutUint32(buffer[:], uint32(newAddress))
+	err := file.Write(FileHeaderNextNewSegmentAddressPosition, buffer[:])
+	if err != nil {
+		return fmt.Errorf("Failed File.UpdateNextNewSegmentAddress [%w]", err)
+	}
+	file.nextNewSegmentAddress = newAddress
+	return nil
 }
 
 func (file *File) WriteTableListRootAddress(newAddress int) error {
