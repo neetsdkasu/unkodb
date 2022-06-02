@@ -89,14 +89,14 @@ func TestSignature(t *testing.T) {
 	}
 }
 
-func TestCreateFile(t *testing.T) {
+func TestInitializeFile(t *testing.T) {
 	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tempfile.Close()
 
-	file, err := CreateFile(tempfile)
+	file, err := InitializeFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,6 +105,12 @@ func TestCreateFile(t *testing.T) {
 	}
 	if file.nextNewSegmentAddress != FirstNewSegmentAddress {
 		t.Fatalf("Wrong NextNewSegmentAddress (%d)", file.nextNewSegmentAddress)
+	}
+	if file.tableListRootAddress != 0 {
+		t.Fatalf("Wrong TableListRootAddress (%d)", file.tableListRootAddress)
+	}
+	if file.idleSegmentListRootAddress != 0 {
+		t.Fatalf("Wrong IdleSegmentListRootAddress (%d)", file.idleSegmentListRootAddress)
 	}
 
 	_, err = tempfile.Seek(0, io.SeekStart)
@@ -136,19 +142,19 @@ func TestCreateFile(t *testing.T) {
 	}
 }
 
-func TestLoadFile(t *testing.T) {
+func TestReadFile(t *testing.T) {
 	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tempfile.Close()
 
-	file, err := CreateFile(tempfile)
+	_, err = InitializeFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	file, err = LoadFile(tempfile)
+	file, err := ReadFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,6 +163,12 @@ func TestLoadFile(t *testing.T) {
 	}
 	if file.nextNewSegmentAddress != FirstNewSegmentAddress {
 		t.Fatalf("Wrong NextNewSegmentAddress (%d)", file.nextNewSegmentAddress)
+	}
+	if file.tableListRootAddress != 0 {
+		t.Fatalf("Wrong TableListRootAddress (%d)", file.tableListRootAddress)
+	}
+	if file.idleSegmentListRootAddress != 0 {
+		t.Fatalf("Wrong IdleSegmentListRootAddress (%d)", file.idleSegmentListRootAddress)
 	}
 
 	_, err = tempfile.Seek(0, io.SeekStart)
@@ -180,6 +192,140 @@ func TestLoadFile(t *testing.T) {
 		0, 0, 0, FirstNewSegmentAddress,
 		0, 0, 0, 0,
 		0, 0, 0, 0,
+		0, 0, 0, 0,
+	})
+
+	if !comp {
+		t.Fatalf("Wrong File Format (%#v)", buf)
+	}
+}
+
+func TestFile_UpdateNextNewSegmentAddress(t *testing.T) {
+	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tempfile.Close()
+
+	file, err := InitializeFile(tempfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const Address = 0x12345678
+
+	err = file.UpdateNextNewSegmentAddress(Address)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if file.nextNewSegmentAddress != Address {
+		t.Fatalf("Wrong NextNewSegmentAddress (%d)", file.nextNewSegmentAddress)
+	}
+
+	_, err = tempfile.Seek(0, io.SeekStart)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buf, err := ioutil.ReadAll(tempfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(buf) != FileHeaderSize {
+		t.Fatalf("Wrong File Size (%d)", len(buf))
+	}
+
+	comp := bytes.Equal(buf, []byte{
+		3, 5, 7, 11, 13, 17, 19, 23, 29, 31,
+		'U', 'N', 'K', 'O', 'D', 'B',
+		0, FileFormatVersion,
+		(Address >> 24) & 0xFF, (Address >> 16) & 0xFF, (Address >> 8) & 0xFF, Address & 0xFF,
+		0, 0, 0, 0,
+		0, 0, 0, 0,
+		0, 0, 0, 0,
+	})
+
+	if !comp {
+		t.Fatalf("Wrong File Format (%#v)", buf)
+	}
+}
+
+func TestFile_NextNewSegmentAddress(t *testing.T) {
+	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tempfile.Close()
+
+	file, err := InitializeFile(tempfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nextNewSegmentAddress := file.NextNewSegmentAddress()
+	if nextNewSegmentAddress != FirstNewSegmentAddress {
+		t.Fatalf("Wrong NextNewSegmentAddress (%d)", nextNewSegmentAddress)
+	}
+
+	const Address = 0x12345678
+
+	err = file.UpdateNextNewSegmentAddress(Address)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nextNewSegmentAddress = file.NextNewSegmentAddress()
+	if nextNewSegmentAddress != Address {
+		t.Fatalf("Wrong NextNewSegmentAddress (%d)", nextNewSegmentAddress)
+	}
+}
+
+func TestFile_UpdateTableListRootAddress(t *testing.T) {
+	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tempfile.Close()
+
+	file, err := InitializeFile(tempfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const Address = 0x12345678
+
+	err = file.UpdateTableListRootAddress(Address)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if file.tableListRootAddress != Address {
+		t.Fatalf("Wrong TableListRootAddress (%d)", file.tableListRootAddress)
+	}
+
+	_, err = tempfile.Seek(0, io.SeekStart)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buf, err := ioutil.ReadAll(tempfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(buf) != FileHeaderSize {
+		t.Fatalf("Wrong File Size (%d)", len(buf))
+	}
+
+	comp := bytes.Equal(buf, []byte{
+		3, 5, 7, 11, 13, 17, 19, 23, 29, 31,
+		'U', 'N', 'K', 'O', 'D', 'B',
+		0, FileFormatVersion,
+		0, 0, 0, FirstNewSegmentAddress,
+		0, 0, 0, 0,
+		(Address >> 24) & 0xFF, (Address >> 16) & 0xFF, (Address >> 8) & 0xFF, Address & 0xFF,
 		0, 0, 0, 0,
 	})
 
@@ -189,13 +335,115 @@ func TestLoadFile(t *testing.T) {
 }
 
 func TestFile_TableListRootAddress(t *testing.T) {
-	// TODO
-	t.Skip("THIS TEST IS NOT IMPLEMENTED")
+	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tempfile.Close()
+
+	file, err := InitializeFile(tempfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tableListRootAddress := file.TableListRootAddress()
+	if tableListRootAddress != 0 {
+		t.Fatalf("Wrong TableListRootAddress (%d)", tableListRootAddress)
+	}
+
+	const Address = 0x12345678
+
+	err = file.UpdateTableListRootAddress(Address)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tableListRootAddress = file.TableListRootAddress()
+	if tableListRootAddress != Address {
+		t.Fatalf("Wrong TableListRootAddress (%d)", tableListRootAddress)
+	}
+}
+
+func TestFile_UpdateIdleSegmentListRootAddress(t *testing.T) {
+	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tempfile.Close()
+
+	file, err := InitializeFile(tempfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const Address = 0x12345678
+
+	err = file.UpdateIdleSegmentListRootAddress(Address)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if file.idleSegmentListRootAddress != Address {
+		t.Fatalf("Wrong IdleSegmentListRootAddress (%d)", file.idleSegmentListRootAddress)
+	}
+
+	_, err = tempfile.Seek(0, io.SeekStart)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buf, err := ioutil.ReadAll(tempfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(buf) != FileHeaderSize {
+		t.Fatalf("Wrong File Size (%d)", len(buf))
+	}
+
+	comp := bytes.Equal(buf, []byte{
+		3, 5, 7, 11, 13, 17, 19, 23, 29, 31,
+		'U', 'N', 'K', 'O', 'D', 'B',
+		0, FileFormatVersion,
+		0, 0, 0, FirstNewSegmentAddress,
+		0, 0, 0, 0,
+		0, 0, 0, 0,
+		(Address >> 24) & 0xFF, (Address >> 16) & 0xFF, (Address >> 8) & 0xFF, Address & 0xFF,
+	})
+
+	if !comp {
+		t.Fatalf("Wrong File Format (%#v)", buf)
+	}
 }
 
 func TestFile_IdleSegmentListRootAddress(t *testing.T) {
-	// TODO
-	t.Skip("THIS TEST IS NOT IMPLEMENTED")
+	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tempfile.Close()
+
+	file, err := InitializeFile(tempfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	idleSegmentListRootAddress := file.IdleSegmentListRootAddress()
+	if idleSegmentListRootAddress != 0 {
+		t.Fatalf("Wrong IdleSegmentListRootAddress (%d)", idleSegmentListRootAddress)
+	}
+
+	const Address = 0x12345678
+
+	err = file.UpdateIdleSegmentListRootAddress(Address)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	idleSegmentListRootAddress = file.IdleSegmentListRootAddress()
+	if idleSegmentListRootAddress != Address {
+		t.Fatalf("Wrong IdleSegmentListRootAddress (%d)", idleSegmentListRootAddress)
+	}
 }
 
 func TestFile_CreateSegment(t *testing.T) {
@@ -205,7 +453,7 @@ func TestFile_CreateSegment(t *testing.T) {
 	}
 	defer tempfile.Close()
 
-	file, err := CreateFile(tempfile)
+	file, err := InitializeFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -389,7 +637,7 @@ func TestSegment_Flush(t *testing.T) {
 	}
 	defer tempfile.Close()
 
-	file, err := CreateFile(tempfile)
+	file, err := InitializeFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -454,7 +702,7 @@ func TestFile_ReadSegment(t *testing.T) {
 	}
 	defer tempfile.Close()
 
-	file, err := CreateFile(tempfile)
+	file, err := InitializeFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
