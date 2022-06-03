@@ -29,6 +29,7 @@ const (
 	FileFormatVersion = 1
 
 	AddressSize = 4
+	NullAddress = 0
 
 	FileHeaderSignaturePosition = 0
 	FileHeaderSignatureLength   = 16
@@ -84,9 +85,9 @@ func ReadFile(file io.ReadWriteSeeker) (*File, error) {
 	newFile := &File{
 		inner:                      file,
 		version:                    0,
-		nextNewSegmentAddress:      0,
-		tableListRootAddress:       0,
-		idleSegmentListRootAddress: 0,
+		nextNewSegmentAddress:      NullAddress,
+		tableListRootAddress:       NullAddress,
+		idleSegmentListRootAddress: NullAddress,
 	}
 	if fileSize < FileHeaderSize {
 		return nil, fmt.Errorf("Wrong File Format")
@@ -102,19 +103,31 @@ func InitializeFile(file io.ReadWriteSeeker) (*File, error) {
 		inner:                      file,
 		version:                    FileFormatVersion,
 		nextNewSegmentAddress:      FirstNewSegmentAddress,
-		tableListRootAddress:       0,
-		idleSegmentListRootAddress: 0,
+		tableListRootAddress:       NullAddress,
+		idleSegmentListRootAddress: NullAddress,
 	}
 	var buffer [FileHeaderSize]byte
 	w := NewByteEncoder(bytes.NewBuffer(buffer[:0]), fileByteOrder)
 	if err := w.RawBytes(Signature()); err != nil {
-		return nil, fmt.Errorf("Failed write signature [%w]", err)
+		logger.Panic(err) // ここに到達する場合はバグがある
 	}
 	if err := w.Uint16(FileFormatVersion); err != nil {
-		return nil, fmt.Errorf("Failed write fileformatversion [%w]", err)
+		logger.Panic(err) // ここに到達する場合はバグがある
 	}
 	if err := w.Int32(FirstNewSegmentAddress); err != nil {
-		return nil, fmt.Errorf("Failed write firstnewsegmentaddress [%w]", err)
+		logger.Panic(err) // ここに到達する場合はバグがある
+	}
+	if err := w.Int32(NullAddress); err != nil {
+		// ReserveAreaAddress
+		logger.Panic(err) // ここに到達する場合はバグがある
+	}
+	if err := w.Int32(NullAddress); err != nil {
+		// TableListRootAddress
+		logger.Panic(err) // ここに到達する場合はバグがある
+	}
+	if err := w.Int32(NullAddress); err != nil {
+		// IdleSegmentListRootAddress
+		logger.Panic(err) // ここに到達する場合はバグがある
 	}
 	if err := newFile.Write(0, buffer[:]); err != nil {
 		return nil, fmt.Errorf("Failed write reservearea [%w]", err)
@@ -131,7 +144,7 @@ func (file *File) readHeader() error {
 	{
 		var sig [FileHeaderSignatureLength]byte
 		if err := r.RawBytes(sig[:]); err != nil {
-			panic(err) // ここに到達する場合はバグがある
+			logger.Panic(err) // ここに到達する場合はバグがある
 		}
 		if !bytes.Equal(sig[:], Signature()) {
 			return fmt.Errorf("Wrong Signature in File Header")
@@ -140,7 +153,7 @@ func (file *File) readHeader() error {
 	{
 		var version uint16
 		if err := r.Uint16(&version); err != nil {
-			panic(err) // ここに到達する場合はバグがある
+			logger.Panic(err) // ここに到達する場合はバグがある
 		}
 		if version != FileFormatVersion {
 			return fmt.Errorf("Unsupported FileFormatVersion (%d)", version)
@@ -150,7 +163,7 @@ func (file *File) readHeader() error {
 	{
 		var nextNewSegmentAddress int32
 		if err := r.Int32(&nextNewSegmentAddress); err != nil {
-			panic(err) // ここに到達する場合はバグがある
+			logger.Panic(err) // ここに到達する場合はバグがある
 		}
 		if nextNewSegmentAddress < FirstNewSegmentAddress {
 			return fmt.Errorf("Wrong NextNewSegmentAddress")
@@ -158,18 +171,18 @@ func (file *File) readHeader() error {
 		file.nextNewSegmentAddress = int(nextNewSegmentAddress)
 	}
 	{
-		var reserveArea int32
-		if err := r.Int32(&reserveArea); err != nil {
-			panic(err) // ここに到達する場合はバグがある
+		var reserveAreaAddress int32
+		if err := r.Int32(&reserveAreaAddress); err != nil {
+			logger.Panic(err) // ここに到達する場合はバグがある
 		}
-		if reserveArea != 0 {
+		if reserveAreaAddress != NullAddress {
 			return fmt.Errorf("Wrong ReserveAreaAddress")
 		}
 	}
 	{
 		var tableListRootAddress int32
 		if err := r.Int32(&tableListRootAddress); err != nil {
-			panic(err) // ここに到達する場合はバグがある
+			logger.Panic(err) // ここに到達する場合はバグがある
 		}
 		if tableListRootAddress < 0 {
 			return fmt.Errorf("Wrong TableListRootAddress")
@@ -179,7 +192,7 @@ func (file *File) readHeader() error {
 	{
 		var idleSegmentListRootAddress int32
 		if err := r.Int32(&idleSegmentListRootAddress); err != nil {
-			panic(err) // ここに到達する場合はバグがある
+			logger.Panic(err) // ここに到達する場合はバグがある
 		}
 		if idleSegmentListRootAddress < 0 {
 			return fmt.Errorf("Wrong IdleSegmentListRootAddress")
@@ -232,7 +245,7 @@ func (file *File) CreateSegment(length int) (*Segment, error) {
 	buffer := make([]byte, length)
 	err = NewByteEncoder(bytes.NewBuffer(buffer[:0]), fileByteOrder).Int32(int32(length))
 	if err != nil {
-		panic(err) // ここに到達する場合はバグがある
+		logger.Panic(err) // ここに到達する場合はバグがある
 	}
 	err = file.Write(segmentAddress, buffer)
 	if err != nil {
@@ -313,6 +326,10 @@ func (file *File) UpdateIdleSegmentListRootAddress(newAddress int) error {
 
 func (seg *Segment) Position() int {
 	return seg.position
+}
+
+func (seg *Segment) BufferSize() int {
+	return len(seg.buffer) - SegmentHeaderSize
 }
 
 func (seg *Segment) Buffer() []byte {

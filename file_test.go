@@ -15,8 +15,14 @@ import (
 
 // え、定数のテストっているの？
 func TestFileHeaderConstantValues(t *testing.T) {
+	if FileFormatVersion != 1 {
+		t.Fatal("Wrong FileFormatVersion")
+	}
 	if AddressSize != 4 {
 		t.Fatal("Wrong AddressSize")
+	}
+	if NullAddress != 0 {
+		t.Fatal("Wrong NullAddress")
 	}
 	if FileHeaderSignaturePosition != 0 {
 		t.Fatal("Wrong FileHeaderSignaturePosition")
@@ -106,10 +112,10 @@ func TestInitializeFile(t *testing.T) {
 	if file.nextNewSegmentAddress != FirstNewSegmentAddress {
 		t.Fatalf("Wrong NextNewSegmentAddress (%d)", file.nextNewSegmentAddress)
 	}
-	if file.tableListRootAddress != 0 {
+	if file.tableListRootAddress != NullAddress {
 		t.Fatalf("Wrong TableListRootAddress (%d)", file.tableListRootAddress)
 	}
-	if file.idleSegmentListRootAddress != 0 {
+	if file.idleSegmentListRootAddress != NullAddress {
 		t.Fatalf("Wrong IdleSegmentListRootAddress (%d)", file.idleSegmentListRootAddress)
 	}
 
@@ -132,9 +138,9 @@ func TestInitializeFile(t *testing.T) {
 		'U', 'N', 'K', 'O', 'D', 'B',
 		0, FileFormatVersion,
 		0, 0, 0, FirstNewSegmentAddress,
-		0, 0, 0, 0,
-		0, 0, 0, 0,
-		0, 0, 0, 0,
+		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
+		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
+		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
 	})
 
 	if !comp {
@@ -164,10 +170,10 @@ func TestReadFile(t *testing.T) {
 	if file.nextNewSegmentAddress != FirstNewSegmentAddress {
 		t.Fatalf("Wrong NextNewSegmentAddress (%d)", file.nextNewSegmentAddress)
 	}
-	if file.tableListRootAddress != 0 {
+	if file.tableListRootAddress != NullAddress {
 		t.Fatalf("Wrong TableListRootAddress (%d)", file.tableListRootAddress)
 	}
-	if file.idleSegmentListRootAddress != 0 {
+	if file.idleSegmentListRootAddress != NullAddress {
 		t.Fatalf("Wrong IdleSegmentListRootAddress (%d)", file.idleSegmentListRootAddress)
 	}
 
@@ -190,9 +196,9 @@ func TestReadFile(t *testing.T) {
 		'U', 'N', 'K', 'O', 'D', 'B',
 		0, FileFormatVersion,
 		0, 0, 0, FirstNewSegmentAddress,
-		0, 0, 0, 0,
-		0, 0, 0, 0,
-		0, 0, 0, 0,
+		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
+		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
+		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
 	})
 
 	if !comp {
@@ -242,9 +248,9 @@ func TestFile_UpdateNextNewSegmentAddress(t *testing.T) {
 		'U', 'N', 'K', 'O', 'D', 'B',
 		0, FileFormatVersion,
 		(Address >> 24) & 0xFF, (Address >> 16) & 0xFF, (Address >> 8) & 0xFF, Address & 0xFF,
-		0, 0, 0, 0,
-		0, 0, 0, 0,
-		0, 0, 0, 0,
+		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
+		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
+		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
 	})
 
 	if !comp {
@@ -324,9 +330,9 @@ func TestFile_UpdateTableListRootAddress(t *testing.T) {
 		'U', 'N', 'K', 'O', 'D', 'B',
 		0, FileFormatVersion,
 		0, 0, 0, FirstNewSegmentAddress,
-		0, 0, 0, 0,
+		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
 		(Address >> 24) & 0xFF, (Address >> 16) & 0xFF, (Address >> 8) & 0xFF, Address & 0xFF,
-		0, 0, 0, 0,
+		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
 	})
 
 	if !comp {
@@ -406,8 +412,8 @@ func TestFile_UpdateIdleSegmentListRootAddress(t *testing.T) {
 		'U', 'N', 'K', 'O', 'D', 'B',
 		0, FileFormatVersion,
 		0, 0, 0, FirstNewSegmentAddress,
-		0, 0, 0, 0,
-		0, 0, 0, 0,
+		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
+		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
 		(Address >> 24) & 0xFF, (Address >> 16) & 0xFF, (Address >> 8) & 0xFF, Address & 0xFF,
 	})
 
@@ -504,9 +510,9 @@ func TestFile_CreateSegment(t *testing.T) {
 			'U', 'N', 'K', 'O', 'D', 'B',
 			0, FileFormatVersion,
 			0, 0, 0, FirstNewSegmentAddress + SegmentSize1,
-			0, 0, 0, 0,
-			0, 0, 0, 0,
-			0, 0, 0, 0,
+			(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
+			(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
+			(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
 			0, 0, 0, SegmentSize1,
 			0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		})
@@ -562,9 +568,9 @@ func TestFile_CreateSegment(t *testing.T) {
 			'U', 'N', 'K', 'O', 'D', 'B',
 			0, FileFormatVersion,
 			0, 0, 0, FirstNewSegmentAddress + SegmentSize1 + SegmentSize2,
-			0, 0, 0, 0,
-			0, 0, 0, 0,
-			0, 0, 0, 0,
+			(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
+			(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
+			(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
 			0, 0, 0, SegmentSize1,
 			0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 			0, 0, 0, SegmentSize2,
@@ -682,9 +688,9 @@ func TestSegment_Flush(t *testing.T) {
 			'U', 'N', 'K', 'O', 'D', 'B',
 			0, FileFormatVersion,
 			0, 0, 0, FirstNewSegmentAddress + SegmentSize1,
-			0, 0, 0, 0,
-			0, 0, 0, 0,
-			0, 0, 0, 0,
+			(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
+			(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
+			(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
 			0, 0, 0, SegmentSize1,
 			1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
 		})
