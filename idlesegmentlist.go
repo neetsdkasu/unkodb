@@ -25,6 +25,7 @@ type IdleSegmentListTreeNode struct {
 	leftChildAddress  int
 	rightChildAddress int
 	height            int
+	updated           bool
 }
 
 const (
@@ -38,7 +39,7 @@ const (
 	IdleSegmentListTreeNodeHeightLength   = AddressSize
 )
 
-func unwrapIdleSegmentListTreeNode(node any) *IdleSegmentListTreeNode {
+func unwrapIdleSegmentListTreeNode(node avltree.Node) *IdleSegmentListTreeNode {
 	if node == nil {
 		return nil
 	}
@@ -60,6 +61,14 @@ func unwrapIdleSegmentListTreeValue(value any) *Segment {
 	return nil
 }
 
+func (node *IdleSegmentListTreeNode) toNode() avltree.Node {
+	if node == nil {
+		return nil
+	} else {
+		return node
+	}
+}
+
 func (node *IdleSegmentListTreeNode) position() int {
 	if node == nil {
 		return NullAddress
@@ -68,47 +77,70 @@ func (node *IdleSegmentListTreeNode) position() int {
 	}
 }
 
-func (node *IdleSegmentListTreeNode) loadNodeProperties() {
-	r := NewByteDecoder(bytes.NewReader(node.segment.Buffer()), fileByteOrder)
-	var leftChildAddress int32
-	err := r.Int32(&leftChildAddress)
-	if err != nil {
-		logger.Panic(err)
+func (node *IdleSegmentListTreeNode) flush() error {
+	if node == nil || !node.updated {
+		return nil
 	}
-	var rightChildAddress int32
-	err = r.Int32(&rightChildAddress)
+	buf := node.segment.Buffer()
+	w := NewByteEncoder(bytes.NewBuffer(buf[:0]), fileByteOrder)
+	err := w.Int32(int32(node.leftChildAddress))
 	if err != nil {
-		logger.Panic(err)
+		logger.Panic(err) // ここに到達したらどこかにバグがある
 	}
-	var height int32
-	err = r.Int32(&height)
+	err = w.Int32(int32(node.rightChildAddress))
 	if err != nil {
-		logger.Panic(err)
+		logger.Panic(err) // ここに到達したらどこかにバグがある
 	}
-	node.leftChildAddress = int(leftChildAddress)
-	node.rightChildAddress = int(rightChildAddress)
-	node.height = int(height)
+	err = w.Int32(int32(node.height))
+	if err != nil {
+		logger.Panic(err) // ここに到達したらどこかにバグがある
+	}
+	return node.segment.Flush()
 }
 
-func (tree *IdleSegmentListTree) Root() avltree.Node {
-	address := tree.file.IdleSegmentListRootAddress()
+func (tree *IdleSegmentListTree) loadNode(address int) *IdleSegmentListTreeNode {
 	if address == NullAddress {
 		return nil
+	}
+	if cached, ok := tree.cache[address]; ok {
+		return cached
 	}
 	seg, err := tree.file.ReadSegment(address)
 	if err != nil {
 		logger.Panic(err)
 	}
+	r := NewByteDecoder(bytes.NewReader(seg.Buffer()), fileByteOrder)
+	var leftChildAddress int32
+	err = r.Int32(&leftChildAddress)
+	if err != nil {
+		logger.Panic(err) // ここに到達したらどこかにバグがある
+	}
+	var rightChildAddress int32
+	err = r.Int32(&rightChildAddress)
+	if err != nil {
+		logger.Panic(err) // ここに到達したらどこかにバグがある
+	}
+	var height int32
+	err = r.Int32(&height)
+	if err != nil {
+		logger.Panic(err) // ここに到達したらどこかにバグがある
+	}
 	node := &IdleSegmentListTreeNode{
 		tree:              tree,
 		segment:           seg,
 		key:               intkey.IntKey(seg.BufferSize()),
-		leftChildAddress:  NullAddress,
-		rightChildAddress: NullAddress,
-		height:            0,
+		leftChildAddress:  int(leftChildAddress),
+		rightChildAddress: int(rightChildAddress),
+		height:            int(height),
+		updated:           false,
 	}
-	node.loadNodeProperties()
+	tree.cache[address] = node
 	return node
+}
+
+func (tree *IdleSegmentListTree) Root() avltree.Node {
+	node := tree.loadNode(tree.file.IdleSegmentListRootAddress())
+	return node.toNode()
 }
 
 func (tree *IdleSegmentListTree) NewNode(leftChild, rightChild avltree.Node, height int, key avltree.Key, value any) avltree.RealNode {
@@ -116,11 +148,11 @@ func (tree *IdleSegmentListTree) NewNode(leftChild, rightChild avltree.Node, hei
 		tree:              tree,
 		key:               key,
 		segment:           unwrapIdleSegmentListTreeValue(value),
-		leftChildAddress:  NullAddress,
-		rightChildAddress: NullAddress,
+		leftChildAddress:  unwrapIdleSegmentListTreeNode(leftChild).position(),
+		rightChildAddress: unwrapIdleSegmentListTreeNode(rightChild).position(),
 		height:            height,
+		updated:           true,
 	}
-	node.SetChildren(leftChild, rightChild, height)
 	return node
 }
 
@@ -146,11 +178,13 @@ func (node *IdleSegmentListTreeNode) Value() any {
 }
 
 func (node *IdleSegmentListTreeNode) LeftChild() avltree.Node {
-	panic("TODO")
+	leftChild := node.tree.loadNode(node.leftChildAddress)
+	return leftChild.toNode()
 }
 
 func (node *IdleSegmentListTreeNode) RightChild() avltree.Node {
-	panic("TODO")
+	rightChild := node.tree.loadNode(node.rightChildAddress)
+	return rightChild.toNode()
 }
 
 func (*IdleSegmentListTreeNode) SetValue(newValue any) (_ avltree.Node) {
@@ -159,7 +193,7 @@ func (*IdleSegmentListTreeNode) SetValue(newValue any) (_ avltree.Node) {
 }
 
 func (node *IdleSegmentListTreeNode) Height() int {
-	panic("TODO")
+	return node.height
 }
 
 func (node *IdleSegmentListTreeNode) SetChildren(newLeftChild, newRightChild avltree.Node, newHeight int) avltree.RealNode {
