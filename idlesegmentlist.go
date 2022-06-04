@@ -28,6 +28,14 @@ type IdleSegmentListTreeNode struct {
 	updated           bool
 }
 
+func NewIdleSegmentListTree(file *File) *IdleSegmentListTree {
+	tree := &IdleSegmentListTree{
+		file:  file,
+		cache: make(map[int]*IdleSegmentListTreeNode),
+	}
+	return tree
+}
+
 const (
 	IdleSegmentListTreeNodeLeftChildPosition = 0
 	IdleSegmentListTreeNodeLeftChildLength   = AddressSize
@@ -82,7 +90,7 @@ func (node *IdleSegmentListTreeNode) flush() error {
 		return nil
 	}
 	buf := node.segment.Buffer()
-	w := NewByteEncoder(bytes.NewBuffer(buf[:0]), fileByteOrder)
+	w := NewByteEncoder(NewByteSliceWriter(buf), fileByteOrder)
 	err := w.Int32(int32(node.leftChildAddress))
 	if err != nil {
 		logger.Panic(err) // ここに到達したらどこかにバグがある
@@ -95,7 +103,12 @@ func (node *IdleSegmentListTreeNode) flush() error {
 	if err != nil {
 		logger.Panic(err) // ここに到達したらどこかにバグがある
 	}
-	return node.segment.Flush()
+	err = node.segment.Flush()
+	if err != nil {
+		logger.Panic(err)
+	}
+	node.updated = false
+	return nil
 }
 
 func (tree *IdleSegmentListTree) loadNode(address int) *IdleSegmentListTreeNode {

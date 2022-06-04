@@ -9,6 +9,10 @@ import (
 	"io"
 )
 
+type ByteSliceWriter struct {
+	buf []byte
+}
+
 type ByteEncoder struct {
 	writer io.Writer
 	order  binary.ByteOrder
@@ -19,12 +23,32 @@ type ByteDecoder struct {
 	order  binary.ByteOrder
 }
 
+func NewByteSliceWriter(buf []byte) *ByteSliceWriter {
+	return &ByteSliceWriter{buf[:0]}
+}
+
 func NewByteEncoder(writer io.Writer, order binary.ByteOrder) *ByteEncoder {
 	return &ByteEncoder{writer, order}
 }
 
 func NewByteDecoder(reader io.Reader, order binary.ByteOrder) *ByteDecoder {
 	return &ByteDecoder{reader, order}
+}
+
+func (w *ByteSliceWriter) Write(p []byte) (n int, err error) {
+	buf := w.buf
+	if len(buf) == cap(buf) {
+		err = io.EOF
+		return
+	}
+	if len(buf)+len(p) > cap(buf) {
+		p = p[:cap(buf)-len(buf)]
+		err = io.ErrShortWrite
+	}
+	buf = append(buf, p...)
+	n = len(p)
+	w.buf = buf
+	return
 }
 
 func (encoder *ByteEncoder) RawBytes(data []byte) error {
