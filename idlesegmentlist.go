@@ -153,6 +153,7 @@ func (tree *IdleSegmentListTree) NewNode(leftChild, rightChild avltree.Node, hei
 		height:            height,
 		updated:           true,
 	}
+	tree.cache[node.position()] = node
 	return node
 }
 
