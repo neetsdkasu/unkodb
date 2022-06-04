@@ -188,6 +188,7 @@ func (node *IdleSegmentListTreeNode) RightChild() avltree.Node {
 }
 
 func (*IdleSegmentListTreeNode) SetValue(newValue any) (_ avltree.Node) {
+	// IdleSegmentListでは値(Segment)を更新する状況はない
 	logger.Panic("[BUG] Unreachable")
 	return
 }
@@ -197,11 +198,15 @@ func (node *IdleSegmentListTreeNode) Height() int {
 }
 
 func (node *IdleSegmentListTreeNode) SetChildren(newLeftChild, newRightChild avltree.Node, newHeight int) avltree.RealNode {
-	panic("TODO")
+	node.leftChildAddress = unwrapIdleSegmentListTreeNode(newLeftChild).position()
+	node.rightChildAddress = unwrapIdleSegmentListTreeNode(newRightChild).position()
+	node.height = newHeight
+	node.updated = true
+	return node
 }
 
 func (*IdleSegmentListTreeNode) Set(newLeftChild, newRightChild avltree.Node, newHeight int, newValue any) (_ avltree.RealNode) {
-	// 値を設定する状況はないハズ
+	// IdleSegmentListでは値(Segment)を更新する状況はない
 	logger.Panic("[BUG] Unreachable")
 	return
 }
