@@ -24,7 +24,7 @@ type ByteDecoder struct {
 }
 
 func NewByteSliceWriter(buf []byte) *ByteSliceWriter {
-	return &ByteSliceWriter{buf[:0]}
+	return &ByteSliceWriter{buf[:0:len(buf)]}
 }
 
 func NewByteEncoder(writer io.Writer, order binary.ByteOrder) *ByteEncoder {
@@ -49,6 +49,10 @@ func (w *ByteSliceWriter) Write(p []byte) (n int, err error) {
 	n = len(p)
 	w.buf = buf
 	return
+}
+
+func (w *ByteSliceWriter) Buffer() []byte {
+	return w.buf
 }
 
 func (encoder *ByteEncoder) RawBytes(data []byte) error {
