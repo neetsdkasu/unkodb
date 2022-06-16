@@ -85,6 +85,14 @@ func (decoder *ByteDecoder) Value(dst any) error {
 	return binary.Read(decoder.reader, decoder.order, dst)
 }
 
+func (encoder *ByteEncoder) Int8(src int8) error {
+	return encoder.Value(src)
+}
+
+func (decoder *ByteDecoder) Int8(dst *int8) error {
+	return decoder.Value(dst)
+}
+
 func (encoder *ByteEncoder) Uint16(src uint16) error {
 	return encoder.Value(src)
 }
