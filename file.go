@@ -46,10 +46,10 @@ const (
 	FileHeaderTableListRootAddressPosition = FileHeaderReserveAreaAddressPosition + FileHeaderReserveAreaAddressLength
 	FileHeaderTableListRootAddressLength   = AddressSize
 
-	FileHeaderIdleSegmentListRootAddressPosition = FileHeaderTableListRootAddressPosition + FileHeaderTableListRootAddressLength
-	FileHeaderIdleSegmentListRootAddressLength   = AddressSize
+	FileHeaderIdleSegmentTreeRootAddressPosition = FileHeaderTableListRootAddressPosition + FileHeaderTableListRootAddressLength
+	FileHeaderIdleSegmentTreeRootAddressLength   = AddressSize
 
-	FileHeaderSize = FileHeaderIdleSegmentListRootAddressPosition + FileHeaderIdleSegmentListRootAddressLength
+	FileHeaderSize = FileHeaderIdleSegmentTreeRootAddressPosition + FileHeaderIdleSegmentTreeRootAddressLength
 
 	FirstNewSegmentAddress = FileHeaderSize
 
@@ -126,7 +126,7 @@ func InitializeFile(file io.ReadWriteSeeker) (*File, error) {
 		logger.Panic(err) // ここに到達する場合はバグがある
 	}
 	if err := w.Int32(NullAddress); err != nil {
-		// IdleSegmentListRootAddress
+		// IdleSegmentTreeRootAddress
 		logger.Panic(err) // ここに到達する場合はバグがある
 	}
 	if err := newFile.Write(0, buffer[:]); err != nil {
@@ -195,7 +195,7 @@ func (file *File) readHeader() error {
 			logger.Panic(err) // ここに到達する場合はバグがある
 		}
 		if idleSegmentListRootAddress < 0 {
-			return fmt.Errorf("Wrong IdleSegmentListRootAddress")
+			return fmt.Errorf("Wrong IdleSegmentTreeRootAddress")
 		}
 		file.idleSegmentListRootAddress = int(idleSegmentListRootAddress)
 	}
@@ -309,16 +309,16 @@ func (file *File) UpdateTableListRootAddress(newAddress int) error {
 	return nil
 }
 
-func (file *File) IdleSegmentListRootAddress() int {
+func (file *File) IdleSegmentTreeRootAddress() int {
 	return file.idleSegmentListRootAddress
 }
 
-func (file *File) UpdateIdleSegmentListRootAddress(newAddress int) error {
-	var buffer [FileHeaderIdleSegmentListRootAddressLength]byte
+func (file *File) UpdateIdleSegmentTreeRootAddress(newAddress int) error {
+	var buffer [FileHeaderIdleSegmentTreeRootAddressLength]byte
 	fileByteOrder.PutUint32(buffer[:], uint32(newAddress))
-	err := file.Write(FileHeaderIdleSegmentListRootAddressPosition, buffer[:])
+	err := file.Write(FileHeaderIdleSegmentTreeRootAddressPosition, buffer[:])
 	if err != nil {
-		return fmt.Errorf("Failed File.UpdateIdleSegmentListRootAddress [%w]", err)
+		return fmt.Errorf("Failed File.UpdateIdleSegmentTreeRootAddress [%w]", err)
 	}
 	file.idleSegmentListRootAddress = newAddress
 	return nil

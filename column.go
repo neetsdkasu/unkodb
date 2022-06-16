@@ -33,13 +33,13 @@ type Column interface {
 	// カラムのデータ型
 	Type() ColumnType
 
-	// ファイルに記録する際のデータのバイトサイズ
+	// レコードバッファに書き込む際のバイトサイズ(データのバイトサイズとメタ情報があるならそのバイトサイズとの合計サイズ)
 	sizeHint(value any) int
 
-	// データの読み込み
+	// レコードバッファからのデータの読み込み
 	read(decoder *ByteDecoder) (value any, err error)
 
-	// データの書き込み
+	// レコードバッファへのデータの書き込み
 	write(encoder *ByteEncoder, value any) (err error)
 }
 

@@ -14,7 +14,7 @@ import (
 	"github.com/neetsdkasu/avltree/intkey"
 )
 
-func TestIdleSegmentListTree(t *testing.T) {
+func TestIdleSegmentTree(t *testing.T) {
 	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
 	if err != nil {
 		t.Fatal(err)
@@ -26,7 +26,7 @@ func TestIdleSegmentListTree(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tree := NewIdleSegmentListTree(file)
+	tree := NewIdleSegmentTree(file)
 
 	lengthList := []int{888, 111, 555, 333, 444, 777, 666, 222, 999}
 

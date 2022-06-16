@@ -54,11 +54,11 @@ func TestFileHeaderConstantValues(t *testing.T) {
 	if FileHeaderTableListRootAddressLength != 4 {
 		t.Fatal("Wrong FileHeaderTableListRootAddressLength")
 	}
-	if FileHeaderIdleSegmentListRootAddressPosition != 30 {
-		t.Fatal("Wrong FileHeaderIdleSegmentListRootAddressPosition")
+	if FileHeaderIdleSegmentTreeRootAddressPosition != 30 {
+		t.Fatal("Wrong FileHeaderIdleSegmentTreeRootAddressPosition")
 	}
-	if FileHeaderIdleSegmentListRootAddressLength != 4 {
-		t.Fatal("Wrong FileHeaderIdleSegmentListRootAddressLength")
+	if FileHeaderIdleSegmentTreeRootAddressLength != 4 {
+		t.Fatal("Wrong FileHeaderIdleSegmentTreeRootAddressLength")
 	}
 	if FileHeaderSize != 34 {
 		t.Fatal("Wrong FileHeaderSize")
@@ -116,7 +116,7 @@ func TestInitializeFile(t *testing.T) {
 		t.Fatalf("Wrong TableListRootAddress (%d)", file.tableListRootAddress)
 	}
 	if file.idleSegmentListRootAddress != NullAddress {
-		t.Fatalf("Wrong IdleSegmentListRootAddress (%d)", file.idleSegmentListRootAddress)
+		t.Fatalf("Wrong IdleSegmentTreeRootAddress (%d)", file.idleSegmentListRootAddress)
 	}
 
 	_, err = tempfile.Seek(0, io.SeekStart)
@@ -174,7 +174,7 @@ func TestReadFile(t *testing.T) {
 		t.Fatalf("Wrong TableListRootAddress (%d)", file.tableListRootAddress)
 	}
 	if file.idleSegmentListRootAddress != NullAddress {
-		t.Fatalf("Wrong IdleSegmentListRootAddress (%d)", file.idleSegmentListRootAddress)
+		t.Fatalf("Wrong IdleSegmentTreeRootAddress (%d)", file.idleSegmentListRootAddress)
 	}
 
 	_, err = tempfile.Seek(0, io.SeekStart)
@@ -370,7 +370,7 @@ func TestFile_TableListRootAddress(t *testing.T) {
 	}
 }
 
-func TestFile_UpdateIdleSegmentListRootAddress(t *testing.T) {
+func TestFile_UpdateIdleSegmentTreeRootAddress(t *testing.T) {
 	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
 	if err != nil {
 		t.Fatal(err)
@@ -384,13 +384,13 @@ func TestFile_UpdateIdleSegmentListRootAddress(t *testing.T) {
 
 	const Address = 0x12345678
 
-	err = file.UpdateIdleSegmentListRootAddress(Address)
+	err = file.UpdateIdleSegmentTreeRootAddress(Address)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if file.idleSegmentListRootAddress != Address {
-		t.Fatalf("Wrong IdleSegmentListRootAddress (%d)", file.idleSegmentListRootAddress)
+		t.Fatalf("Wrong IdleSegmentTreeRootAddress (%d)", file.idleSegmentListRootAddress)
 	}
 
 	_, err = tempfile.Seek(0, io.SeekStart)
@@ -422,7 +422,7 @@ func TestFile_UpdateIdleSegmentListRootAddress(t *testing.T) {
 	}
 }
 
-func TestFile_IdleSegmentListRootAddress(t *testing.T) {
+func TestFile_IdleSegmentTreeRootAddress(t *testing.T) {
 	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
 	if err != nil {
 		t.Fatal(err)
@@ -434,21 +434,21 @@ func TestFile_IdleSegmentListRootAddress(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	idleSegmentListRootAddress := file.IdleSegmentListRootAddress()
+	idleSegmentListRootAddress := file.IdleSegmentTreeRootAddress()
 	if idleSegmentListRootAddress != 0 {
-		t.Fatalf("Wrong IdleSegmentListRootAddress (%d)", idleSegmentListRootAddress)
+		t.Fatalf("Wrong IdleSegmentTreeRootAddress (%d)", idleSegmentListRootAddress)
 	}
 
 	const Address = 0x12345678
 
-	err = file.UpdateIdleSegmentListRootAddress(Address)
+	err = file.UpdateIdleSegmentTreeRootAddress(Address)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	idleSegmentListRootAddress = file.IdleSegmentListRootAddress()
+	idleSegmentListRootAddress = file.IdleSegmentTreeRootAddress()
 	if idleSegmentListRootAddress != Address {
-		t.Fatalf("Wrong IdleSegmentListRootAddress (%d)", idleSegmentListRootAddress)
+		t.Fatalf("Wrong IdleSegmentTreeRootAddress (%d)", idleSegmentListRootAddress)
 	}
 }
 
