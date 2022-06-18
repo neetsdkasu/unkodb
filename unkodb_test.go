@@ -43,6 +43,6 @@ func TestUnkoDB(t *testing.T) {
 
 	// TODO write test
 	_ = table
-    
-    t.Skip("TEST IS NOT IMPLEMENTED YET")
+
+	t.Skip("TEST IS NOT IMPLEMENTED YET")
 }
