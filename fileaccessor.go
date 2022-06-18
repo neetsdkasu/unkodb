@@ -98,7 +98,7 @@ func readFile(file io.ReadWriteSeeker) (*fileAccessor, error) {
 	return newFile, nil
 }
 
-func initializeFile(file io.ReadWriteSeeker) (*fileAccessor, error) {
+func initializeNewFile(file io.ReadWriteSeeker) (*fileAccessor, error) {
 	newFile := &fileAccessor{
 		inner:                      file,
 		version:                    fileFormatVersion,

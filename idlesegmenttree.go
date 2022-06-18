@@ -10,10 +10,6 @@ import (
 	"github.com/neetsdkasu/avltree/intkey"
 )
 
-type segmentManager struct {
-	tree *idleSegmentTree
-}
-
 type idleSegmentTree struct {
 	file  *fileAccessor
 	cache map[int]*idleSegmentTreeNode

@@ -21,7 +21,7 @@ func TestIdleSegmentTree(t *testing.T) {
 	}
 	defer tempfile.Close()
 
-	file, err := initializeFile(tempfile)
+	file, err := initializeNewFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -102,7 +102,7 @@ func TestInitializeFile(t *testing.T) {
 	}
 	defer tempfile.Close()
 
-	file, err := initializeFile(tempfile)
+	file, err := initializeNewFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,7 +155,7 @@ func TestReadFile(t *testing.T) {
 	}
 	defer tempfile.Close()
 
-	_, err = initializeFile(tempfile)
+	_, err = initializeNewFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -213,7 +213,7 @@ func TestFileAccessor_UpdateNextNewSegmentAddress(t *testing.T) {
 	}
 	defer tempfile.Close()
 
-	file, err := initializeFile(tempfile)
+	file, err := initializeNewFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -265,7 +265,7 @@ func TestFileAccessor_NextNewSegmentAddress(t *testing.T) {
 	}
 	defer tempfile.Close()
 
-	file, err := initializeFile(tempfile)
+	file, err := initializeNewFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -295,7 +295,7 @@ func TestFileAccessor_UpdateTableListRootAddress(t *testing.T) {
 	}
 	defer tempfile.Close()
 
-	file, err := initializeFile(tempfile)
+	file, err := initializeNewFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -347,7 +347,7 @@ func TestFileAccessor_TableListRootAddress(t *testing.T) {
 	}
 	defer tempfile.Close()
 
-	file, err := initializeFile(tempfile)
+	file, err := initializeNewFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -377,7 +377,7 @@ func TestFileAccessor_UpdateIdleSegmentTreeRootAddress(t *testing.T) {
 	}
 	defer tempfile.Close()
 
-	file, err := initializeFile(tempfile)
+	file, err := initializeNewFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -429,7 +429,7 @@ func TestFileAccessor_IdleSegmentTreeRootAddress(t *testing.T) {
 	}
 	defer tempfile.Close()
 
-	file, err := initializeFile(tempfile)
+	file, err := initializeNewFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -459,7 +459,7 @@ func TestFileAccessor_CreateSegment(t *testing.T) {
 	}
 	defer tempfile.Close()
 
-	file, err := initializeFile(tempfile)
+	file, err := initializeNewFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -643,7 +643,7 @@ func TestSegmentBuffer_Flush(t *testing.T) {
 	}
 	defer tempfile.Close()
 
-	file, err := initializeFile(tempfile)
+	file, err := initializeNewFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -708,7 +708,7 @@ func TestFileAccessor_ReadSegment(t *testing.T) {
 	}
 	defer tempfile.Close()
 
-	file, err := initializeFile(tempfile)
+	file, err := initializeNewFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
