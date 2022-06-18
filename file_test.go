@@ -15,65 +15,65 @@ import (
 
 // え、定数のテストっているの？
 func TestFileHeaderConstantValues(t *testing.T) {
-	if FileFormatVersion != 1 {
-		t.Fatal("Wrong FileFormatVersion")
+	if fileFormatVersion != 1 {
+		t.Fatal("Wrong fileFormatVersion")
 	}
-	if AddressSize != 4 {
-		t.Fatal("Wrong AddressSize")
+	if addressByteSize != 4 {
+		t.Fatal("Wrong addressByteSize")
 	}
-	if NullAddress != 0 {
-		t.Fatal("Wrong NullAddress")
+	if nullAddress != 0 {
+		t.Fatal("Wrong nullAddress")
 	}
-	if FileHeaderSignaturePosition != 0 {
-		t.Fatal("Wrong FileHeaderSignaturePosition")
+	if fileHeaderSignaturePosition != 0 {
+		t.Fatal("Wrong fileHeaderSignaturePosition")
 	}
-	if FileHeaderSignatureLength != 16 {
-		t.Fatal("Wrong FileHeaderSignatureLength")
+	if fileHeaderSignatureLength != 16 {
+		t.Fatal("Wrong fileHeaderSignatureLength")
 	}
-	if FileHeaderFileFormatVersionPosition != 16 {
-		t.Fatal("Wrong FileHeaderFileFormatVersionPosition")
+	if fileHeaderFileFormatVersionPosition != 16 {
+		t.Fatal("Wrong fileHeaderFileFormatVersionPosition")
 	}
-	if FileHeaderFileFormatVersionLength != 2 {
-		t.Fatal("Wrong FileHeaderFileFormatVersionLength")
+	if fileHeaderFileFormatVersionLength != 2 {
+		t.Fatal("Wrong fileHeaderFileFormatVersionLength")
 	}
-	if FileHeaderNextNewSegmentAddressPosition != 18 {
-		t.Fatal("Wrong FileHeaderNextNewSegmentAddressPosition")
+	if fileHeaderNextNewSegmentAddressPosition != 18 {
+		t.Fatal("Wrong fileHeaderNextNewSegmentAddressPosition")
 	}
-	if FileHeaderNextNewSegmentAddressLength != 4 {
-		t.Fatal("Wrong FileHeaderNextNewSegmentAddressLength")
+	if fileHeaderNextNewSegmentAddressLength != 4 {
+		t.Fatal("Wrong fileHeaderNextNewSegmentAddressLength")
 	}
-	if FileHeaderReserveAreaAddressPosition != 22 {
-		t.Fatal("Wrong FileHeaderReserveAreaAddressPosition")
+	if fileHeaderReserveAreaAddressPosition != 22 {
+		t.Fatal("Wrong fileHeaderReserveAreaAddressPosition")
 	}
-	if FileHeaderReserveAreaAddressLength != 4 {
-		t.Fatal("Wrong FileHeaderReserveAreaAddressLength")
+	if fileHeaderReserveAreaAddressLength != 4 {
+		t.Fatal("Wrong fileHeaderReserveAreaAddressLength")
 	}
-	if FileHeaderTableListRootAddressPosition != 26 {
-		t.Fatal("Wrong FileHeaderTableListRootAddressPosition")
+	if fileHeaderTableListRootAddressPosition != 26 {
+		t.Fatal("Wrong fileHeaderTableListRootAddressPosition")
 	}
-	if FileHeaderTableListRootAddressLength != 4 {
-		t.Fatal("Wrong FileHeaderTableListRootAddressLength")
+	if fileHeaderTableListRootAddressLength != 4 {
+		t.Fatal("Wrong fileHeaderTableListRootAddressLength")
 	}
-	if FileHeaderIdleSegmentTreeRootAddressPosition != 30 {
-		t.Fatal("Wrong FileHeaderIdleSegmentTreeRootAddressPosition")
+	if fileHeaderIdleSegmentTreeRootAddressPosition != 30 {
+		t.Fatal("Wrong fileHeaderIdleSegmentTreeRootAddressPosition")
 	}
-	if FileHeaderIdleSegmentTreeRootAddressLength != 4 {
-		t.Fatal("Wrong FileHeaderIdleSegmentTreeRootAddressLength")
+	if fileHeaderIdleSegmentTreeRootAddressLength != 4 {
+		t.Fatal("Wrong fileHeaderIdleSegmentTreeRootAddressLength")
 	}
-	if FileHeaderSize != 34 {
-		t.Fatal("Wrong FileHeaderSize")
+	if fileHeaderByteSize != 34 {
+		t.Fatal("Wrong fileHeaderByteSize")
 	}
-	if FirstNewSegmentAddress != 34 {
-		t.Fatal("Wrong FirstNewSegmentAddress")
+	if firstNewSegmentAddress != 34 {
+		t.Fatal("Wrong firstNewSegmentAddress")
 	}
-	if SegmentHeaderSize != 4 {
-		t.Fatal("Wrong SegmentHeaderSize")
+	if segmentHeaderByteSize != 4 {
+		t.Fatal("Wrong segmentHeaderByteSize")
 	}
 }
 
-func TestSignature(t *testing.T) {
-	sig := Signature()
-	if len(sig) != FileHeaderSignatureLength {
+func TestFileSignature(t *testing.T) {
+	sig := fileSignature()
+	if len(sig) != fileHeaderSignatureLength {
 		t.Fatal("Wrong Signature Length")
 	}
 	comp := bytes.Equal(sig, []byte{
@@ -86,7 +86,7 @@ func TestSignature(t *testing.T) {
 	for i := range sig {
 		sig[i]++
 	}
-	comp2 := bytes.Equal(Signature(), []byte{
+	comp2 := bytes.Equal(fileSignature(), []byte{
 		3, 5, 7, 11, 13, 17, 19, 23, 29, 31,
 		'U', 'N', 'K', 'O', 'D', 'B',
 	})
@@ -102,20 +102,20 @@ func TestInitializeFile(t *testing.T) {
 	}
 	defer tempfile.Close()
 
-	file, err := InitializeFile(tempfile)
+	file, err := initializeFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if file.version != FileFormatVersion {
+	if file.version != fileFormatVersion {
 		t.Fatalf("Wrong File Format Version (%d)", file.version)
 	}
-	if file.nextNewSegmentAddress != FirstNewSegmentAddress {
+	if file.nextNewSegmentAddress != firstNewSegmentAddress {
 		t.Fatalf("Wrong NextNewSegmentAddress (%d)", file.nextNewSegmentAddress)
 	}
-	if file.tableListRootAddress != NullAddress {
+	if file.tableListRootAddress != nullAddress {
 		t.Fatalf("Wrong TableListRootAddress (%d)", file.tableListRootAddress)
 	}
-	if file.idleSegmentListRootAddress != NullAddress {
+	if file.idleSegmentListRootAddress != nullAddress {
 		t.Fatalf("Wrong IdleSegmentTreeRootAddress (%d)", file.idleSegmentListRootAddress)
 	}
 
@@ -129,18 +129,18 @@ func TestInitializeFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(buf) != FileHeaderSize {
+	if len(buf) != fileHeaderByteSize {
 		t.Fatalf("Wrong File Size (%d)", len(buf))
 	}
 
 	comp := bytes.Equal(buf, []byte{
 		3, 5, 7, 11, 13, 17, 19, 23, 29, 31,
 		'U', 'N', 'K', 'O', 'D', 'B',
-		0, FileFormatVersion,
-		0, 0, 0, FirstNewSegmentAddress,
-		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
-		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
-		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
+		0, fileFormatVersion,
+		0, 0, 0, firstNewSegmentAddress,
+		(nullAddress >> 24) & 0xFF, (nullAddress >> 16) & 0xFF, (nullAddress >> 8) & 0xFF, nullAddress & 0xFF,
+		(nullAddress >> 24) & 0xFF, (nullAddress >> 16) & 0xFF, (nullAddress >> 8) & 0xFF, nullAddress & 0xFF,
+		(nullAddress >> 24) & 0xFF, (nullAddress >> 16) & 0xFF, (nullAddress >> 8) & 0xFF, nullAddress & 0xFF,
 	})
 
 	if !comp {
@@ -155,25 +155,25 @@ func TestReadFile(t *testing.T) {
 	}
 	defer tempfile.Close()
 
-	_, err = InitializeFile(tempfile)
+	_, err = initializeFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	file, err := ReadFile(tempfile)
+	file, err := readFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if file.version != FileFormatVersion {
+	if file.version != fileFormatVersion {
 		t.Fatalf("Wrong File Format Version (%d)", file.version)
 	}
-	if file.nextNewSegmentAddress != FirstNewSegmentAddress {
+	if file.nextNewSegmentAddress != firstNewSegmentAddress {
 		t.Fatalf("Wrong NextNewSegmentAddress (%d)", file.nextNewSegmentAddress)
 	}
-	if file.tableListRootAddress != NullAddress {
+	if file.tableListRootAddress != nullAddress {
 		t.Fatalf("Wrong TableListRootAddress (%d)", file.tableListRootAddress)
 	}
-	if file.idleSegmentListRootAddress != NullAddress {
+	if file.idleSegmentListRootAddress != nullAddress {
 		t.Fatalf("Wrong IdleSegmentTreeRootAddress (%d)", file.idleSegmentListRootAddress)
 	}
 
@@ -187,18 +187,18 @@ func TestReadFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(buf) != FileHeaderSize {
+	if len(buf) != fileHeaderByteSize {
 		t.Fatalf("Wrong File Size (%d)", len(buf))
 	}
 
 	comp := bytes.Equal(buf, []byte{
 		3, 5, 7, 11, 13, 17, 19, 23, 29, 31,
 		'U', 'N', 'K', 'O', 'D', 'B',
-		0, FileFormatVersion,
-		0, 0, 0, FirstNewSegmentAddress,
-		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
-		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
-		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
+		0, fileFormatVersion,
+		0, 0, 0, firstNewSegmentAddress,
+		(nullAddress >> 24) & 0xFF, (nullAddress >> 16) & 0xFF, (nullAddress >> 8) & 0xFF, nullAddress & 0xFF,
+		(nullAddress >> 24) & 0xFF, (nullAddress >> 16) & 0xFF, (nullAddress >> 8) & 0xFF, nullAddress & 0xFF,
+		(nullAddress >> 24) & 0xFF, (nullAddress >> 16) & 0xFF, (nullAddress >> 8) & 0xFF, nullAddress & 0xFF,
 	})
 
 	if !comp {
@@ -206,14 +206,14 @@ func TestReadFile(t *testing.T) {
 	}
 }
 
-func TestFile_UpdateNextNewSegmentAddress(t *testing.T) {
+func TestFileAccessor_UpdateNextNewSegmentAddress(t *testing.T) {
 	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tempfile.Close()
 
-	file, err := InitializeFile(tempfile)
+	file, err := initializeFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -239,18 +239,18 @@ func TestFile_UpdateNextNewSegmentAddress(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(buf) != FileHeaderSize {
+	if len(buf) != fileHeaderByteSize {
 		t.Fatalf("Wrong File Size (%d)", len(buf))
 	}
 
 	comp := bytes.Equal(buf, []byte{
 		3, 5, 7, 11, 13, 17, 19, 23, 29, 31,
 		'U', 'N', 'K', 'O', 'D', 'B',
-		0, FileFormatVersion,
+		0, fileFormatVersion,
 		(Address >> 24) & 0xFF, (Address >> 16) & 0xFF, (Address >> 8) & 0xFF, Address & 0xFF,
-		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
-		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
-		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
+		(nullAddress >> 24) & 0xFF, (nullAddress >> 16) & 0xFF, (nullAddress >> 8) & 0xFF, nullAddress & 0xFF,
+		(nullAddress >> 24) & 0xFF, (nullAddress >> 16) & 0xFF, (nullAddress >> 8) & 0xFF, nullAddress & 0xFF,
+		(nullAddress >> 24) & 0xFF, (nullAddress >> 16) & 0xFF, (nullAddress >> 8) & 0xFF, nullAddress & 0xFF,
 	})
 
 	if !comp {
@@ -258,20 +258,20 @@ func TestFile_UpdateNextNewSegmentAddress(t *testing.T) {
 	}
 }
 
-func TestFile_NextNewSegmentAddress(t *testing.T) {
+func TestFileAccessor_NextNewSegmentAddress(t *testing.T) {
 	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tempfile.Close()
 
-	file, err := InitializeFile(tempfile)
+	file, err := initializeFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	nextNewSegmentAddress := file.NextNewSegmentAddress()
-	if nextNewSegmentAddress != FirstNewSegmentAddress {
+	if nextNewSegmentAddress != firstNewSegmentAddress {
 		t.Fatalf("Wrong NextNewSegmentAddress (%d)", nextNewSegmentAddress)
 	}
 
@@ -288,14 +288,14 @@ func TestFile_NextNewSegmentAddress(t *testing.T) {
 	}
 }
 
-func TestFile_UpdateTableListRootAddress(t *testing.T) {
+func TestFileAccessor_UpdateTableListRootAddress(t *testing.T) {
 	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tempfile.Close()
 
-	file, err := InitializeFile(tempfile)
+	file, err := initializeFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -321,18 +321,18 @@ func TestFile_UpdateTableListRootAddress(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(buf) != FileHeaderSize {
+	if len(buf) != fileHeaderByteSize {
 		t.Fatalf("Wrong File Size (%d)", len(buf))
 	}
 
 	comp := bytes.Equal(buf, []byte{
 		3, 5, 7, 11, 13, 17, 19, 23, 29, 31,
 		'U', 'N', 'K', 'O', 'D', 'B',
-		0, FileFormatVersion,
-		0, 0, 0, FirstNewSegmentAddress,
-		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
+		0, fileFormatVersion,
+		0, 0, 0, firstNewSegmentAddress,
+		(nullAddress >> 24) & 0xFF, (nullAddress >> 16) & 0xFF, (nullAddress >> 8) & 0xFF, nullAddress & 0xFF,
 		(Address >> 24) & 0xFF, (Address >> 16) & 0xFF, (Address >> 8) & 0xFF, Address & 0xFF,
-		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
+		(nullAddress >> 24) & 0xFF, (nullAddress >> 16) & 0xFF, (nullAddress >> 8) & 0xFF, nullAddress & 0xFF,
 	})
 
 	if !comp {
@@ -340,20 +340,20 @@ func TestFile_UpdateTableListRootAddress(t *testing.T) {
 	}
 }
 
-func TestFile_TableListRootAddress(t *testing.T) {
+func TestFileAccessor_TableListRootAddress(t *testing.T) {
 	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tempfile.Close()
 
-	file, err := InitializeFile(tempfile)
+	file, err := initializeFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	tableListRootAddress := file.TableListRootAddress()
-	if tableListRootAddress != 0 {
+	if tableListRootAddress != nullAddress {
 		t.Fatalf("Wrong TableListRootAddress (%d)", tableListRootAddress)
 	}
 
@@ -370,14 +370,14 @@ func TestFile_TableListRootAddress(t *testing.T) {
 	}
 }
 
-func TestFile_UpdateIdleSegmentTreeRootAddress(t *testing.T) {
+func TestFileAccessor_UpdateIdleSegmentTreeRootAddress(t *testing.T) {
 	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tempfile.Close()
 
-	file, err := InitializeFile(tempfile)
+	file, err := initializeFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -403,17 +403,17 @@ func TestFile_UpdateIdleSegmentTreeRootAddress(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(buf) != FileHeaderSize {
+	if len(buf) != fileHeaderByteSize {
 		t.Fatalf("Wrong File Size (%d)", len(buf))
 	}
 
 	comp := bytes.Equal(buf, []byte{
 		3, 5, 7, 11, 13, 17, 19, 23, 29, 31,
 		'U', 'N', 'K', 'O', 'D', 'B',
-		0, FileFormatVersion,
-		0, 0, 0, FirstNewSegmentAddress,
-		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
-		(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
+		0, fileFormatVersion,
+		0, 0, 0, firstNewSegmentAddress,
+		(nullAddress >> 24) & 0xFF, (nullAddress >> 16) & 0xFF, (nullAddress >> 8) & 0xFF, nullAddress & 0xFF,
+		(nullAddress >> 24) & 0xFF, (nullAddress >> 16) & 0xFF, (nullAddress >> 8) & 0xFF, nullAddress & 0xFF,
 		(Address >> 24) & 0xFF, (Address >> 16) & 0xFF, (Address >> 8) & 0xFF, Address & 0xFF,
 	})
 
@@ -422,14 +422,14 @@ func TestFile_UpdateIdleSegmentTreeRootAddress(t *testing.T) {
 	}
 }
 
-func TestFile_IdleSegmentTreeRootAddress(t *testing.T) {
+func TestFileAccessor_IdleSegmentTreeRootAddress(t *testing.T) {
 	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tempfile.Close()
 
-	file, err := InitializeFile(tempfile)
+	file, err := initializeFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -452,20 +452,20 @@ func TestFile_IdleSegmentTreeRootAddress(t *testing.T) {
 	}
 }
 
-func TestFile_CreateSegment(t *testing.T) {
+func TestFileAccessor_CreateSegment(t *testing.T) {
 	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tempfile.Close()
 
-	file, err := InitializeFile(tempfile)
+	file, err := initializeFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	const DataSize1 = 10
-	const SegmentSize1 = DataSize1 + SegmentHeaderSize
+	const SegmentSize1 = DataSize1 + segmentHeaderByteSize
 	{
 		seg1, err := file.CreateSegment(DataSize1)
 		if err != nil {
@@ -476,7 +476,7 @@ func TestFile_CreateSegment(t *testing.T) {
 			t.Fatal("Wrong Segment.file pointer")
 		}
 
-		if seg1.position != FileHeaderSize {
+		if seg1.position != fileHeaderByteSize {
 			t.Fatalf("Wrong Segment.position (%d)", seg1.position)
 		}
 
@@ -501,18 +501,18 @@ func TestFile_CreateSegment(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if len(buf) != FileHeaderSize+SegmentSize1 {
+		if len(buf) != fileHeaderByteSize+SegmentSize1 {
 			t.Fatalf("Wrong File Size (%d)", len(buf))
 		}
 
 		comp := bytes.Equal(buf, []byte{
 			3, 5, 7, 11, 13, 17, 19, 23, 29, 31,
 			'U', 'N', 'K', 'O', 'D', 'B',
-			0, FileFormatVersion,
-			0, 0, 0, FirstNewSegmentAddress + SegmentSize1,
-			(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
-			(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
-			(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
+			0, fileFormatVersion,
+			0, 0, 0, firstNewSegmentAddress + SegmentSize1,
+			(nullAddress >> 24) & 0xFF, (nullAddress >> 16) & 0xFF, (nullAddress >> 8) & 0xFF, nullAddress & 0xFF,
+			(nullAddress >> 24) & 0xFF, (nullAddress >> 16) & 0xFF, (nullAddress >> 8) & 0xFF, nullAddress & 0xFF,
+			(nullAddress >> 24) & 0xFF, (nullAddress >> 16) & 0xFF, (nullAddress >> 8) & 0xFF, nullAddress & 0xFF,
 			0, 0, 0, SegmentSize1,
 			0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		})
@@ -523,7 +523,7 @@ func TestFile_CreateSegment(t *testing.T) {
 	}
 
 	const DataSize2 = 7
-	const SegmentSize2 = DataSize2 + SegmentHeaderSize
+	const SegmentSize2 = DataSize2 + segmentHeaderByteSize
 	{
 		seg2, err := file.CreateSegment(DataSize2)
 		if err != nil {
@@ -534,7 +534,7 @@ func TestFile_CreateSegment(t *testing.T) {
 			t.Fatal("Wrong Segment.file pointer")
 		}
 
-		if seg2.position != FileHeaderSize+SegmentSize1 {
+		if seg2.position != fileHeaderByteSize+SegmentSize1 {
 			t.Fatalf("Wrong Segment.position (%d)", seg2.position)
 		}
 
@@ -559,18 +559,18 @@ func TestFile_CreateSegment(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if len(buf) != FileHeaderSize+SegmentSize1+SegmentSize2 {
+		if len(buf) != fileHeaderByteSize+SegmentSize1+SegmentSize2 {
 			t.Fatalf("Wrong File Size (%d)", len(buf))
 		}
 
 		comp := bytes.Equal(buf, []byte{
 			3, 5, 7, 11, 13, 17, 19, 23, 29, 31,
 			'U', 'N', 'K', 'O', 'D', 'B',
-			0, FileFormatVersion,
-			0, 0, 0, FirstNewSegmentAddress + SegmentSize1 + SegmentSize2,
-			(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
-			(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
-			(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
+			0, fileFormatVersion,
+			0, 0, 0, firstNewSegmentAddress + SegmentSize1 + SegmentSize2,
+			(nullAddress >> 24) & 0xFF, (nullAddress >> 16) & 0xFF, (nullAddress >> 8) & 0xFF, nullAddress & 0xFF,
+			(nullAddress >> 24) & 0xFF, (nullAddress >> 16) & 0xFF, (nullAddress >> 8) & 0xFF, nullAddress & 0xFF,
+			(nullAddress >> 24) & 0xFF, (nullAddress >> 16) & 0xFF, (nullAddress >> 8) & 0xFF, nullAddress & 0xFF,
 			0, 0, 0, SegmentSize1,
 			0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 			0, 0, 0, SegmentSize2,
@@ -583,9 +583,9 @@ func TestFile_CreateSegment(t *testing.T) {
 	}
 }
 
-func TestSegment_Position(t *testing.T) {
+func TestSegmentBuffer_Position(t *testing.T) {
 	f := func(v int) bool {
-		seg := &Segment{}
+		seg := &segmentBuffer{}
 		seg.position = v
 		position := seg.Position()
 		return position == v
@@ -594,7 +594,7 @@ func TestSegment_Position(t *testing.T) {
 		t.Fatal(err)
 	}
 	g := func(v int) bool {
-		seg := &Segment{}
+		seg := &segmentBuffer{}
 		seg.position = v
 		position := seg.Position()
 		return seg.position == v && position == v
@@ -604,13 +604,13 @@ func TestSegment_Position(t *testing.T) {
 	}
 }
 
-func TestSegment_Buffer(t *testing.T) {
-	seg := &Segment{}
+func TestSegmentBuffer_Buffer(t *testing.T) {
+	seg := &segmentBuffer{}
 	seg.buffer = []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}
 
 	buf := seg.Buffer()
 
-	if len(buf)+SegmentHeaderSize != len(seg.buffer) {
+	if len(buf)+segmentHeaderByteSize != len(seg.buffer) {
 		t.Fatalf("Wrong Buffer Size (%d)", len(buf))
 	}
 
@@ -636,20 +636,20 @@ func TestSegment_Buffer(t *testing.T) {
 	}
 }
 
-func TestSegment_Flush(t *testing.T) {
+func TestSegmentBuffer_Flush(t *testing.T) {
 	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tempfile.Close()
 
-	file, err := InitializeFile(tempfile)
+	file, err := initializeFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	const DataSize1 = 12
-	const SegmentSize1 = DataSize1 + SegmentHeaderSize
+	const SegmentSize1 = DataSize1 + segmentHeaderByteSize
 	{
 		seg1, err := file.CreateSegment(DataSize1)
 		if err != nil {
@@ -679,18 +679,18 @@ func TestSegment_Flush(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if len(buf) != FileHeaderSize+SegmentSize1 {
+		if len(buf) != fileHeaderByteSize+SegmentSize1 {
 			t.Fatalf("Wrong File Size (%d)", len(buf))
 		}
 
 		comp := bytes.Equal(buf, []byte{
 			3, 5, 7, 11, 13, 17, 19, 23, 29, 31,
 			'U', 'N', 'K', 'O', 'D', 'B',
-			0, FileFormatVersion,
-			0, 0, 0, FirstNewSegmentAddress + SegmentSize1,
-			(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
-			(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
-			(NullAddress >> 24) & 0xFF, (NullAddress >> 16) & 0xFF, (NullAddress >> 8) & 0xFF, NullAddress & 0xFF,
+			0, fileFormatVersion,
+			0, 0, 0, firstNewSegmentAddress + SegmentSize1,
+			(nullAddress >> 24) & 0xFF, (nullAddress >> 16) & 0xFF, (nullAddress >> 8) & 0xFF, nullAddress & 0xFF,
+			(nullAddress >> 24) & 0xFF, (nullAddress >> 16) & 0xFF, (nullAddress >> 8) & 0xFF, nullAddress & 0xFF,
+			(nullAddress >> 24) & 0xFF, (nullAddress >> 16) & 0xFF, (nullAddress >> 8) & 0xFF, nullAddress & 0xFF,
 			0, 0, 0, SegmentSize1,
 			1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
 		})
@@ -701,20 +701,20 @@ func TestSegment_Flush(t *testing.T) {
 	}
 }
 
-func TestFile_ReadSegment(t *testing.T) {
+func TestFileAccessor_ReadSegment(t *testing.T) {
 	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tempfile.Close()
 
-	file, err := InitializeFile(tempfile)
+	file, err := initializeFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	const DataSize1 = 8
-	const SegmentSize1 = DataSize1 + SegmentHeaderSize
+	const SegmentSize1 = DataSize1 + segmentHeaderByteSize
 	var pos1 int
 	{
 		seg1, err := file.CreateSegment(DataSize1)
@@ -736,7 +736,7 @@ func TestFile_ReadSegment(t *testing.T) {
 	}
 
 	const DataSize2 = 11
-	const SegmentSize2 = DataSize2 + SegmentHeaderSize
+	const SegmentSize2 = DataSize2 + segmentHeaderByteSize
 	var pos2 int
 	{
 		seg2, err := file.CreateSegment(DataSize2)

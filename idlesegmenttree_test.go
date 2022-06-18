@@ -21,12 +21,12 @@ func TestIdleSegmentTree(t *testing.T) {
 	}
 	defer tempfile.Close()
 
-	file, err := InitializeFile(tempfile)
+	file, err := initializeFile(tempfile)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	tree := NewIdleSegmentTree(file)
+	tree := newIdleSegmentTree(file)
 
 	lengthList := []int{888, 111, 555, 333, 444, 777, 666, 222, 999}
 
@@ -45,7 +45,7 @@ func TestIdleSegmentTree(t *testing.T) {
 	order := make([]int, 0, len(lengthList))
 
 	avltree.Iterate(tree, false, func(node avltree.Node) (_ bool) {
-		seg := node.Value().(*Segment)
+		seg := node.Value().(*segmentBuffer)
 		order = append(order, seg.BufferSize())
 		return
 	})

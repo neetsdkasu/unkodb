@@ -10,18 +10,18 @@ import (
 	"github.com/neetsdkasu/avltree/intkey"
 )
 
-type IdleSegmentManager struct {
-	tree *IdleSegmentTree
+type segmentManager struct {
+	tree *idleSegmentTree
 }
 
-type IdleSegmentTree struct {
-	file  *File
-	cache map[int]*IdleSegmentTreeNode
+type idleSegmentTree struct {
+	file  *fileAccessor
+	cache map[int]*idleSegmentTreeNode
 }
 
-type IdleSegmentTreeNode struct {
-	tree              *IdleSegmentTree
-	segment           *Segment
+type idleSegmentTreeNode struct {
+	tree              *idleSegmentTree
+	segment           *segmentBuffer
 	key               avltree.Key
 	leftChildAddress  int
 	rightChildAddress int
@@ -29,31 +29,31 @@ type IdleSegmentTreeNode struct {
 	updated           bool
 }
 
-func NewIdleSegmentTree(file *File) *IdleSegmentTree {
-	tree := &IdleSegmentTree{
+func newIdleSegmentTree(file *fileAccessor) *idleSegmentTree {
+	tree := &idleSegmentTree{
 		file:  file,
-		cache: make(map[int]*IdleSegmentTreeNode),
+		cache: make(map[int]*idleSegmentTreeNode),
 	}
 	return tree
 }
 
 const (
-	IdleSegmentTreeNodeLeftChildPosition = 0
-	IdleSegmentTreeNodeLeftChildLength   = AddressSize
+	idleSegmentTreeNodeLeftChildPosition = 0
+	idleSegmentTreeNodeLeftChildLength   = addressByteSize
 
-	IdleSegmentTreeNodeRightChildPosition = IdleSegmentTreeNodeLeftChildPosition + IdleSegmentTreeNodeLeftChildLength
-	IdleSegmentTreeNodeRightChildLength   = AddressSize
+	idleSegmentTreeNodeRightChildPosition = idleSegmentTreeNodeLeftChildPosition + idleSegmentTreeNodeLeftChildLength
+	idleSegmentTreeNodeRightChildLength   = addressByteSize
 
-	IdleSegmentTreeNodeHeightPosition = IdleSegmentTreeNodeRightChildPosition + IdleSegmentTreeNodeRightChildLength
-	IdleSegmentTreeNodeHeightLength   = AddressSize
+	idleSegmentTreeNodeHeightPosition = idleSegmentTreeNodeRightChildPosition + idleSegmentTreeNodeRightChildLength
+	idleSegmentTreeNodeHeightLength   = addressByteSize
 )
 
 // avltree.NodeからIdleSegmentTreeNodeを取り出す
-func unwrapIdleSegmentTreeNode(node avltree.Node) *IdleSegmentTreeNode {
+func unwrapIdleSegmentTreeNode(node avltree.Node) *idleSegmentTreeNode {
 	if node == nil {
 		return nil
 	}
-	if n, ok := node.(*IdleSegmentTreeNode); ok {
+	if n, ok := node.(*idleSegmentTreeNode); ok {
 		return n
 	}
 	logger.Panicf("[BUG] node is not IdleSegmentTreeNode (%#v)", node)
@@ -65,11 +65,11 @@ func unwrapIdleSegmentTreeNode(node avltree.Node) *IdleSegmentTreeNode {
 // 通常は直接変換 value.(*Segment) で取り出せばいいのだが
 // UnkoDBが完成するまでは、念のための処理
 // TODO 完成したら除去する
-func unwrapIdleSegmentTreeValue(value any) *Segment {
+func unwrapIdleSegmentTreeValue(value any) *segmentBuffer {
 	if value == nil {
 		logger.Panic("[BUG] value is nil")
 	}
-	if seg, ok := value.(*Segment); ok {
+	if seg, ok := value.(*segmentBuffer); ok {
 		if seg == nil {
 			logger.Panic("[BUG] value is *Segment(nil)")
 		}
@@ -80,7 +80,7 @@ func unwrapIdleSegmentTreeValue(value any) *Segment {
 }
 
 // IdleSegmentTreeNodeをavltree.Nodeに変換する
-func (node *IdleSegmentTreeNode) toNode() avltree.Node {
+func (node *idleSegmentTreeNode) toNode() avltree.Node {
 	if node == nil {
 		return nil
 	} else {
@@ -89,16 +89,16 @@ func (node *IdleSegmentTreeNode) toNode() avltree.Node {
 }
 
 // ノードのファイル上の位置を返す
-func (node *IdleSegmentTreeNode) position() int {
+func (node *idleSegmentTreeNode) position() int {
 	if node == nil {
-		return NullAddress
+		return nullAddress
 	} else {
 		return node.segment.Position()
 	}
 }
 
 // ノードの変更をファイルに書き込む
-func (node *IdleSegmentTreeNode) flush() error {
+func (node *idleSegmentTreeNode) flush() error {
 	if node == nil || !node.updated {
 		return nil
 	}
@@ -125,8 +125,8 @@ func (node *IdleSegmentTreeNode) flush() error {
 }
 
 // ノード情報をファイルから読み取る
-func (tree *IdleSegmentTree) loadNode(address int) *IdleSegmentTreeNode {
-	if address == NullAddress {
+func (tree *idleSegmentTree) loadNode(address int) *idleSegmentTreeNode {
+	if address == nullAddress {
 		return nil
 	}
 	if cached, ok := tree.cache[address]; ok {
@@ -152,7 +152,7 @@ func (tree *IdleSegmentTree) loadNode(address int) *IdleSegmentTreeNode {
 	if err != nil {
 		logger.Panic(err) // ここに到達したらどこかにバグがあるか、不正なファイル
 	}
-	node := &IdleSegmentTreeNode{
+	node := &idleSegmentTreeNode{
 		tree:              tree,
 		segment:           seg,
 		key:               intkey.IntKey(seg.BufferSize()),
@@ -166,14 +166,14 @@ func (tree *IdleSegmentTree) loadNode(address int) *IdleSegmentTreeNode {
 }
 
 // github.com/neetsdkasu/avltree.RealTree.Root() の実装
-func (tree *IdleSegmentTree) Root() avltree.Node {
+func (tree *idleSegmentTree) Root() avltree.Node {
 	node := tree.loadNode(tree.file.IdleSegmentTreeRootAddress())
 	return node.toNode()
 }
 
 // github.com/neetsdkasu/avltree.RealTree.NewNode(...) の実装
-func (tree *IdleSegmentTree) NewNode(leftChild, rightChild avltree.Node, height int, key avltree.Key, value any) avltree.RealNode {
-	node := &IdleSegmentTreeNode{
+func (tree *idleSegmentTree) NewNode(leftChild, rightChild avltree.Node, height int, key avltree.Key, value any) avltree.RealNode {
+	node := &idleSegmentTreeNode{
 		tree:              tree,
 		key:               key,
 		segment:           unwrapIdleSegmentTreeValue(value),
@@ -187,7 +187,7 @@ func (tree *IdleSegmentTree) NewNode(leftChild, rightChild avltree.Node, height 
 }
 
 // github.com/neetsdkasu/avltree.RealTree.SetRoot(...)の実装
-func (tree *IdleSegmentTree) SetRoot(newRoot avltree.RealNode) avltree.RealTree {
+func (tree *idleSegmentTree) SetRoot(newRoot avltree.RealNode) avltree.RealTree {
 	address := unwrapIdleSegmentTreeNode(newRoot).position()
 	err := tree.file.UpdateIdleSegmentTreeRootAddress(address)
 	if err != nil {
@@ -197,46 +197,46 @@ func (tree *IdleSegmentTree) SetRoot(newRoot avltree.RealNode) avltree.RealTree 
 }
 
 // github.com/neetsdkasu/avltree.RealTree.AllowDuplicateKeys() の実装
-func (*IdleSegmentTree) AllowDuplicateKeys() bool {
+func (*idleSegmentTree) AllowDuplicateKeys() bool {
 	return true
 }
 
 // github.com/neetsdkasu/avltree.RealNode.Key() の実装
-func (node *IdleSegmentTreeNode) Key() avltree.Key {
+func (node *idleSegmentTreeNode) Key() avltree.Key {
 	return intkey.IntKey(node.segment.BufferSize())
 }
 
 // github.com/neetsdkasu/avltree.RealNode.Value() の実装
-func (node *IdleSegmentTreeNode) Value() any {
+func (node *idleSegmentTreeNode) Value() any {
 	return node.segment
 }
 
 // github.com/neetsdkasu/avltree.RealNode.LeftChild() の実装
-func (node *IdleSegmentTreeNode) LeftChild() avltree.Node {
+func (node *idleSegmentTreeNode) LeftChild() avltree.Node {
 	leftChild := node.tree.loadNode(node.leftChildAddress)
 	return leftChild.toNode()
 }
 
 // github.com/neetsdkasu/avltree.RealNode.RightChild() の実装
-func (node *IdleSegmentTreeNode) RightChild() avltree.Node {
+func (node *idleSegmentTreeNode) RightChild() avltree.Node {
 	rightChild := node.tree.loadNode(node.rightChildAddress)
 	return rightChild.toNode()
 }
 
 // github.com/neetsdkasu/avltree.RealNode.SetValue(...) の実装
-func (*IdleSegmentTreeNode) SetValue(newValue any) (_ avltree.Node) {
+func (*idleSegmentTreeNode) SetValue(newValue any) (_ avltree.Node) {
 	// IdleSegmentでは値(Segment)を更新する状況はない
 	logger.Panic("[BUG] Unreachable")
 	return
 }
 
 // github.com/neetsdkasu/avltree.RealNode.Height() の実装
-func (node *IdleSegmentTreeNode) Height() int {
+func (node *idleSegmentTreeNode) Height() int {
 	return node.height
 }
 
 // github.com/neetsdkasu/avltree.RealNode.SetChildren(...) の実装
-func (node *IdleSegmentTreeNode) SetChildren(newLeftChild, newRightChild avltree.Node, newHeight int) avltree.RealNode {
+func (node *idleSegmentTreeNode) SetChildren(newLeftChild, newRightChild avltree.Node, newHeight int) avltree.RealNode {
 	node.leftChildAddress = unwrapIdleSegmentTreeNode(newLeftChild).position()
 	node.rightChildAddress = unwrapIdleSegmentTreeNode(newRightChild).position()
 	node.height = newHeight
@@ -245,7 +245,7 @@ func (node *IdleSegmentTreeNode) SetChildren(newLeftChild, newRightChild avltree
 }
 
 // github.com/neetsdkasu/avltree.RealNode.Set(...) の実装
-func (*IdleSegmentTreeNode) Set(newLeftChild, newRightChild avltree.Node, newHeight int, newValue any) (_ avltree.RealNode) {
+func (*idleSegmentTreeNode) Set(newLeftChild, newRightChild avltree.Node, newHeight int, newValue any) (_ avltree.RealNode) {
 	// IdleSegmentでは値(Segment)を更新する状況はない
 	logger.Panic("[BUG] Unreachable")
 	return

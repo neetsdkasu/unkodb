@@ -26,37 +26,37 @@ import (
 var fileByteOrder = binary.BigEndian
 
 const (
-	FileFormatVersion = 1
+	fileFormatVersion = 1
 
-	AddressSize = 4
-	NullAddress = 0
+	addressByteSize = 4
+	nullAddress     = 0
 
-	FileHeaderSignaturePosition = 0
-	FileHeaderSignatureLength   = 16
+	fileHeaderSignaturePosition = 0
+	fileHeaderSignatureLength   = 16
 
-	FileHeaderFileFormatVersionPosition = FileHeaderSignaturePosition + FileHeaderSignatureLength
-	FileHeaderFileFormatVersionLength   = 2
+	fileHeaderFileFormatVersionPosition = fileHeaderSignaturePosition + fileHeaderSignatureLength
+	fileHeaderFileFormatVersionLength   = 2
 
-	FileHeaderNextNewSegmentAddressPosition = FileHeaderFileFormatVersionPosition + FileHeaderFileFormatVersionLength
-	FileHeaderNextNewSegmentAddressLength   = AddressSize
+	fileHeaderNextNewSegmentAddressPosition = fileHeaderFileFormatVersionPosition + fileHeaderFileFormatVersionLength
+	fileHeaderNextNewSegmentAddressLength   = addressByteSize
 
-	FileHeaderReserveAreaAddressPosition = FileHeaderNextNewSegmentAddressPosition + FileHeaderNextNewSegmentAddressLength
-	FileHeaderReserveAreaAddressLength   = AddressSize
+	fileHeaderReserveAreaAddressPosition = fileHeaderNextNewSegmentAddressPosition + fileHeaderNextNewSegmentAddressLength
+	fileHeaderReserveAreaAddressLength   = addressByteSize
 
-	FileHeaderTableListRootAddressPosition = FileHeaderReserveAreaAddressPosition + FileHeaderReserveAreaAddressLength
-	FileHeaderTableListRootAddressLength   = AddressSize
+	fileHeaderTableListRootAddressPosition = fileHeaderReserveAreaAddressPosition + fileHeaderReserveAreaAddressLength
+	fileHeaderTableListRootAddressLength   = addressByteSize
 
-	FileHeaderIdleSegmentTreeRootAddressPosition = FileHeaderTableListRootAddressPosition + FileHeaderTableListRootAddressLength
-	FileHeaderIdleSegmentTreeRootAddressLength   = AddressSize
+	fileHeaderIdleSegmentTreeRootAddressPosition = fileHeaderTableListRootAddressPosition + fileHeaderTableListRootAddressLength
+	fileHeaderIdleSegmentTreeRootAddressLength   = addressByteSize
 
-	FileHeaderSize = FileHeaderIdleSegmentTreeRootAddressPosition + FileHeaderIdleSegmentTreeRootAddressLength
+	fileHeaderByteSize = fileHeaderIdleSegmentTreeRootAddressPosition + fileHeaderIdleSegmentTreeRootAddressLength
 
-	FirstNewSegmentAddress = FileHeaderSize
+	firstNewSegmentAddress = fileHeaderByteSize
 
-	SegmentHeaderSize = AddressSize
+	segmentHeaderByteSize = addressByteSize
 )
 
-type File struct {
+type fileAccessor struct {
 	inner                      io.ReadWriteSeeker
 	version                    int
 	nextNewSegmentAddress      int
@@ -64,32 +64,32 @@ type File struct {
 	idleSegmentListRootAddress int
 }
 
-type Segment struct {
-	file     *File
+type segmentBuffer struct {
+	file     *fileAccessor
 	position int
 	buffer   []byte
 }
 
-func Signature() []byte {
+func fileSignature() []byte {
 	return []byte{
 		3, 5, 7, 11, 13, 17, 19, 23, 29, 31,
 		'U', 'N', 'K', 'O', 'D', 'B',
 	}
 }
 
-func ReadFile(file io.ReadWriteSeeker) (*File, error) {
+func readFile(file io.ReadWriteSeeker) (*fileAccessor, error) {
 	fileSize, err := file.Seek(0, io.SeekEnd)
 	if err != nil {
 		return nil, fmt.Errorf("Failed File.ReadFile [%w]", err)
 	}
-	newFile := &File{
+	newFile := &fileAccessor{
 		inner:                      file,
 		version:                    0,
-		nextNewSegmentAddress:      NullAddress,
-		tableListRootAddress:       NullAddress,
-		idleSegmentListRootAddress: NullAddress,
+		nextNewSegmentAddress:      nullAddress,
+		tableListRootAddress:       nullAddress,
+		idleSegmentListRootAddress: nullAddress,
 	}
-	if fileSize < FileHeaderSize {
+	if fileSize < fileHeaderByteSize {
 		return nil, fmt.Errorf("Wrong File Format")
 	}
 	if err = newFile.readHeader(); err != nil {
@@ -98,34 +98,34 @@ func ReadFile(file io.ReadWriteSeeker) (*File, error) {
 	return newFile, nil
 }
 
-func InitializeFile(file io.ReadWriteSeeker) (*File, error) {
-	newFile := &File{
+func initializeFile(file io.ReadWriteSeeker) (*fileAccessor, error) {
+	newFile := &fileAccessor{
 		inner:                      file,
-		version:                    FileFormatVersion,
-		nextNewSegmentAddress:      FirstNewSegmentAddress,
-		tableListRootAddress:       NullAddress,
-		idleSegmentListRootAddress: NullAddress,
+		version:                    fileFormatVersion,
+		nextNewSegmentAddress:      firstNewSegmentAddress,
+		tableListRootAddress:       nullAddress,
+		idleSegmentListRootAddress: nullAddress,
 	}
-	var buffer [FileHeaderSize]byte
+	var buffer [fileHeaderByteSize]byte
 	w := NewByteEncoder(NewByteSliceWriter(buffer[:]), fileByteOrder)
-	if err := w.RawBytes(Signature()); err != nil {
+	if err := w.RawBytes(fileSignature()); err != nil {
 		logger.Panic(err) // ここに到達する場合はバグがある
 	}
-	if err := w.Uint16(FileFormatVersion); err != nil {
+	if err := w.Uint16(fileFormatVersion); err != nil {
 		logger.Panic(err) // ここに到達する場合はバグがある
 	}
-	if err := w.Int32(FirstNewSegmentAddress); err != nil {
+	if err := w.Int32(firstNewSegmentAddress); err != nil {
 		logger.Panic(err) // ここに到達する場合はバグがある
 	}
-	if err := w.Int32(NullAddress); err != nil {
+	if err := w.Int32(nullAddress); err != nil {
 		// ReserveAreaAddress
 		logger.Panic(err) // ここに到達する場合はバグがある
 	}
-	if err := w.Int32(NullAddress); err != nil {
+	if err := w.Int32(nullAddress); err != nil {
 		// TableListRootAddress
 		logger.Panic(err) // ここに到達する場合はバグがある
 	}
-	if err := w.Int32(NullAddress); err != nil {
+	if err := w.Int32(nullAddress); err != nil {
 		// IdleSegmentTreeRootAddress
 		logger.Panic(err) // ここに到達する場合はバグがある
 	}
@@ -135,18 +135,18 @@ func InitializeFile(file io.ReadWriteSeeker) (*File, error) {
 	return newFile, nil
 }
 
-func (file *File) readHeader() error {
-	var buffer [FileHeaderSize]byte
+func (file *fileAccessor) readHeader() error {
+	var buffer [fileHeaderByteSize]byte
 	if err := file.Read(0, buffer[:]); err != nil {
 		return err
 	}
 	r := NewByteDecoder(bytes.NewReader(buffer[:]), fileByteOrder)
 	{
-		var sig [FileHeaderSignatureLength]byte
+		var sig [fileHeaderSignatureLength]byte
 		if err := r.RawBytes(sig[:]); err != nil {
 			logger.Panic(err) // ここに到達する場合はバグがある
 		}
-		if !bytes.Equal(sig[:], Signature()) {
+		if !bytes.Equal(sig[:], fileSignature()) {
 			return fmt.Errorf("Wrong Signature in File Header")
 		}
 	}
@@ -155,7 +155,7 @@ func (file *File) readHeader() error {
 		if err := r.Uint16(&version); err != nil {
 			logger.Panic(err) // ここに到達する場合はバグがある
 		}
-		if version != FileFormatVersion {
+		if version != fileFormatVersion {
 			return fmt.Errorf("Unsupported FileFormatVersion (%d)", version)
 		}
 		file.version = int(version)
@@ -165,7 +165,7 @@ func (file *File) readHeader() error {
 		if err := r.Int32(&nextNewSegmentAddress); err != nil {
 			logger.Panic(err) // ここに到達する場合はバグがある
 		}
-		if nextNewSegmentAddress < FirstNewSegmentAddress {
+		if nextNewSegmentAddress < firstNewSegmentAddress {
 			return fmt.Errorf("Wrong NextNewSegmentAddress")
 		}
 		file.nextNewSegmentAddress = int(nextNewSegmentAddress)
@@ -175,7 +175,7 @@ func (file *File) readHeader() error {
 		if err := r.Int32(&reserveAreaAddress); err != nil {
 			logger.Panic(err) // ここに到達する場合はバグがある
 		}
-		if reserveAreaAddress != NullAddress {
+		if reserveAreaAddress != nullAddress {
 			return fmt.Errorf("Wrong ReserveAreaAddress")
 		}
 	}
@@ -202,46 +202,46 @@ func (file *File) readHeader() error {
 	return nil
 }
 
-func (file *File) Read(position int, buffer []byte) error {
+func (file *fileAccessor) Read(position int, buffer []byte) error {
 	if _, err := file.inner.Seek(int64(position), io.SeekStart); err != nil {
-		return fmt.Errorf("Failed File.Read (seek) [%w]", err)
+		return fmt.Errorf("Failed fileAccessor.Read (seek) [%w]", err)
 	}
 	if n, err := io.ReadFull(file.inner, buffer); err != nil {
-		return fmt.Errorf("Failed File.Read (read) [%w]", err)
+		return fmt.Errorf("Failed fileAccessor.Read (read) [%w]", err)
 	} else if n != len(buffer) {
-		return fmt.Errorf("Failed File.Read [cannot read (Position: %d, Length: %d, Read: %d)]", position, len(buffer), n)
+		return fmt.Errorf("Failed fileAccessor.Read [cannot read (Position: %d, Length: %d, Read: %d)]", position, len(buffer), n)
 	}
 	return nil
 }
 
-func (file *File) ReadBytes(position, length int) ([]byte, error) {
+func (file *fileAccessor) ReadBytes(position, length int) ([]byte, error) {
 	buffer := make([]byte, length)
 	err := file.Read(position, buffer)
 	if err != nil {
-		return nil, fmt.Errorf("Failed File.ReadBytes [%w]", err)
+		return nil, fmt.Errorf("Failed fileAccessor.ReadBytes [%w]", err)
 	}
 	return buffer, nil
 }
 
-func (file *File) Write(position int, data []byte) error {
+func (file *fileAccessor) Write(position int, data []byte) error {
 	if _, err := file.inner.Seek(int64(position), io.SeekStart); err != nil {
-		return fmt.Errorf("Failed File.Write (seek) [%w]", err)
+		return fmt.Errorf("Failed fileAccessor.Write (seek) [%w]", err)
 	}
 	if n, err := file.inner.Write(data); err != nil {
-		return fmt.Errorf("Failed File.Write (write) [%w]", err)
+		return fmt.Errorf("Failed fileAccessor.Write (write) [%w]", err)
 	} else if n != len(data) {
-		return fmt.Errorf("Failed File.Write [cannot write (Position: %d, Data Length: %d, Wrote: %d)]", position, len(data), n)
+		return fmt.Errorf("Failed fileAccessor.Write [cannot write (Position: %d, Data Length: %d, Wrote: %d)]", position, len(data), n)
 	}
 	return nil
 }
 
-func (file *File) CreateSegment(length int) (*Segment, error) {
+func (file *fileAccessor) CreateSegment(length int) (*segmentBuffer, error) {
 	segmentAddress := file.nextNewSegmentAddress
 	_, err := file.inner.Seek(int64(segmentAddress), io.SeekStart)
 	if err != nil {
-		return nil, fmt.Errorf("Failed File.CreateSegment (seek) [%w]", err)
+		return nil, fmt.Errorf("Failed fileAccessor.CreateSegment (seek) [%w]", err)
 	}
-	length += SegmentHeaderSize
+	length += segmentHeaderByteSize
 	buffer := make([]byte, length)
 	err = NewByteEncoder(NewByteSliceWriter(buffer), fileByteOrder).Int32(int32(length))
 	if err != nil {
@@ -249,14 +249,14 @@ func (file *File) CreateSegment(length int) (*Segment, error) {
 	}
 	err = file.Write(segmentAddress, buffer)
 	if err != nil {
-		return nil, fmt.Errorf("Failed File.CreateSegment (write) [%w]", err)
+		return nil, fmt.Errorf("Failed fileAccessor.CreateSegment (write) [%w]", err)
 	}
 	nextNewSegmentAddress := segmentAddress + length
 	err = file.UpdateNextNewSegmentAddress(nextNewSegmentAddress)
 	if err != nil {
-		return nil, fmt.Errorf("Failed File.CreateSegment (update) [%w]", err)
+		return nil, fmt.Errorf("Failed fileAccessor.CreateSegment (update) [%w]", err)
 	}
-	seg := &Segment{
+	seg := &segmentBuffer{
 		file:     file,
 		position: segmentAddress,
 		buffer:   buffer,
@@ -264,82 +264,82 @@ func (file *File) CreateSegment(length int) (*Segment, error) {
 	return seg, nil
 }
 
-func (file *File) ReadSegment(position int) (*Segment, error) {
-	var headerBuffer [SegmentHeaderSize]byte
+func (file *fileAccessor) ReadSegment(position int) (*segmentBuffer, error) {
+	var headerBuffer [segmentHeaderByteSize]byte
 	err := file.Read(position, headerBuffer[:])
 	if err != nil {
-		return nil, fmt.Errorf("Failed File.ReadSegment (read header) [%w]", err)
+		return nil, fmt.Errorf("Failed fileAccessor.ReadSegment (read header) [%w]", err)
 	}
 	length := int(fileByteOrder.Uint32(headerBuffer[:]))
 	buffer, err := file.ReadBytes(position, length)
 	if err != nil {
-		return nil, fmt.Errorf("Failed File.ReadSegment (read data) [%w]", err)
+		return nil, fmt.Errorf("Failed fileAccessor.ReadSegment (read data) [%w]", err)
 	}
-	seg := &Segment{file, position, buffer}
+	seg := &segmentBuffer{file, position, buffer}
 	return seg, nil
 }
 
-func (file *File) NextNewSegmentAddress() int {
+func (file *fileAccessor) NextNewSegmentAddress() int {
 	return file.nextNewSegmentAddress
 }
 
-func (file *File) UpdateNextNewSegmentAddress(newAddress int) error {
-	var buffer [FileHeaderNextNewSegmentAddressLength]byte
+func (file *fileAccessor) UpdateNextNewSegmentAddress(newAddress int) error {
+	var buffer [fileHeaderNextNewSegmentAddressLength]byte
 	fileByteOrder.PutUint32(buffer[:], uint32(newAddress))
-	err := file.Write(FileHeaderNextNewSegmentAddressPosition, buffer[:])
+	err := file.Write(fileHeaderNextNewSegmentAddressPosition, buffer[:])
 	if err != nil {
-		return fmt.Errorf("Failed File.UpdateNextNewSegmentAddress [%w]", err)
+		return fmt.Errorf("Failed fileAccessor.UpdateNextNewSegmentAddress [%w]", err)
 	}
 	file.nextNewSegmentAddress = newAddress
 	return nil
 }
 
-func (file *File) TableListRootAddress() int {
+func (file *fileAccessor) TableListRootAddress() int {
 	return file.tableListRootAddress
 }
 
-func (file *File) UpdateTableListRootAddress(newAddress int) error {
-	var buffer [FileHeaderTableListRootAddressLength]byte
+func (file *fileAccessor) UpdateTableListRootAddress(newAddress int) error {
+	var buffer [fileHeaderTableListRootAddressLength]byte
 	fileByteOrder.PutUint32(buffer[:], uint32(newAddress))
-	err := file.Write(FileHeaderTableListRootAddressPosition, buffer[:])
+	err := file.Write(fileHeaderTableListRootAddressPosition, buffer[:])
 	if err != nil {
-		return fmt.Errorf("Failed File.UpdateTableListRootAddress [%w]", err)
+		return fmt.Errorf("Failed fileAccessor.UpdateTableListRootAddress [%w]", err)
 	}
 	file.tableListRootAddress = newAddress
 	return nil
 }
 
-func (file *File) IdleSegmentTreeRootAddress() int {
+func (file *fileAccessor) IdleSegmentTreeRootAddress() int {
 	return file.idleSegmentListRootAddress
 }
 
-func (file *File) UpdateIdleSegmentTreeRootAddress(newAddress int) error {
-	var buffer [FileHeaderIdleSegmentTreeRootAddressLength]byte
+func (file *fileAccessor) UpdateIdleSegmentTreeRootAddress(newAddress int) error {
+	var buffer [fileHeaderIdleSegmentTreeRootAddressLength]byte
 	fileByteOrder.PutUint32(buffer[:], uint32(newAddress))
-	err := file.Write(FileHeaderIdleSegmentTreeRootAddressPosition, buffer[:])
+	err := file.Write(fileHeaderIdleSegmentTreeRootAddressPosition, buffer[:])
 	if err != nil {
-		return fmt.Errorf("Failed File.UpdateIdleSegmentTreeRootAddress [%w]", err)
+		return fmt.Errorf("Failed fileAccessor.UpdateIdleSegmentTreeRootAddress [%w]", err)
 	}
 	file.idleSegmentListRootAddress = newAddress
 	return nil
 }
 
-func (seg *Segment) Position() int {
+func (seg *segmentBuffer) Position() int {
 	return seg.position
 }
 
-func (seg *Segment) BufferSize() int {
-	return len(seg.buffer) - SegmentHeaderSize
+func (seg *segmentBuffer) BufferSize() int {
+	return len(seg.buffer) - segmentHeaderByteSize
 }
 
-func (seg *Segment) Buffer() []byte {
-	return seg.buffer[SegmentHeaderSize:]
+func (seg *segmentBuffer) Buffer() []byte {
+	return seg.buffer[segmentHeaderByteSize:]
 }
 
-func (seg *Segment) Flush() error {
+func (seg *segmentBuffer) Flush() error {
 	err := seg.file.Write(seg.position, seg.buffer)
 	if err != nil {
-		return fmt.Errorf("Failed Segment.Flush [%w]", err)
+		return fmt.Errorf("Failed segmentBuffer.Flush [%w]", err)
 	}
 	return nil
 }

@@ -12,6 +12,7 @@ var (
 	ColumnNameAlreadyExists = errors.New("ColumnNameAlreadyExists")
 	ColumnNameIsTooLong     = errors.New("ColumnNameIsTooLong")
 	InvalidOperation        = errors.New("InvalidOperation")
+	NeedToSetAKey           = errors.New("NeedToSetAKey")
 )
 
 const (
@@ -19,7 +20,7 @@ const (
 )
 
 type TableCreator struct {
-	db            *unkoDB
+	db            *UnkoDB
 	name          string
 	key           Column
 	columns       []Column
@@ -27,7 +28,7 @@ type TableCreator struct {
 	created       bool
 }
 
-func newTableCreator(db *unkoDB, name string) *TableCreator {
+func newTableCreator(db *UnkoDB, name string) *TableCreator {
 	return &TableCreator{
 		db:            db,
 		name:          name,
@@ -41,6 +42,9 @@ func newTableCreator(db *unkoDB, name string) *TableCreator {
 func (tc *TableCreator) Create() (*Table, error) {
 	if tc.created {
 		return nil, InvalidOperation
+	}
+	if tc.key == nil {
+		return nil, NeedToSetAKey
 	}
 	table := &Table{
 		name:    tc.name,
@@ -69,6 +73,7 @@ func (tc *TableCreator) setKey(column Column) error {
 	if tc.key != nil {
 		return KeyAlreadyExists
 	}
+	// TODO カラム名の文字構成チェック（長さゼロの文字列ダメとか？）
 	if len([]byte(column.Name())) > MaximumColumnNameByteSize {
 		return ColumnNameIsTooLong
 	}
@@ -84,6 +89,7 @@ func (tc *TableCreator) addColumn(column Column) error {
 	if tc.created {
 		return InvalidOperation
 	}
+	// TODO カラム名の文字構成チェック（長さゼロの文字列ダメとか？）
 	if len([]byte(column.Name())) > MaximumColumnNameByteSize {
 		return ColumnNameIsTooLong
 	}
