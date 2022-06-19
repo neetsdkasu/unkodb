@@ -31,6 +31,11 @@ const (
 )
 
 const (
+	shortStringMinimumDataByteSize = 0
+	shortStringMaximumDataByteSize = 255
+)
+
+const (
 	fileFormatVersion = 1
 
 	addressByteSize = 4

@@ -128,16 +128,16 @@ func (*shortStringColumn) Type() ColumnType {
 }
 
 func (*shortStringColumn) MinimumDataByteSize() int {
-	return 0
+	return shortStringMinimumDataByteSize
 }
 
 func (*shortStringColumn) MaximumDataByteSize() int {
-	return 255
+	return shortStringMaximumDataByteSize
 }
 
 func (*shortStringColumn) byteSizeHint(value any) int {
 	if s, ok := value.(string); ok {
-		return minValue(255, len([]byte(s))) + 1
+		return minValue(shortStringMaximumDataByteSize, len([]byte(s))) + 1
 	} else {
 		logger.Panicf("[BUG] value type is not string (value: %T %#v)", value, value)
 		return 0
@@ -162,8 +162,8 @@ func (*shortStringColumn) read(decoder *byteDecoder) (value any, err error) {
 func (*shortStringColumn) write(encoder *byteEncoder, value any) (err error) {
 	if s, ok := value.(string); ok {
 		buf := []byte(s)
-		if len(buf) > 255 {
-			buf = buf[:255]
+		if len(buf) > shortStringMaximumDataByteSize {
+			buf = buf[:shortStringMaximumDataByteSize]
 		}
 		err = encoder.Uint8(uint8(len(buf)))
 		if err != nil {
