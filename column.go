@@ -3,6 +3,13 @@
 
 package unkodb
 
+import (
+	"unsafe"
+
+	"github.com/neetsdkasu/avltree"
+	"github.com/neetsdkasu/avltree/stringkey"
+)
+
 type ColumnType int
 
 type Column interface {
@@ -26,53 +33,86 @@ type Column interface {
 
 	// レコードバッファへのデータの書き込み
 	write(encoder *byteEncoder, value any) (err error)
+
+	// キーに変換する
+	toKey(value any) avltree.Key
 }
 
-type int8Column struct {
+type intColumn[T integerTypes] struct {
 	name string
 }
 
-func (c *int8Column) Name() string {
+func (c *intColumn[T]) Name() string {
 	return c.name
 }
 
-func (*int8Column) Type() ColumnType {
-	return Int8
-}
-
-func (*int8Column) MinimumDataByteSize() int {
-	return 1
-}
-
-func (*int8Column) MaximumDataByteSize() int {
-	return 1
-}
-
-func (*int8Column) byteSizeHint(value any) int {
-	if _, ok := value.(int8); ok {
-		return 1
-	} else {
-		logger.Panicf("[BUG] value type is not int8 (value: %T %#v)", value, value)
-		return 0
+func (*intColumn[T]) Type() (_ ColumnType) {
+	// アホっぽい
+	switch any(T(0)).(type) {
+	case int8:
+		return Int8
+	case uint8:
+		return Uint8
+	case int16:
+		return Int16
+	case uint16:
+		return Uint16
+	case int32:
+		return Int32
+	case uint32:
+		return Uint32
+	case int64:
+		return Int64
+	case uint64:
+		return Uint64
+	default:
+		logger.Panic("[BUG] Unreachable")
+		return
 	}
 }
 
-func (*int8Column) read(decoder *byteDecoder) (value any, err error) {
-	var v int8
-	err = decoder.Int8(&v)
+func (*intColumn[T]) MinimumDataByteSize() int {
+	return int(unsafe.Sizeof(T(0)))
+}
+
+func (*intColumn[T]) MaximumDataByteSize() int {
+	return int(unsafe.Sizeof(T(0)))
+}
+
+func (*intColumn[T]) byteSizeHint(value any) (_ int) {
+	if _, ok := value.(T); ok {
+		return int(unsafe.Sizeof(T(0)))
+	} else {
+		logger.Panicf("[BUG] value type is not %T (value: %T %#v)", T(0), value, value)
+		return
+	}
+}
+
+func (*intColumn[T]) read(decoder *byteDecoder) (value any, err error) {
+	var v T
+	err = decoder.Value(&v)
 	if err != nil {
 		return nil, err
 	}
 	return v, nil
 }
 
-func (*int8Column) write(encoder *byteEncoder, value any) (err error) {
-	if v, ok := value.(int8); ok {
-		err = encoder.Int8(v)
+func (*intColumn[T]) write(encoder *byteEncoder, value any) (err error) {
+	if _, ok := value.(T); ok {
+		err = encoder.Value(value)
 	} else {
-		logger.Panicf("[BUG] value type is not int8 (value: %T %#v)", value, value)
+		logger.Panicf("[BUG] value type is not %T (value: %T %#v)", T(0), value, value)
 	}
 	return
+}
+
+func (*intColumn[T]) toKey(value any) avltree.Key {
+	if v, ok := value.(T); ok {
+		return intKey[T](v)
+	} else {
+		logger.Panicf("[BUG] value type is not %T (value: %T %#v)", T(0), value, value)
+		return nil
+	}
 }
 
 type shortStringColumn struct {
@@ -134,4 +174,13 @@ func (*shortStringColumn) write(encoder *byteEncoder, value any) (err error) {
 		logger.Panicf("[BUG] value type is not string (value: %T %#v)", value, value)
 	}
 	return
+}
+
+func (*shortStringColumn) toKey(value any) avltree.Key {
+	if s, ok := value.(string); ok {
+		return stringkey.StringKey(s)
+	} else {
+		logger.Panicf("[BUG] value type is not string (value: %T %#v)", value, value)
+		return nil
+	}
 }

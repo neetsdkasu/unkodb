@@ -84,13 +84,13 @@ func (tc *TableCreator) addColumn(column Column) error {
 }
 
 func (tc *TableCreator) Int8Key(newColumnName string) error {
-	return tc.setKey(&int8Column{
+	return tc.setKey(&intColumn[int8]{
 		name: newColumnName,
 	})
 }
 
 func (tc *TableCreator) Int8Column(newColumnName string) error {
-	return tc.addColumn(&int8Column{
+	return tc.addColumn(&intColumn[int8]{
 		name: newColumnName,
 	})
 }
