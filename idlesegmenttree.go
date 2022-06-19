@@ -24,6 +24,8 @@ type idleSegmentTreeNode struct {
 	updated           bool
 }
 
+var idleSegmentTreeKey = intKey[int32]
+
 func newIdleSegmentTree(file *fileAccessor) *idleSegmentTree {
 	tree := &idleSegmentTree{
 		file:  file,
@@ -139,7 +141,7 @@ func (tree *idleSegmentTree) loadNode(address int) *idleSegmentTreeNode {
 	node := &idleSegmentTreeNode{
 		tree:              tree,
 		segment:           seg,
-		key:               intKey[int32](int32(seg.BufferSize())),
+		key:               idleSegmentTreeKey(int32(seg.BufferSize())),
 		leftChildAddress:  int(leftChildAddress),
 		rightChildAddress: int(rightChildAddress),
 		height:            int(height),
@@ -187,7 +189,7 @@ func (*idleSegmentTree) AllowDuplicateKeys() bool {
 
 // github.com/neetsdkasu/avltree.RealNode.Key() の実装
 func (node *idleSegmentTreeNode) Key() avltree.Key {
-	return intKey[int32](int32(node.segment.BufferSize()))
+	return idleSegmentTreeKey(int32(node.segment.BufferSize()))
 }
 
 // github.com/neetsdkasu/avltree.RealNode.Value() の実装

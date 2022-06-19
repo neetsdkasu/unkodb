@@ -34,7 +34,7 @@ func TestIdleSegmentTree(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		key := intKey[int32](int32(seg.BufferSize()))
+		key := idleSegmentTreeKey(int32(seg.BufferSize()))
 		_, ok := avltree.Insert(tree, false, key, seg)
 		if !ok {
 			t.Fatalf("Broken tree  (%#v) (%#v)", seg, tree)
