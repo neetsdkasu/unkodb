@@ -8,7 +8,7 @@ import (
 )
 
 type tableTree struct {
-	file  *fileAccessor
+	segManager  *segmentManager
 	table *Table
 }
 
