@@ -3,22 +3,6 @@
 
 package unkodb
 
-import (
-	"errors"
-)
-
-var (
-	KeyAlreadyExists        = errors.New("KeyAlreadyExists")
-	ColumnNameAlreadyExists = errors.New("ColumnNameAlreadyExists")
-	ColumnNameIsTooLong     = errors.New("ColumnNameIsTooLong")
-	InvalidOperation        = errors.New("InvalidOperation")
-	NeedToSetAKey           = errors.New("NeedToSetAKey")
-)
-
-const (
-	MaximumColumnNameByteSize = 30
-)
-
 type TableCreator struct {
 	db            *UnkoDB
 	name          string
@@ -46,12 +30,10 @@ func (tc *TableCreator) Create() (*Table, error) {
 	if tc.key == nil {
 		return nil, NeedToSetAKey
 	}
-	table := &Table{
-		name:    tc.name,
-		key:     tc.key,
-		columns: tc.columns,
+	table, err := tc.db.newTable(tc.name, tc.key, tc.columns)
+	if err != nil {
+		return nil, err
 	}
-	// TODO err = tc.db.addTable(table) ?
 	tc.db = nil
 	tc.name = ""
 	tc.key = nil

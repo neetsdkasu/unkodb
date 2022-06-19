@@ -4,22 +4,13 @@
 package unkodb
 
 import (
-	"errors"
 	"io"
-	"log"
 )
-
-var logger = log.New(log.Writer(), "unkodb", log.Flags())
 
 type UnkoDB struct {
 	segManager *segmentManager
 	tables     []Table
 }
-
-var (
-	TableNameAlreadyExists = errors.New("TableNameAlreadyExists")
-	UninitializedUnkoDB    = errors.New("UninitializedUnkoDB")
-)
 
 func Create(emptyFile io.ReadWriteSeeker) (*UnkoDB, error) {
 	file, err := initializeNewFile(emptyFile)
@@ -57,4 +48,14 @@ func (db *UnkoDB) CreateTable(newTableName string) (*TableCreator, error) {
 		}
 	}
 	return newTableCreator(db, newTableName), nil
+}
+
+func (db *UnkoDB) newTable(name string, key Column, columns []Column) (*Table, error) {
+	// TODO ちゃんと作る
+	table := &Table{
+		name:    name,
+		key:     key,
+		columns: columns,
+	}
+	return table, nil
 }

@@ -25,37 +25,6 @@ import (
 
 var fileByteOrder = binary.BigEndian
 
-const (
-	fileFormatVersion = 1
-
-	addressByteSize = 4
-	nullAddress     = 0
-
-	fileHeaderSignaturePosition = 0
-	fileHeaderSignatureLength   = 16
-
-	fileHeaderFileFormatVersionPosition = fileHeaderSignaturePosition + fileHeaderSignatureLength
-	fileHeaderFileFormatVersionLength   = 2
-
-	fileHeaderNextNewSegmentAddressPosition = fileHeaderFileFormatVersionPosition + fileHeaderFileFormatVersionLength
-	fileHeaderNextNewSegmentAddressLength   = addressByteSize
-
-	fileHeaderReserveAreaAddressPosition = fileHeaderNextNewSegmentAddressPosition + fileHeaderNextNewSegmentAddressLength
-	fileHeaderReserveAreaAddressLength   = addressByteSize
-
-	fileHeaderTableListRootAddressPosition = fileHeaderReserveAreaAddressPosition + fileHeaderReserveAreaAddressLength
-	fileHeaderTableListRootAddressLength   = addressByteSize
-
-	fileHeaderIdleSegmentTreeRootAddressPosition = fileHeaderTableListRootAddressPosition + fileHeaderTableListRootAddressLength
-	fileHeaderIdleSegmentTreeRootAddressLength   = addressByteSize
-
-	fileHeaderByteSize = fileHeaderIdleSegmentTreeRootAddressPosition + fileHeaderIdleSegmentTreeRootAddressLength
-
-	firstNewSegmentAddress = fileHeaderByteSize
-
-	segmentHeaderByteSize = addressByteSize
-)
-
 type fileAccessor struct {
 	inner                      io.ReadWriteSeeker
 	version                    int

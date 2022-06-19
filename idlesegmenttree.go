@@ -7,7 +7,6 @@ import (
 	"bytes"
 
 	"github.com/neetsdkasu/avltree"
-	"github.com/neetsdkasu/avltree/intkey"
 )
 
 type idleSegmentTree struct {
@@ -32,17 +31,6 @@ func newIdleSegmentTree(file *fileAccessor) *idleSegmentTree {
 	}
 	return tree
 }
-
-const (
-	idleSegmentTreeNodeLeftChildPosition = 0
-	idleSegmentTreeNodeLeftChildLength   = addressByteSize
-
-	idleSegmentTreeNodeRightChildPosition = idleSegmentTreeNodeLeftChildPosition + idleSegmentTreeNodeLeftChildLength
-	idleSegmentTreeNodeRightChildLength   = addressByteSize
-
-	idleSegmentTreeNodeHeightPosition = idleSegmentTreeNodeRightChildPosition + idleSegmentTreeNodeRightChildLength
-	idleSegmentTreeNodeHeightLength   = addressByteSize
-)
 
 // avltree.NodeからIdleSegmentTreeNodeを取り出す
 func unwrapIdleSegmentTreeNode(node avltree.Node) *idleSegmentTreeNode {
@@ -151,7 +139,7 @@ func (tree *idleSegmentTree) loadNode(address int) *idleSegmentTreeNode {
 	node := &idleSegmentTreeNode{
 		tree:              tree,
 		segment:           seg,
-		key:               intkey.IntKey(seg.BufferSize()),
+		key:               intKey[int32](int32(seg.BufferSize())),
 		leftChildAddress:  int(leftChildAddress),
 		rightChildAddress: int(rightChildAddress),
 		height:            int(height),
@@ -199,7 +187,7 @@ func (*idleSegmentTree) AllowDuplicateKeys() bool {
 
 // github.com/neetsdkasu/avltree.RealNode.Key() の実装
 func (node *idleSegmentTreeNode) Key() avltree.Key {
-	return intkey.IntKey(node.segment.BufferSize())
+	return intKey[int32](int32(node.segment.BufferSize()))
 }
 
 // github.com/neetsdkasu/avltree.RealNode.Value() の実装
