@@ -99,7 +99,7 @@ func (node *idleSegmentTreeNode) flush() error {
 		return nil
 	}
 	buf := node.segment.Buffer()
-	w := NewByteEncoder(NewByteSliceWriter(buf), fileByteOrder)
+	w := newByteEncoder(newByteSliceWriter(buf), fileByteOrder)
 	err := w.Int32(int32(node.leftChildAddress))
 	if err != nil {
 		logger.Panic(err) // ここに到達したらどこかにバグがある
@@ -132,7 +132,7 @@ func (tree *idleSegmentTree) loadNode(address int) *idleSegmentTreeNode {
 	if err != nil {
 		logger.Panic(err) // ファイルのIOエラー
 	}
-	r := NewByteDecoder(bytes.NewReader(seg.Buffer()), fileByteOrder)
+	r := newByteDecoder(bytes.NewReader(seg.Buffer()), fileByteOrder)
 	var leftChildAddress int32
 	err = r.Int32(&leftChildAddress)
 	if err != nil {

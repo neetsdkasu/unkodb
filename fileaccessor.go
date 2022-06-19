@@ -107,7 +107,7 @@ func initializeNewFile(file io.ReadWriteSeeker) (*fileAccessor, error) {
 		idleSegmentListRootAddress: nullAddress,
 	}
 	var buffer [fileHeaderByteSize]byte
-	w := NewByteEncoder(NewByteSliceWriter(buffer[:]), fileByteOrder)
+	w := newByteEncoder(newByteSliceWriter(buffer[:]), fileByteOrder)
 	if err := w.RawBytes(fileSignature()); err != nil {
 		logger.Panic(err) // ここに到達する場合はバグがある
 	}
@@ -140,7 +140,7 @@ func (file *fileAccessor) readHeader() error {
 	if err := file.Read(0, buffer[:]); err != nil {
 		return err
 	}
-	r := NewByteDecoder(bytes.NewReader(buffer[:]), fileByteOrder)
+	r := newByteDecoder(bytes.NewReader(buffer[:]), fileByteOrder)
 	{
 		var sig [fileHeaderSignatureLength]byte
 		if err := r.RawBytes(sig[:]); err != nil {
@@ -243,7 +243,7 @@ func (file *fileAccessor) CreateSegment(length int) (*segmentBuffer, error) {
 	}
 	length += segmentHeaderByteSize
 	buffer := make([]byte, length)
-	err = NewByteEncoder(NewByteSliceWriter(buffer), fileByteOrder).Int32(int32(length))
+	err = newByteEncoder(newByteSliceWriter(buffer), fileByteOrder).Int32(int32(length))
 	if err != nil {
 		logger.Panic(err) // ここに到達する場合はバグがある
 	}

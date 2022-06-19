@@ -9,33 +9,33 @@ import (
 	"io"
 )
 
-type ByteSliceWriter struct {
+type byteSliceWriter struct {
 	buf []byte
 }
 
-type ByteEncoder struct {
+type byteEncoder struct {
 	writer io.Writer
 	order  binary.ByteOrder
 }
 
-type ByteDecoder struct {
+type byteDecoder struct {
 	reader io.Reader
 	order  binary.ByteOrder
 }
 
-func NewByteSliceWriter(buf []byte) *ByteSliceWriter {
-	return &ByteSliceWriter{buf[:0:len(buf)]}
+func newByteSliceWriter(buf []byte) *byteSliceWriter {
+	return &byteSliceWriter{buf[:0:len(buf)]}
 }
 
-func NewByteEncoder(writer io.Writer, order binary.ByteOrder) *ByteEncoder {
-	return &ByteEncoder{writer, order}
+func newByteEncoder(writer io.Writer, order binary.ByteOrder) *byteEncoder {
+	return &byteEncoder{writer, order}
 }
 
-func NewByteDecoder(reader io.Reader, order binary.ByteOrder) *ByteDecoder {
-	return &ByteDecoder{reader, order}
+func newByteDecoder(reader io.Reader, order binary.ByteOrder) *byteDecoder {
+	return &byteDecoder{reader, order}
 }
 
-func (w *ByteSliceWriter) Write(p []byte) (n int, err error) {
+func (w *byteSliceWriter) Write(p []byte) (n int, err error) {
 	buf := w.buf
 	if len(buf) == cap(buf) {
 		err = io.EOF
@@ -51,11 +51,11 @@ func (w *ByteSliceWriter) Write(p []byte) (n int, err error) {
 	return
 }
 
-func (w *ByteSliceWriter) Buffer() []byte {
+func (w *byteSliceWriter) Buffer() []byte {
 	return w.buf
 }
 
-func (encoder *ByteEncoder) RawBytes(data []byte) error {
+func (encoder *byteEncoder) RawBytes(data []byte) error {
 	n, err := encoder.writer.Write(data)
 	if err != nil {
 		return err
@@ -66,7 +66,7 @@ func (encoder *ByteEncoder) RawBytes(data []byte) error {
 	return nil
 }
 
-func (decoder *ByteDecoder) RawBytes(buffer []byte) error {
+func (decoder *byteDecoder) RawBytes(buffer []byte) error {
 	n, err := io.ReadFull(decoder.reader, buffer)
 	if err != nil {
 		return err
@@ -77,34 +77,42 @@ func (decoder *ByteDecoder) RawBytes(buffer []byte) error {
 	return nil
 }
 
-func (encoder *ByteEncoder) Value(src any) error {
+func (encoder *byteEncoder) Value(src any) error {
 	return binary.Write(encoder.writer, encoder.order, src)
 }
 
-func (decoder *ByteDecoder) Value(dst any) error {
+func (decoder *byteDecoder) Value(dst any) error {
 	return binary.Read(decoder.reader, decoder.order, dst)
 }
 
-func (encoder *ByteEncoder) Int8(src int8) error {
+func (encoder *byteEncoder) Int8(src int8) error {
 	return encoder.Value(src)
 }
 
-func (decoder *ByteDecoder) Int8(dst *int8) error {
+func (decoder *byteDecoder) Int8(dst *int8) error {
 	return decoder.Value(dst)
 }
 
-func (encoder *ByteEncoder) Uint16(src uint16) error {
+func (encoder *byteEncoder) Uint8(src uint8) error {
 	return encoder.Value(src)
 }
 
-func (decoder *ByteDecoder) Uint16(dst *uint16) error {
+func (decoder *byteDecoder) Uint8(dst *uint8) error {
 	return decoder.Value(dst)
 }
 
-func (encoder *ByteEncoder) Int32(src int32) error {
+func (encoder *byteEncoder) Uint16(src uint16) error {
 	return encoder.Value(src)
 }
 
-func (decoder *ByteDecoder) Int32(dst *int32) error {
+func (decoder *byteDecoder) Uint16(dst *uint16) error {
+	return decoder.Value(dst)
+}
+
+func (encoder *byteEncoder) Int32(src int32) error {
+	return encoder.Value(src)
+}
+
+func (decoder *byteDecoder) Int32(dst *int32) error {
 	return decoder.Value(dst)
 }

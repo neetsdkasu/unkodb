@@ -12,7 +12,7 @@ import (
 func TestByteSliceWriter(t *testing.T) {
 	buf1 := make([]byte, 10)
 
-	w1 := NewByteSliceWriter(buf1[3:8])
+	w1 := newByteSliceWriter(buf1[3:8])
 
 	n1, err := w1.Write([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12})
 

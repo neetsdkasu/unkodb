@@ -31,7 +31,12 @@ func TestUnkoDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = tc.Int8Column("name")
+	err = tc.ShortStringColumn("name")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = tc.Int8Column("price")
 	if err != nil {
 		t.Fatal(err)
 	}

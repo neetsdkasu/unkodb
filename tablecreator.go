@@ -112,3 +112,15 @@ func (tc *TableCreator) Int8Column(newColumnName string) error {
 		name: newColumnName,
 	})
 }
+
+func (tc *TableCreator) ShortStringKey(newColumnName string) error {
+	return tc.setKey(&shortStringColumn{
+		name: newColumnName,
+	})
+}
+
+func (tc *TableCreator) ShortStringColumn(newColumnName string) error {
+	return tc.addColumn(&shortStringColumn{
+		name: newColumnName,
+	})
+}
