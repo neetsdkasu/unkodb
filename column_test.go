@@ -3,14 +3,56 @@
 
 package unkodb
 
-var (
-	_ Column = &intColumn[int8]{}
-	_ Column = &intColumn[uint8]{}
-	_ Column = &intColumn[int16]{}
-	_ Column = &intColumn[uint16]{}
-	_ Column = &intColumn[int32]{}
-	_ Column = &intColumn[uint32]{}
-	_ Column = &intColumn[int64]{}
-	_ Column = &intColumn[uint64]{}
-	_ Column = &shortStringColumn{}
+import (
+	"testing"
 )
+
+func TestColumn(t *testing.T) {
+	columns := []Column{
+		&intColumn[int8]{},
+		&intColumn[uint8]{},
+		&intColumn[int16]{},
+		&intColumn[uint16]{},
+		&intColumn[int32]{},
+		&intColumn[uint32]{},
+		&intColumn[int64]{},
+		&intColumn[uint64]{},
+		&shortStringColumn{},
+	}
+
+	types := []ColumnType{
+		Int8,
+		Uint8,
+		Int16,
+		Uint16,
+		Int32,
+		Uint32,
+		Int64,
+		Uint64,
+		ShortString,
+	}
+
+	minimumSizes := []int{
+		1, 1, 2, 2, 4, 4, 8, 8,
+		shortStringMinimumDataByteSize,
+	}
+
+	maximumSizes := []int{
+		1, 1, 2, 2, 4, 4, 8, 8,
+		shortStringMaximumDataByteSize,
+	}
+
+	for i, column := range columns {
+		if column.Type() != types[i] {
+			t.Fatalf("invalid type [%d]%T %v", i, column, types[i])
+		}
+		if column.MinimumDataByteSize() != minimumSizes[i] {
+			t.Fatalf("invalid minimum size [%d]%T %v", i, column, minimumSizes[i])
+		}
+		if column.MaximumDataByteSize() != maximumSizes[i] {
+			t.Fatalf("invalid maximum size [%d]%T %v", i, column, maximumSizes[i])
+		}
+	}
+
+	t.Skip("TEST IS NOT IMPLEMENTED YET")
+}
