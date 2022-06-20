@@ -4,7 +4,9 @@
 package unkodb
 
 const (
-	Int8 ColumnType = iota
+	invalidColumnType ColumnType = iota
+	Counter
+	Int8
 	Uint8
 	Int16
 	Uint16

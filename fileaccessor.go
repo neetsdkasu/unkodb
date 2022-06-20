@@ -78,25 +78,25 @@ func initializeNewFile(file io.ReadWriteSeeker) (*fileAccessor, error) {
 	var buffer [fileHeaderByteSize]byte
 	w := newByteEncoder(newByteSliceWriter(buffer[:]), fileByteOrder)
 	if err := w.RawBytes(fileSignature()); err != nil {
-		logger.Panic(err) // ここに到達する場合はバグがある
+		panic(err) // ここに到達する場合はバグがある
 	}
 	if err := w.Uint16(fileFormatVersion); err != nil {
-		logger.Panic(err) // ここに到達する場合はバグがある
+		panic(err) // ここに到達する場合はバグがある
 	}
 	if err := w.Int32(firstNewSegmentAddress); err != nil {
-		logger.Panic(err) // ここに到達する場合はバグがある
+		panic(err) // ここに到達する場合はバグがある
 	}
 	if err := w.Int32(nullAddress); err != nil {
 		// ReserveAreaAddress
-		logger.Panic(err) // ここに到達する場合はバグがある
+		panic(err) // ここに到達する場合はバグがある
 	}
 	if err := w.Int32(nullAddress); err != nil {
 		// TableListRootAddress
-		logger.Panic(err) // ここに到達する場合はバグがある
+		panic(err) // ここに到達する場合はバグがある
 	}
 	if err := w.Int32(nullAddress); err != nil {
 		// IdleSegmentTreeRootAddress
-		logger.Panic(err) // ここに到達する場合はバグがある
+		panic(err) // ここに到達する場合はバグがある
 	}
 	if err := newFile.Write(0, buffer[:]); err != nil {
 		return nil, fmt.Errorf("Failed write reservearea [%w]", err)
@@ -113,7 +113,7 @@ func (file *fileAccessor) readHeader() error {
 	{
 		var sig [fileHeaderSignatureLength]byte
 		if err := r.RawBytes(sig[:]); err != nil {
-			logger.Panic(err) // ここに到達する場合はバグがある
+			panic(err) // ここに到達する場合はバグがある
 		}
 		if !bytes.Equal(sig[:], fileSignature()) {
 			return fmt.Errorf("Wrong Signature in File Header")
@@ -122,7 +122,7 @@ func (file *fileAccessor) readHeader() error {
 	{
 		var version uint16
 		if err := r.Uint16(&version); err != nil {
-			logger.Panic(err) // ここに到達する場合はバグがある
+			panic(err) // ここに到達する場合はバグがある
 		}
 		if version != fileFormatVersion {
 			return fmt.Errorf("Unsupported FileFormatVersion (%d)", version)
@@ -132,7 +132,7 @@ func (file *fileAccessor) readHeader() error {
 	{
 		var nextNewSegmentAddress int32
 		if err := r.Int32(&nextNewSegmentAddress); err != nil {
-			logger.Panic(err) // ここに到達する場合はバグがある
+			panic(err) // ここに到達する場合はバグがある
 		}
 		if nextNewSegmentAddress < firstNewSegmentAddress {
 			return fmt.Errorf("Wrong NextNewSegmentAddress")
@@ -142,7 +142,7 @@ func (file *fileAccessor) readHeader() error {
 	{
 		var reserveAreaAddress int32
 		if err := r.Int32(&reserveAreaAddress); err != nil {
-			logger.Panic(err) // ここに到達する場合はバグがある
+			panic(err) // ここに到達する場合はバグがある
 		}
 		if reserveAreaAddress != nullAddress {
 			return fmt.Errorf("Wrong ReserveAreaAddress")
@@ -151,7 +151,7 @@ func (file *fileAccessor) readHeader() error {
 	{
 		var tableListRootAddress int32
 		if err := r.Int32(&tableListRootAddress); err != nil {
-			logger.Panic(err) // ここに到達する場合はバグがある
+			panic(err) // ここに到達する場合はバグがある
 		}
 		if tableListRootAddress < 0 {
 			return fmt.Errorf("Wrong TableListRootAddress")
@@ -161,7 +161,7 @@ func (file *fileAccessor) readHeader() error {
 	{
 		var idleSegmentListRootAddress int32
 		if err := r.Int32(&idleSegmentListRootAddress); err != nil {
-			logger.Panic(err) // ここに到達する場合はバグがある
+			panic(err) // ここに到達する場合はバグがある
 		}
 		if idleSegmentListRootAddress < 0 {
 			return fmt.Errorf("Wrong IdleSegmentTreeRootAddress")
@@ -204,23 +204,23 @@ func (file *fileAccessor) Write(position int, data []byte) error {
 	return nil
 }
 
-func (file *fileAccessor) CreateSegment(length int) (*segmentBuffer, error) {
+func (file *fileAccessor) CreateSegment(byteSize int) (*segmentBuffer, error) {
 	segmentAddress := file.nextNewSegmentAddress
 	_, err := file.inner.Seek(int64(segmentAddress), io.SeekStart)
 	if err != nil {
 		return nil, fmt.Errorf("Failed fileAccessor.CreateSegment (seek) [%w]", err)
 	}
-	length += segmentHeaderByteSize
-	buffer := make([]byte, length)
-	err = newByteEncoder(newByteSliceWriter(buffer), fileByteOrder).Int32(int32(length))
+	byteSize += segmentHeaderByteSize
+	buffer := make([]byte, byteSize)
+	err = newByteEncoder(newByteSliceWriter(buffer), fileByteOrder).Int32(int32(byteSize))
 	if err != nil {
-		logger.Panic(err) // ここに到達する場合はバグがある
+		panic(err) // ここに到達する場合はバグがある
 	}
 	err = file.Write(segmentAddress, buffer)
 	if err != nil {
 		return nil, fmt.Errorf("Failed fileAccessor.CreateSegment (write) [%w]", err)
 	}
-	nextNewSegmentAddress := segmentAddress + length
+	nextNewSegmentAddress := segmentAddress + byteSize
 	err = file.UpdateNextNewSegmentAddress(nextNewSegmentAddress)
 	if err != nil {
 		return nil, fmt.Errorf("Failed fileAccessor.CreateSegment (update) [%w]", err)

@@ -42,7 +42,7 @@ func unwrapIdleSegmentTreeNode(node avltree.Node) *idleSegmentTreeNode {
 	if n, ok := node.(*idleSegmentTreeNode); ok {
 		return n
 	}
-	logger.Panicf("[BUG] node is not IdleSegmentTreeNode (%#v)", node)
+	panicf("[BUG] node is not IdleSegmentTreeNode (%#v)", node)
 	return nil
 }
 
@@ -53,15 +53,15 @@ func unwrapIdleSegmentTreeNode(node avltree.Node) *idleSegmentTreeNode {
 // TODO 完成したら除去する
 func unwrapIdleSegmentTreeValue(value any) *segmentBuffer {
 	if value == nil {
-		logger.Panic("[BUG] value is nil")
+		panic("[BUG] value is nil")
 	}
 	if seg, ok := value.(*segmentBuffer); ok {
 		if seg == nil {
-			logger.Panic("[BUG] value is *Segment(nil)")
+			panic("[BUG] value is *Segment(nil)")
 		}
 		return seg
 	}
-	logger.Panicf("[BUG] value is not Segment (%#v)", value)
+	panicf("[BUG] value is not Segment (%#v)", value)
 	return nil
 }
 
@@ -92,15 +92,15 @@ func (node *idleSegmentTreeNode) flush() error {
 	w := newByteEncoder(newByteSliceWriter(buf), fileByteOrder)
 	err := w.Int32(int32(node.leftChildAddress))
 	if err != nil {
-		logger.Panic(err) // ここに到達したらどこかにバグがある
+		panic(err) // ここに到達したらどこかにバグがある
 	}
 	err = w.Int32(int32(node.rightChildAddress))
 	if err != nil {
-		logger.Panic(err) // ここに到達したらどこかにバグがある
+		panic(err) // ここに到達したらどこかにバグがある
 	}
 	err = w.Int32(int32(node.height))
 	if err != nil {
-		logger.Panic(err) // ここに到達したらどこかにバグがある
+		panic(err) // ここに到達したらどこかにバグがある
 	}
 	err = node.segment.Flush()
 	if err != nil {
@@ -120,23 +120,23 @@ func (tree *idleSegmentTree) loadNode(address int) *idleSegmentTreeNode {
 	}
 	seg, err := tree.file.ReadSegment(address)
 	if err != nil {
-		logger.Panic(err) // ファイルのIOエラー
+		panic(err) // ファイルのIOエラー
 	}
 	r := newByteDecoder(bytes.NewReader(seg.Buffer()), fileByteOrder)
 	var leftChildAddress int32
 	err = r.Int32(&leftChildAddress)
 	if err != nil {
-		logger.Panic(err) // ここに到達したらどこかにバグがあるか、不正なファイル
+		panic(err) // ここに到達したらどこかにバグがあるか、不正なファイル
 	}
 	var rightChildAddress int32
 	err = r.Int32(&rightChildAddress)
 	if err != nil {
-		logger.Panic(err) // ここに到達したらどこかにバグがあるか、不正なファイル
+		panic(err) // ここに到達したらどこかにバグがあるか、不正なファイル
 	}
 	var height int32
 	err = r.Int32(&height)
 	if err != nil {
-		logger.Panic(err) // ここに到達したらどこかにバグがあるか、不正なファイル
+		panic(err) // ここに到達したらどこかにバグがあるか、不正なファイル
 	}
 	node := &idleSegmentTreeNode{
 		tree:              tree,
@@ -177,7 +177,7 @@ func (tree *idleSegmentTree) SetRoot(newRoot avltree.RealNode) avltree.RealTree 
 	address := unwrapIdleSegmentTreeNode(newRoot).position()
 	err := tree.file.UpdateIdleSegmentTreeRootAddress(address)
 	if err != nil {
-		logger.Panic(err)
+		panic(err)
 	}
 	return tree
 }
@@ -212,8 +212,7 @@ func (node *idleSegmentTreeNode) RightChild() avltree.Node {
 // github.com/neetsdkasu/avltree.RealNode.SetValue(...) の実装
 func (*idleSegmentTreeNode) SetValue(newValue any) (_ avltree.Node) {
 	// IdleSegmentでは値(Segment)を更新する状況はない
-	logger.Panic("[BUG] Unreachable")
-	return
+	panic("[BUG] Unreachable")
 }
 
 // github.com/neetsdkasu/avltree.RealNode.Height() の実装
@@ -233,6 +232,5 @@ func (node *idleSegmentTreeNode) SetChildren(newLeftChild, newRightChild avltree
 // github.com/neetsdkasu/avltree.RealNode.Set(...) の実装
 func (*idleSegmentTreeNode) Set(newLeftChild, newRightChild avltree.Node, newHeight int, newValue any) (_ avltree.RealNode) {
 	// IdleSegmentでは値(Segment)を更新する状況はない
-	logger.Panic("[BUG] Unreachable")
-	return
+	panic("[BUG] Unreachable")
 }

@@ -7,14 +7,19 @@ import (
 	"github.com/neetsdkasu/avltree"
 )
 
+type rootAddressGetter = func() (addr int, err error)
+type rootAddressSetter = func(addr int) (err error)
+
 type tableTree struct {
-	segManager  *segmentManager
-	table *Table
+	segManager *segmentManager
+	table      *Table
 }
 
 type tableTreeNode struct {
 	tree *tableTree
 }
+
+type tableTreeValue = map[string]interface{}
 
 // github.com/neetsdkasu/avltree.RealTree.Root() の実装
 func (tree *tableTree) Root() avltree.Node {
@@ -23,6 +28,24 @@ func (tree *tableTree) Root() avltree.Node {
 
 // github.com/neetsdkasu/avltree.RealTree.NewNode(...) の実装
 func (tree *tableTree) NewNode(leftChild, rightChild avltree.Node, height int, key avltree.Key, value any) avltree.RealNode {
+	// leftChildAddress + rightChildAddress + height[1 byte]
+	var segmentSize = addressByteSize*2 + 1
+	record, ok := value.(tableTreeValue)
+	if !ok {
+		panicf("[BUG] invalid value %#v", value)
+	}
+	if keyValue, ok := record[tree.table.key.Name()]; !ok {
+		panic("[BUG] not found key value")
+	} else {
+		segmentSize += tree.table.key.byteSizeHint(keyValue)
+	}
+	for _, col := range tree.table.columns {
+		if colValue, ok := record[col.Name()]; !ok {
+			panicf("[BUG] not found value of %s", col.Name())
+		} else {
+			segmentSize += col.byteSizeHint(colValue)
+		}
+	}
 	panic("TODO")
 }
 

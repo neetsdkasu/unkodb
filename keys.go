@@ -29,7 +29,7 @@ func (key *geneKey[T]) CompareTo(other avltree.Key) (_ avltree.KeyOrdering) {
 			return avltree.EqualToOtherKey
 		}
 	} else {
-		logger.Panicf("[BUG] invalid key type (key: %T %#v)", other, other)
+		panicf("[BUG] invalid key type (key: %T %#v)", other, other)
 		return
 	}
 }

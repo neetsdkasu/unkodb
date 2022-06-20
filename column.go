@@ -66,8 +66,7 @@ func (*intColumn[T]) Type() (_ ColumnType) {
 	case uint64:
 		return Uint64
 	default:
-		logger.Panic("[BUG] Unreachable")
-		return
+		panic("[BUG] Unreachable")
 	}
 }
 
@@ -83,7 +82,7 @@ func (*intColumn[T]) byteSizeHint(value any) (_ int) {
 	if _, ok := value.(T); ok {
 		return int(unsafe.Sizeof(T(0)))
 	} else {
-		logger.Panicf("[BUG] value type is not %T (value: %T %#v)", T(0), value, value)
+		panicf("[BUG] value type is not %T (value: %T %#v)", T(0), value, value)
 		return
 	}
 }
@@ -101,7 +100,7 @@ func (*intColumn[T]) write(encoder *byteEncoder, value any) (err error) {
 	if _, ok := value.(T); ok {
 		err = encoder.Value(value)
 	} else {
-		logger.Panicf("[BUG] value type is not %T (value: %T %#v)", T(0), value, value)
+		panicf("[BUG] value type is not %T (value: %T %#v)", T(0), value, value)
 	}
 	return
 }
@@ -110,7 +109,7 @@ func (*intColumn[T]) toKey(value any) avltree.Key {
 	if v, ok := value.(T); ok {
 		return intKey[T](v)
 	} else {
-		logger.Panicf("[BUG] value type is not %T (value: %T %#v)", T(0), value, value)
+		panicf("[BUG] value type is not %T (value: %T %#v)", T(0), value, value)
 		return nil
 	}
 }
@@ -139,7 +138,7 @@ func (*shortStringColumn) byteSizeHint(value any) int {
 	if s, ok := value.(string); ok {
 		return minValue(shortStringMaximumDataByteSize, len([]byte(s))) + 1
 	} else {
-		logger.Panicf("[BUG] value type is not string (value: %T %#v)", value, value)
+		panicf("[BUG] value type is not string (value: %T %#v)", value, value)
 		return 0
 	}
 }
@@ -171,7 +170,7 @@ func (*shortStringColumn) write(encoder *byteEncoder, value any) (err error) {
 		}
 		err = encoder.RawBytes(buf)
 	} else {
-		logger.Panicf("[BUG] value type is not string (value: %T %#v)", value, value)
+		panicf("[BUG] value type is not string (value: %T %#v)", value, value)
 	}
 	return
 }
@@ -180,7 +179,7 @@ func (*shortStringColumn) toKey(value any) avltree.Key {
 	if s, ok := value.(string); ok {
 		return stringkey.StringKey(s)
 	} else {
-		logger.Panicf("[BUG] value type is not string (value: %T %#v)", value, value)
+		panicf("[BUG] value type is not string (value: %T %#v)", value, value)
 		return nil
 	}
 }

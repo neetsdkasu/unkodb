@@ -4,10 +4,8 @@
 package unkodb
 
 import (
-	"log"
+	"fmt"
 )
-
-var logger = log.New(log.Writer(), "unkodb", log.Flags())
 
 // ジェネリック難しいね
 // https://go.dev/blog/intro-generics
@@ -18,6 +16,20 @@ var logger = log.New(log.Writer(), "unkodb", log.Flags())
 // パッケージ詳細 https://pkg.go.dev/golang.org/x/exp/constraints
 type integerTypes interface {
 	int8 | uint8 | int16 | uint16 | int32 | uint32 | int64 | uint64
+}
+
+func panicf(format string, v ...any) {
+	panic(fmt.Sprintf(format, v...))
+}
+
+func catchError(err *error) {
+	if v := recover(); v != nil {
+		if e, ok := v.(error); ok {
+			*err = e
+		} else {
+			*err = fmt.Errorf("ERROR! %#v", v)
+		}
+	}
 }
 
 func minValue(a, b int) int {
