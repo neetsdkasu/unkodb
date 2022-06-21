@@ -42,7 +42,7 @@ func unwrapIdleSegmentTreeNode(node avltree.Node) *idleSegmentTreeNode {
 	if n, ok := node.(*idleSegmentTreeNode); ok {
 		return n
 	}
-	panicf("[BUG] node is not IdleSegmentTreeNode (%#v)", node)
+	bug.Panicf("unwrapIdleSegmentTreeNode: node is not IdleSegmentTreeNode (%#v)", node)
 	return nil
 }
 
@@ -51,18 +51,18 @@ func unwrapIdleSegmentTreeNode(node avltree.Node) *idleSegmentTreeNode {
 // 通常は直接変換 value.(*Segment) で取り出せばいいのだが
 // UnkoDBが完成するまでは、念のための処理
 // TODO 完成したら除去する
-func unwrapIdleSegmentTreeValue(value any) *segmentBuffer {
+func unwrapIdleSegmentTreeValue(value any) (_ *segmentBuffer) {
 	if value == nil {
-		panic("[BUG] value is nil")
+		bug.Panic("unwrapIdleSegmentTreeValue: value is nil")
 	}
 	if seg, ok := value.(*segmentBuffer); ok {
 		if seg == nil {
-			panic("[BUG] value is *Segment(nil)")
+			bug.Panic("unwrapIdleSegmentTreeValue: value is *Segment(nil)")
 		}
 		return seg
 	}
-	panicf("[BUG] value is not Segment (%#v)", value)
-	return nil
+	bug.Panicf("unwrapIdleSegmentTreeValue: value is not Segment (%#v)", value)
+	return
 }
 
 // IdleSegmentTreeNodeをavltree.Nodeに変換する
@@ -92,15 +92,15 @@ func (node *idleSegmentTreeNode) flush() error {
 	w := newByteEncoder(newByteSliceWriter(buf), fileByteOrder)
 	err := w.Int32(int32(node.leftChildAddress))
 	if err != nil {
-		panic(err) // ここに到達したらどこかにバグがある
+		bug.Panic(err) // ここに到達したらどこかにバグがある
 	}
 	err = w.Int32(int32(node.rightChildAddress))
 	if err != nil {
-		panic(err) // ここに到達したらどこかにバグがある
+		bug.Panic(err) // ここに到達したらどこかにバグがある
 	}
 	err = w.Int32(int32(node.height))
 	if err != nil {
-		panic(err) // ここに到達したらどこかにバグがある
+		bug.Panic(err) // ここに到達したらどこかにバグがある
 	}
 	err = node.segment.Flush()
 	if err != nil {
@@ -212,7 +212,8 @@ func (node *idleSegmentTreeNode) RightChild() avltree.Node {
 // github.com/neetsdkasu/avltree.RealNode.SetValue(...) の実装
 func (*idleSegmentTreeNode) SetValue(newValue any) (_ avltree.Node) {
 	// IdleSegmentでは値(Segment)を更新する状況はない
-	panic("[BUG] Unreachable")
+	bug.Panic("idleSegmentTreeNode.SetValue: Unreachable")
+	return
 }
 
 // github.com/neetsdkasu/avltree.RealNode.Height() の実装
@@ -232,5 +233,6 @@ func (node *idleSegmentTreeNode) SetChildren(newLeftChild, newRightChild avltree
 // github.com/neetsdkasu/avltree.RealNode.Set(...) の実装
 func (*idleSegmentTreeNode) Set(newLeftChild, newRightChild avltree.Node, newHeight int, newValue any) (_ avltree.RealNode) {
 	// IdleSegmentでは値(Segment)を更新する状況はない
-	panic("[BUG] Unreachable")
+	bug.Panic("idleSegmentTreeNode.Set: Unreachable")
+	return
 }

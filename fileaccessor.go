@@ -113,7 +113,7 @@ func (file *fileAccessor) readHeader() error {
 	{
 		var sig [fileHeaderSignatureLength]byte
 		if err := r.RawBytes(sig[:]); err != nil {
-			panic(err) // ここに到達する場合はバグがある
+			bug.Panic(err) // ここに到達する場合はバグがある
 		}
 		if !bytes.Equal(sig[:], fileSignature()) {
 			return fmt.Errorf("Wrong Signature in File Header")
@@ -122,7 +122,7 @@ func (file *fileAccessor) readHeader() error {
 	{
 		var version uint16
 		if err := r.Uint16(&version); err != nil {
-			panic(err) // ここに到達する場合はバグがある
+			bug.Panic(err) // ここに到達する場合はバグがある
 		}
 		if version != fileFormatVersion {
 			return fmt.Errorf("Unsupported FileFormatVersion (%d)", version)
@@ -132,7 +132,7 @@ func (file *fileAccessor) readHeader() error {
 	{
 		var nextNewSegmentAddress int32
 		if err := r.Int32(&nextNewSegmentAddress); err != nil {
-			panic(err) // ここに到達する場合はバグがある
+			bug.Panic(err) // ここに到達する場合はバグがある
 		}
 		if nextNewSegmentAddress < firstNewSegmentAddress {
 			return fmt.Errorf("Wrong NextNewSegmentAddress")
@@ -142,7 +142,7 @@ func (file *fileAccessor) readHeader() error {
 	{
 		var reserveAreaAddress int32
 		if err := r.Int32(&reserveAreaAddress); err != nil {
-			panic(err) // ここに到達する場合はバグがある
+			bug.Panic(err) // ここに到達する場合はバグがある
 		}
 		if reserveAreaAddress != nullAddress {
 			return fmt.Errorf("Wrong ReserveAreaAddress")
@@ -151,7 +151,7 @@ func (file *fileAccessor) readHeader() error {
 	{
 		var tableListRootAddress int32
 		if err := r.Int32(&tableListRootAddress); err != nil {
-			panic(err) // ここに到達する場合はバグがある
+			bug.Panic(err) // ここに到達する場合はバグがある
 		}
 		if tableListRootAddress < 0 {
 			return fmt.Errorf("Wrong TableListRootAddress")
@@ -161,7 +161,7 @@ func (file *fileAccessor) readHeader() error {
 	{
 		var idleSegmentListRootAddress int32
 		if err := r.Int32(&idleSegmentListRootAddress); err != nil {
-			panic(err) // ここに到達する場合はバグがある
+			bug.Panic(err) // ここに到達する場合はバグがある
 		}
 		if idleSegmentListRootAddress < 0 {
 			return fmt.Errorf("Wrong IdleSegmentTreeRootAddress")
@@ -214,7 +214,7 @@ func (file *fileAccessor) CreateSegment(byteSize int) (*segmentBuffer, error) {
 	buffer := make([]byte, byteSize)
 	err = newByteEncoder(newByteSliceWriter(buffer), fileByteOrder).Int32(int32(byteSize))
 	if err != nil {
-		panic(err) // ここに到達する場合はバグがある
+		bug.Panic(err) // ここに到達する場合はバグがある
 	}
 	err = file.Write(segmentAddress, buffer)
 	if err != nil {

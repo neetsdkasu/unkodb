@@ -66,7 +66,8 @@ func (*intColumn[T]) Type() (_ ColumnType) {
 	case uint64:
 		return Uint64
 	default:
-		panic("[BUG] Unreachable")
+		bug.Panic("intColumn.Type: Unreachable")
+		return
 	}
 }
 
@@ -82,7 +83,7 @@ func (*intColumn[T]) byteSizeHint(value any) (_ int) {
 	if _, ok := value.(T); ok {
 		return int(unsafe.Sizeof(T(0)))
 	} else {
-		panicf("[BUG] value type is not %T (value: %T %#v)", T(0), value, value)
+		bug.Panicf("intColumn.byteSizeHint: value type is not %T (value: %T %#v)", T(0), value, value)
 		return
 	}
 }
@@ -100,7 +101,7 @@ func (*intColumn[T]) write(encoder *byteEncoder, value any) (err error) {
 	if _, ok := value.(T); ok {
 		err = encoder.Value(value)
 	} else {
-		panicf("[BUG] value type is not %T (value: %T %#v)", T(0), value, value)
+		bug.Panicf("intColumn.write: value type is not %T (value: %T %#v)", T(0), value, value)
 	}
 	return
 }
@@ -109,7 +110,7 @@ func (*intColumn[T]) toKey(value any) avltree.Key {
 	if v, ok := value.(T); ok {
 		return intKey[T](v)
 	} else {
-		panicf("[BUG] value type is not %T (value: %T %#v)", T(0), value, value)
+		bug.Panicf("intColumn.toKey: value type is not %T (value: %T %#v)", T(0), value, value)
 		return nil
 	}
 }
@@ -138,7 +139,7 @@ func (*shortStringColumn) byteSizeHint(value any) int {
 	if s, ok := value.(string); ok {
 		return minValue(shortStringMaximumDataByteSize, len([]byte(s))) + 1
 	} else {
-		panicf("[BUG] value type is not string (value: %T %#v)", value, value)
+		bug.Panicf("shortStringColumn.byteSizeHint: value type is not string (value: %T %#v)", value, value)
 		return 0
 	}
 }
@@ -170,7 +171,7 @@ func (*shortStringColumn) write(encoder *byteEncoder, value any) (err error) {
 		}
 		err = encoder.RawBytes(buf)
 	} else {
-		panicf("[BUG] value type is not string (value: %T %#v)", value, value)
+		bug.Panicf("shortStringColumn.write: value type is not string (value: %T %#v)", value, value)
 	}
 	return
 }
@@ -179,7 +180,7 @@ func (*shortStringColumn) toKey(value any) avltree.Key {
 	if s, ok := value.(string); ok {
 		return stringkey.StringKey(s)
 	} else {
-		panicf("[BUG] value type is not string (value: %T %#v)", value, value)
+		bug.Panicf("shortStringColumn.toKey: value type is not string (value: %T %#v)", value, value)
 		return nil
 	}
 }

@@ -32,16 +32,16 @@ func (tree *tableTree) NewNode(leftChild, rightChild avltree.Node, height int, k
 	var segmentSize = addressByteSize*2 + 1
 	record, ok := value.(tableTreeValue)
 	if !ok {
-		panicf("[BUG] invalid value %#v", value)
+		bug.Panicf("tableTree.NewNode: invalid value %#v", value)
 	}
 	if keyValue, ok := record[tree.table.key.Name()]; !ok {
-		panic("[BUG] not found key value")
+		bug.Panic("tableTree.NewNode: not found key value")
 	} else {
 		segmentSize += tree.table.key.byteSizeHint(keyValue)
 	}
 	for _, col := range tree.table.columns {
 		if colValue, ok := record[col.Name()]; !ok {
-			panicf("[BUG] not found value of %s", col.Name())
+			bug.Panicf("tableTree.NewNode: not found value of %s", col.Name())
 		} else {
 			segmentSize += col.byteSizeHint(colValue)
 		}

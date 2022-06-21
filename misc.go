@@ -18,8 +18,20 @@ type integerTypes interface {
 	int8 | uint8 | int16 | uint16 | int32 | uint32 | int64 | uint64
 }
 
-func panicf(format string, v ...any) {
-	panic(fmt.Sprintf(format, v...))
+var bug = struct {
+	Panic  func(v any)
+	Panicf func(format string, v ...any)
+}{
+	Panic: func(v any) {
+		if e, ok := v.(error); ok {
+			panic(fmt.Errorf("[BUG] %w", e))
+		} else {
+			panic(fmt.Errorf("[BUG] %v", v))
+		}
+	},
+	Panicf: func(format string, v ...any) {
+		panic(fmt.Errorf("[BUG] "+format, v...))
+	},
 }
 
 func catchError(err *error) {
