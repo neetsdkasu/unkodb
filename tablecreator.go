@@ -23,16 +23,19 @@ func newTableCreator(db *UnkoDB, name string) *TableCreator {
 	}
 }
 
-func (tc *TableCreator) Create() (*Table, error) {
+func (tc *TableCreator) Create() (table *Table, err error) {
+	defer catchError(&err)
 	if tc.created {
-		return nil, InvalidOperation
+		err = InvalidOperation
+		return
 	}
 	if tc.key == nil {
-		return nil, NeedToSetAKey
+		err = NeedToSetAKey
+		return
 	}
-	table, err := tc.db.newTable(tc.name, tc.key, tc.columns)
+	table, err = tc.db.newTable(tc.name, tc.key, tc.columns)
 	if err != nil {
-		return nil, err
+		return
 	}
 	tc.db = nil
 	tc.name = ""
@@ -40,7 +43,7 @@ func (tc *TableCreator) Create() (*Table, error) {
 	tc.columns = nil
 	tc.columnNameMap = nil
 	tc.created = true
-	return table, nil
+	return
 }
 
 func (tc *TableCreator) has(columnName string) bool {

@@ -12,42 +12,50 @@ type UnkoDB struct {
 	tables     []Table
 }
 
-func Create(emptyFile io.ReadWriteSeeker) (*UnkoDB, error) {
-	file, err := initializeNewFile(emptyFile)
+func Create(emptyFile io.ReadWriteSeeker) (db *UnkoDB, err error) {
+	defer catchError(&err)
+	var file *fileAccessor
+	file, err = initializeNewFile(emptyFile)
 	if err != nil {
-		return nil, err
+		return
 	}
-	db := &UnkoDB{
+	db = &UnkoDB{
 		segManager: newSegmentManager(file),
 		tables:     nil,
 	}
-	return db, nil
+	return
 }
 
-func Open(dbFile io.ReadWriteSeeker) (*UnkoDB, error) {
-	file, err := readFile(dbFile)
+func Open(dbFile io.ReadWriteSeeker) (db *UnkoDB, err error) {
+	defer catchError(&err)
+	var file *fileAccessor
+	file, err = readFile(dbFile)
 	if err != nil {
-		return nil, err
+		return
 	}
 	// TODO テーブルリスト読み込み？
-	db := &UnkoDB{
+	db = &UnkoDB{
 		segManager: newSegmentManager(file),
 		tables:     nil,
 	}
-	return db, nil
+	return
 }
 
-func (db *UnkoDB) CreateTable(newTableName string) (*TableCreator, error) {
+func (db *UnkoDB) CreateTable(newTableName string) (creator *TableCreator, err error) {
+	defer catchError(&err)
 	if db == nil || db.segManager == nil {
-		return nil, UninitializedUnkoDB
+		err = UninitializedUnkoDB
+		return
 	}
 	// TODO テーブル名の文字構成ルールチェック（文字列長のチェックくらい？）
 	for _, t := range db.tables {
 		if t.name == newTableName {
-			return nil, TableNameAlreadyExists
+			err = TableNameAlreadyExists
+			return
 		}
 	}
-	return newTableCreator(db, newTableName), nil
+	creator = newTableCreator(db, newTableName)
+	return
 }
 
 func (db *UnkoDB) newTable(name string, key Column, columns []Column) (*Table, error) {

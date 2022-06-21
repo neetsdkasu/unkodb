@@ -5,6 +5,8 @@ package unkodb
 
 import (
 	"fmt"
+	"os"
+	"runtime/debug"
 )
 
 // ジェネリック難しいね
@@ -18,22 +20,26 @@ type integerTypes interface {
 	int8 | uint8 | int16 | uint16 | int32 | uint32 | int64 | uint64
 }
 
+// この構造にする意味がまるで無い（虚無）
 var bug = struct {
 	Panic  func(v any)
 	Panicf func(format string, v ...any)
 }{
 	Panic: func(v any) {
-		if e, ok := v.(error); ok {
-			panic(fmt.Errorf("[BUG] %w", e))
-		} else {
-			panic(fmt.Errorf("[BUG] %v", v))
-		}
+		msg := fmt.Sprint("[BUG] ", v)
+		fmt.Fprintln(os.Stderr, msg)
+		debug.PrintStack()
+		panic(msg)
 	},
 	Panicf: func(format string, v ...any) {
-		panic(fmt.Errorf("[BUG] "+format, v...))
+		msg := fmt.Sprintf("[BUG] "+format, v...)
+		fmt.Fprintln(os.Stderr, msg)
+		debug.PrintStack()
+		panic(msg)
 	},
 }
 
+// もしかして、errorだとスタックトレースを取れない・・・？
 func catchError(err *error) {
 	if v := recover(); v != nil {
 		if e, ok := v.(error); ok {
