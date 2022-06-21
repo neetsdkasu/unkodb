@@ -68,6 +68,7 @@ const (
 	segmentHeaderByteSize = addressByteSize
 )
 
+// アホみたい
 const (
 	idleSegmentTreeNodeLeftChildPosition = 0
 	idleSegmentTreeNodeLeftChildLength   = addressByteSize
@@ -76,5 +77,19 @@ const (
 	idleSegmentTreeNodeRightChildLength   = addressByteSize
 
 	idleSegmentTreeNodeHeightPosition = idleSegmentTreeNodeRightChildPosition + idleSegmentTreeNodeRightChildLength
-	idleSegmentTreeNodeHeightLength   = addressByteSize
+	idleSegmentTreeNodeHeightLength   = 1
+)
+
+// アホみたい
+const (
+	tableTreeNodeLeftChildPosition = 0
+	tableTreeNodeLeftChildLength   = addressByteSize
+
+	tableTreeNodeRightChildPosition = tableTreeNodeLeftChildPosition + tableTreeNodeLeftChildLength
+	tableTreeNodeRightChildLength   = addressByteSize
+
+	tableTreeNodeHeightPosition = tableTreeNodeRightChildPosition + tableTreeNodeRightChildLength
+	tableTreeNodeHeightLength   = 1
+
+	tableTreeNodeHeaderByteSize = tableTreeNodeHeightPosition + tableTreeNodeHeightLength
 )

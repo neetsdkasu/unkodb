@@ -98,7 +98,7 @@ func (node *idleSegmentTreeNode) flush() error {
 	if err != nil {
 		bug.Panic(err) // ここに到達したらどこかにバグがある
 	}
-	err = w.Int32(int32(node.height))
+	err = w.Uint8(uint8(node.height))
 	if err != nil {
 		bug.Panic(err) // ここに到達したらどこかにバグがある
 	}
@@ -126,17 +126,20 @@ func (tree *idleSegmentTree) loadNode(address int) *idleSegmentTreeNode {
 	var leftChildAddress int32
 	err = r.Int32(&leftChildAddress)
 	if err != nil {
-		panic(err) // ここに到達したらどこかにバグがあるか、不正なファイル
+		bug.Panic(err) // ここに到達したらどこかにバグがあるか
+		// panic(FileFormatError) // 不正なファイル(segmentのサイズ情報が壊れている、など)
 	}
 	var rightChildAddress int32
 	err = r.Int32(&rightChildAddress)
 	if err != nil {
-		panic(err) // ここに到達したらどこかにバグがあるか、不正なファイル
+		bug.Panic(err) // ここに到達したらどこかにバグがあるか
+		// panic(FileFormatError) // 不正なファイル(segmentのサイズ情報が壊れている、など)
 	}
-	var height int32
-	err = r.Int32(&height)
+	var height uint8
+	err = r.Uint8(&height)
 	if err != nil {
-		panic(err) // ここに到達したらどこかにバグがあるか、不正なファイル
+		bug.Panic(err) // ここに到達したらどこかにバグがあるか
+		// panic(FileFormatError) // 不正なファイル(segmentのサイズ情報が壊れている、など)
 	}
 	node := &idleSegmentTreeNode{
 		tree:              tree,

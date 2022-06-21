@@ -13,13 +13,82 @@ type rootAddressSetter = func(addr int) (err error)
 type tableTree struct {
 	segManager *segmentManager
 	table      *Table
+	cache      map[int]*tableTreeNode
 }
 
 type tableTreeNode struct {
-	tree *tableTree
+	tree              *tableTree
+	seg               *segmentBuffer
+	leftChildAddress  int
+	rightChildAddress int
+	height            int
+	updated           bool
 }
 
 type tableTreeValue = map[string]interface{}
+
+func unwrapTableTreeNode(node avltree.Node) (_ *tableTreeNode) {
+	if node == nil {
+		return nil
+	}
+	if ttn, ok := node.(*tableTreeNode); ok {
+		return ttn
+	} else {
+		bug.Panicf("unwrapTableTreeNode: unknown type %T %#v", node, node)
+		return
+	}
+}
+
+func (node *tableTreeNode) toNode() avltree.Node {
+	if node == nil {
+		return nil
+	} else {
+		return node
+	}
+}
+
+func (node *tableTreeNode) position() int {
+	if node == nil {
+		return nullAddress
+	} else {
+		return node.seg.Position()
+	}
+}
+
+func (node *tableTreeNode) writeValue(record tableTreeValue) {
+	tree := node.tree
+	buf := node.seg.Buffer()[tableTreeNodeHeaderByteSize:]
+	w := newByteEncoder(newByteSliceWriter(buf), fileByteOrder)
+	keyValue := record[tree.table.key.Name()]
+	err := tree.table.key.write(w, keyValue)
+	if err != nil {
+		bug.Panicf("tableTreeNode.writeValue: key %#v %v", tree.table.key, err)
+	}
+	for _, col := range tree.table.columns {
+		colValue := record[col.Name()]
+		err = col.write(w, colValue)
+		if err != nil {
+			bug.Panicf("tableTreeNode.writeValue: column %#v %v", col, err)
+		}
+	}
+}
+
+func (tree *tableTree) calcSegmentByteSize(record tableTreeValue) int {
+	var segmentByteSize = tableTreeNodeHeaderByteSize
+	if keyValue, ok := record[tree.table.key.Name()]; !ok {
+		bug.Panic("tableTree.calcSegmentByteSize: not found key value")
+	} else {
+		segmentByteSize += tree.table.key.byteSizeHint(keyValue)
+	}
+	for _, col := range tree.table.columns {
+		if colValue, ok := record[col.Name()]; !ok {
+			bug.Panicf("tableTree.calcSegmentByteSize: not found value of %s", col.Name())
+		} else {
+			segmentByteSize += col.byteSizeHint(colValue)
+		}
+	}
+	return segmentByteSize
+}
 
 // github.com/neetsdkasu/avltree.RealTree.Root() の実装
 func (tree *tableTree) Root() avltree.Node {
@@ -29,24 +98,25 @@ func (tree *tableTree) Root() avltree.Node {
 // github.com/neetsdkasu/avltree.RealTree.NewNode(...) の実装
 func (tree *tableTree) NewNode(leftChild, rightChild avltree.Node, height int, key avltree.Key, value any) avltree.RealNode {
 	// leftChildAddress + rightChildAddress + height[1 byte]
-	var segmentSize = addressByteSize*2 + 1
 	record, ok := value.(tableTreeValue)
 	if !ok {
 		bug.Panicf("tableTree.NewNode: invalid value %#v", value)
 	}
-	if keyValue, ok := record[tree.table.key.Name()]; !ok {
-		bug.Panic("tableTree.NewNode: not found key value")
-	} else {
-		segmentSize += tree.table.key.byteSizeHint(keyValue)
+	segmentByteSize := tree.calcSegmentByteSize(record)
+	seg, err := tree.segManager.Request(segmentByteSize)
+	if err != nil {
+		panic(err) // ファイルIOエラー
 	}
-	for _, col := range tree.table.columns {
-		if colValue, ok := record[col.Name()]; !ok {
-			bug.Panicf("tableTree.NewNode: not found value of %s", col.Name())
-		} else {
-			segmentSize += col.byteSizeHint(colValue)
-		}
+	node := &tableTreeNode{
+		tree:              tree,
+		seg:               seg,
+		leftChildAddress:  unwrapTableTreeNode(leftChild).position(),
+		rightChildAddress: unwrapTableTreeNode(rightChild).position(),
+		height:            height,
+		updated:           true,
 	}
-	panic("TODO")
+	node.writeValue(record)
+	return node
 }
 
 // github.com/neetsdkasu/avltree.RealTree.SetRoot(...)の実装
