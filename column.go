@@ -20,19 +20,23 @@ type Column interface {
 	Type() ColumnType
 
 	// データ領域の最小バイトサイズ
-	MinimumDataByteSize() int
+	MinimumDataByteSize() uint64
 
 	// データ領域の最大バイトサイズ
-	MaximumDataByteSize() int
+	MaximumDataByteSize() uint64
 
 	// レコードバッファに書き込む際のバイトサイズ(データのバイトサイズとメタ情報があるならそのバイトサイズとの合計サイズ)
-	byteSizeHint(value any) int
+	byteSizeHint(value any) uint64
 
 	// レコードバッファからのデータの読み込み
 	read(decoder *byteDecoder) (value any, err error)
 
 	// レコードバッファへのデータの書き込み
 	write(encoder *byteEncoder, value any) (err error)
+}
+
+type keyColumn interface {
+	Column
 
 	// キーに変換する
 	toKey(value any) avltree.Key
@@ -71,17 +75,17 @@ func (*intColumn[T]) Type() (_ ColumnType) {
 	}
 }
 
-func (*intColumn[T]) MinimumDataByteSize() int {
-	return int(unsafe.Sizeof(T(0)))
+func (*intColumn[T]) MinimumDataByteSize() uint64 {
+	return uint64(unsafe.Sizeof(T(0)))
 }
 
-func (*intColumn[T]) MaximumDataByteSize() int {
-	return int(unsafe.Sizeof(T(0)))
+func (*intColumn[T]) MaximumDataByteSize() uint64 {
+	return uint64(unsafe.Sizeof(T(0)))
 }
 
-func (*intColumn[T]) byteSizeHint(value any) (_ int) {
+func (*intColumn[T]) byteSizeHint(value any) (_ uint64) {
 	if _, ok := value.(T); ok {
-		return int(unsafe.Sizeof(T(0)))
+		return uint64(unsafe.Sizeof(T(0)))
 	} else {
 		bug.Panicf("intColumn.byteSizeHint: value type is not %T (value: %T %#v)", T(0), value, value)
 		return
@@ -127,17 +131,17 @@ func (*shortStringColumn) Type() ColumnType {
 	return ShortString
 }
 
-func (*shortStringColumn) MinimumDataByteSize() int {
+func (*shortStringColumn) MinimumDataByteSize() uint64 {
 	return shortStringMinimumDataByteSize
 }
 
-func (*shortStringColumn) MaximumDataByteSize() int {
+func (*shortStringColumn) MaximumDataByteSize() uint64 {
 	return shortStringMaximumDataByteSize
 }
 
-func (*shortStringColumn) byteSizeHint(value any) (_ int) {
+func (*shortStringColumn) byteSizeHint(value any) (_ uint64) {
 	if s, ok := value.(string); ok {
-		return minValue(shortStringMaximumDataByteSize, len([]byte(s))) + 1
+		return uint64(minValue(shortStringMaximumDataByteSize, len([]byte(s))) + shortStringByteSizeDataLength)
 	} else {
 		bug.Panicf("shortStringColumn.byteSizeHint: value type is not string (value: %T %#v)", value, value)
 		return
@@ -183,4 +187,131 @@ func (*shortStringColumn) toKey(value any) (_ avltree.Key) {
 		bug.Panicf("shortStringColumn.toKey: value type is not string (value: %T %#v)", value, value)
 		return
 	}
+}
+
+type shortBytesColumn struct {
+	name string
+}
+
+func (c *shortBytesColumn) Name() string {
+	return c.name
+}
+
+func (*shortBytesColumn) Type() ColumnType {
+	return ShortBytes
+}
+
+func (*shortBytesColumn) MinimumDataByteSize() uint64 {
+	return shortBytesMinimumDataByteSize
+}
+
+func (*shortBytesColumn) MaximumDataByteSize() uint64 {
+	return shortBytesMaximumDataByteSize
+}
+
+func (*shortBytesColumn) byteSizeHint(value any) (_ uint64) {
+	if s, ok := value.([]byte); ok {
+		return uint64(minValue(shortBytesMaximumDataByteSize, len(s)) + shortBytesByteSizeDataLength)
+	} else {
+		bug.Panicf("shortBytesColumn.byteSizeHint: value type is not []byte (value: %T %#v)", value, value)
+		return
+	}
+}
+
+func (*shortBytesColumn) read(decoder *byteDecoder) (value any, err error) {
+	var size uint8
+	err = decoder.Uint8(&size)
+	if err != nil {
+		return nil, err
+	}
+	buf := make([]byte, size)
+	err = decoder.RawBytes(buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
+
+func (*shortBytesColumn) write(encoder *byteEncoder, value any) (err error) {
+	if buf, ok := value.([]byte); ok {
+		if len(buf) > shortBytesMaximumDataByteSize {
+			buf = buf[:shortBytesMaximumDataByteSize]
+		}
+		err = encoder.Uint8(uint8(len(buf)))
+		if err != nil {
+			return
+		}
+		err = encoder.RawBytes(buf)
+	} else {
+		bug.Panicf("shortBytesColumn.write: value type is not []byte (value: %T %#v)", value, value)
+	}
+	return
+}
+
+func (*shortBytesColumn) toKey(value any) (_ avltree.Key) {
+	if s, ok := value.([]byte); ok {
+		return bytesKey(s)
+	} else {
+		bug.Panicf("shortBytesColumn.toKey: value type is not []byte (value: %T %#v)", value, value)
+		return
+	}
+}
+
+type longBytesColumn struct {
+	name string
+}
+
+func (c *longBytesColumn) Name() string {
+	return c.name
+}
+
+func (*longBytesColumn) Type() ColumnType {
+	return LongBytes
+}
+
+func (*longBytesColumn) MinimumDataByteSize() uint64 {
+	return longBytesMinimumDataByteSize
+}
+
+func (*longBytesColumn) MaximumDataByteSize() uint64 {
+	return longBytesMaximumDataByteSize
+}
+
+func (*longBytesColumn) byteSizeHint(value any) (_ uint64) {
+	if s, ok := value.([]byte); ok {
+		return uint64(minValue(longBytesMaximumDataByteSize, len(s)) + longBytesByteSizeDataLength)
+	} else {
+		bug.Panicf("longBytesColumn.byteSizeHint: value type is not []byte (value: %T %#v)", value, value)
+		return
+	}
+}
+
+func (*longBytesColumn) read(decoder *byteDecoder) (value any, err error) {
+	var size uint8
+	err = decoder.Uint8(&size)
+	if err != nil {
+		return nil, err
+	}
+	buf := make([]byte, size)
+	err = decoder.RawBytes(buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
+
+func (*longBytesColumn) write(encoder *byteEncoder, value any) (err error) {
+	if buf, ok := value.([]byte); ok {
+		if len(buf) > longBytesMaximumDataByteSize {
+			buf = buf[:longBytesMaximumDataByteSize]
+		}
+		err = encoder.Uint8(uint8(len(buf)))
+		if err != nil {
+			return
+		}
+		err = encoder.RawBytes(buf)
+	} else {
+		bug.Panicf("longBytesColumn.write: value type is not []byte (value: %T %#v)", value, value)
+	}
+	return
 }

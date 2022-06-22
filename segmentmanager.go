@@ -24,7 +24,14 @@ func (manager *segmentManager) LoadSegment(addr int) (*segmentBuffer, error) {
 	return manager.file.ReadSegment(addr)
 }
 
-func (manager *segmentManager) EmptySegment(byteSize int) (*segmentBuffer, error) {
+func (manager *segmentManager) EmptySegment(byteSize uint64) (*segmentBuffer, error) {
+	if byteSize > maximumSegmentByteSize {
+		return nil, TooLargeData
+	}
+	byteSize = (byteSize + 3) &^ 3
+	if byteSize > maximumSegmentByteSize {
+		return nil, TooLargeData
+	}
 	keyMin := idleSegmentTreeKey(int32(byteSize))
 	keyMax := idleSegmentTreeKey(int32(byteSize + 4))
 	_, nodes := avltree.DeleteRangeIterate(manager.tree, false, keyMin, keyMax, func(key avltree.Key, value any) (deleteNode, breakIteration bool) {
@@ -33,7 +40,7 @@ func (manager *segmentManager) EmptySegment(byteSize int) (*segmentBuffer, error
 		return
 	})
 	if len(nodes) == 0 {
-		return manager.file.CreateSegment(byteSize)
+		return manager.file.CreateSegment(int(byteSize))
 	}
 	if len(nodes) != 1 {
 		bug.Panicf("segmentManager.Request: free segment too many %d", len(nodes))

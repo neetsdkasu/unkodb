@@ -29,12 +29,27 @@ const (
 )
 
 const (
+	maximumSegmentByteSize = (1 << 31) - 1
+)
+
+const (
+	MaximumTableNameByteSize  = 255
 	MaximumColumnNameByteSize = 255
+	MaximumColumnCount        = 100
 )
 
 const (
 	shortStringMinimumDataByteSize = 0
-	shortStringMaximumDataByteSize = 255
+	shortStringMaximumDataByteSize = (1 << 8) - 1
+	shortStringByteSizeDataLength  = 1
+
+	shortBytesMinimumDataByteSize = 0
+	shortBytesMaximumDataByteSize = (1 << 8) - 1
+	shortBytesByteSizeDataLength  = 1
+
+	longBytesMinimumDataByteSize = 0
+	longBytesMaximumDataByteSize = (1 << 16) - 1
+	longBytesByteSizeDataLength  = 2
 )
 
 const (

@@ -8,8 +8,10 @@ import (
 )
 
 type UnkoDB struct {
+	file       *fileAccessor
 	segManager *segmentManager
-	tables     []Table
+	tableList  *Table
+	tables     []*Table
 }
 
 func Create(emptyFile io.ReadWriteSeeker) (db *UnkoDB, err error) {
@@ -20,6 +22,7 @@ func Create(emptyFile io.ReadWriteSeeker) (db *UnkoDB, err error) {
 		return
 	}
 	db = &UnkoDB{
+		file:       file,
 		segManager: newSegmentManager(file),
 		tables:     nil,
 	}
@@ -35,9 +38,12 @@ func Open(dbFile io.ReadWriteSeeker) (db *UnkoDB, err error) {
 	}
 	// TODO テーブルリスト読み込み？
 	db = &UnkoDB{
+		file:       file,
 		segManager: newSegmentManager(file),
+		tableList:  nil,
 		tables:     nil,
 	}
+	err = db.loadTableListTable()
 	return
 }
 
@@ -58,7 +64,7 @@ func (db *UnkoDB) CreateTable(newTableName string) (creator *TableCreator, err e
 	return
 }
 
-func (db *UnkoDB) newTable(name string, key Column, columns []Column) (*Table, error) {
+func (db *UnkoDB) newTable(name string, key keyColumn, columns []Column) (*Table, error) {
 	// TODO ちゃんと作る
 	table := &Table{
 		name:    name,
@@ -66,4 +72,34 @@ func (db *UnkoDB) newTable(name string, key Column, columns []Column) (*Table, e
 		columns: columns,
 	}
 	return table, nil
+}
+
+func (db *UnkoDB) loadTableSpec(tableName string, colomnsSpecBuf []byte) {
+	// TODO
+}
+
+func (db *UnkoDB) getRootAddress() (addr int, err error) {
+	addr = db.file.TableListRootAddress()
+	return
+}
+func (db *UnkoDB) setRootAddress(addr int) (err error) {
+	err = db.file.UpdateTableListRootAddress(addr)
+	return
+}
+
+func (db *UnkoDB) loadTableListTable() error {
+	db.tableList = &Table{
+		db:           db,
+		name:         "table_list",
+		key:          &shortStringColumn{name: "table_name"},
+		columns:      []Column{&longBytesColumn{name: "colomns_spec_buf"}},
+		rootAccessor: db,
+	}
+	err := db.tableList.IterateAll(func(rec *Record) (_ bool) {
+		tableName := rec.Key().(string)
+		colomnsSpecBuf := rec.Column("colomns_spec_buf").([]byte)
+		db.loadTableSpec(tableName, colomnsSpecBuf)
+		return
+	})
+	return err
 }

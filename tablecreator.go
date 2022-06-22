@@ -6,7 +6,7 @@ package unkodb
 type TableCreator struct {
 	db            *UnkoDB
 	name          string
-	key           Column
+	key           keyColumn
 	columns       []Column
 	columnNameMap map[string]bool
 	created       bool
@@ -51,7 +51,7 @@ func (tc *TableCreator) has(columnName string) bool {
 	return ok
 }
 
-func (tc *TableCreator) setKey(column Column) error {
+func (tc *TableCreator) setKey(column keyColumn) error {
 	if tc.created {
 		return InvalidOperation
 	}

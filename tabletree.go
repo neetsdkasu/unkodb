@@ -34,16 +34,16 @@ type tableTreeNode struct {
 	updated           bool
 }
 
-type tableTreeValue = map[string]interface{}
+type tableTreeValue = map[string]any
 
-func newTableTree(table *Table, segManager *segmentManager) (*tableTree, error) {
+func newTableTree(table *Table) (*tableTree, error) {
 	rootAddress, err := table.rootAccessor.getRootAddress()
 	if err != nil {
 		return nil, err
 	}
 	tree := &tableTree{
 		table:       table,
-		segManager:  segManager,
+		segManager:  table.db.segManager,
 		rootAddress: rootAddress,
 		updatedRoot: false,
 		cache:       make(tableTreeNodeCache),
@@ -134,8 +134,8 @@ func (node *tableTreeNode) writeValue(record tableTreeValue) {
 	}
 }
 
-func (tree *tableTree) calcSegmentByteSize(record tableTreeValue) int {
-	var segmentByteSize = tableTreeNodeHeaderByteSize
+func (tree *tableTree) calcSegmentByteSize(record tableTreeValue) uint64 {
+	var segmentByteSize uint64 = tableTreeNodeHeaderByteSize
 	if keyValue, ok := record[tree.table.key.Name()]; !ok {
 		bug.Panic("tableTree.calcSegmentByteSize: not found key value")
 	} else {

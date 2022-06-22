@@ -18,6 +18,8 @@ func TestColumn(t *testing.T) {
 		&intColumn[int64]{},
 		&intColumn[uint64]{},
 		&shortStringColumn{},
+		&shortBytesColumn{},
+		&longBytesColumn{},
 	}
 
 	types := []ColumnType{
@@ -30,16 +32,22 @@ func TestColumn(t *testing.T) {
 		Int64,
 		Uint64,
 		ShortString,
+		ShortBytes,
+		LongBytes,
 	}
 
-	minimumSizes := []int{
+	minimumSizes := []uint64{
 		1, 1, 2, 2, 4, 4, 8, 8,
 		shortStringMinimumDataByteSize,
+		shortBytesMinimumDataByteSize,
+		longBytesMinimumDataByteSize,
 	}
 
-	maximumSizes := []int{
+	maximumSizes := []uint64{
 		1, 1, 2, 2, 4, 4, 8, 8,
 		shortStringMaximumDataByteSize,
+		shortBytesMaximumDataByteSize,
+		longBytesMaximumDataByteSize,
 	}
 
 	for i, column := range columns {
