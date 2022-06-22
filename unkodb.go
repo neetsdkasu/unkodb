@@ -4,6 +4,7 @@
 package unkodb
 
 import (
+	"bytes"
 	"io"
 )
 
@@ -67,15 +68,56 @@ func (db *UnkoDB) CreateTable(newTableName string) (creator *TableCreator, err e
 func (db *UnkoDB) newTable(name string, key keyColumn, columns []Column) (*Table, error) {
 	// TODO ちゃんと作る
 	table := &Table{
-		name:    name,
-		key:     key,
-		columns: columns,
+		name:         name,
+		key:          key,
+		columns:      columns,
+		rootAccessor: nil,
 	}
+	table.rootAccessor = table
 	return table, nil
 }
 
-func (db *UnkoDB) loadTableSpec(tableName string, colomnsSpecBuf []byte) {
-	// TODO
+func (db *UnkoDB) loadTableSpec(tableName string, columnsSpecBuf []byte) (err error) {
+	r := newByteDecoder(bytes.NewReader(columnsSpecBuf), fileByteOrder)
+	var rootAddress int32
+	err = r.Int32(&rootAddress)
+	if err != nil {
+		return
+	}
+	var col Column
+	col, err = r.ReadColumnSpec()
+	if err != nil {
+		return
+	}
+	key, ok := col.(keyColumn)
+	if !ok {
+		// TODO error
+		return
+	}
+	var colCount uint8
+	err = r.Uint8(&colCount)
+	if err != nil {
+		return
+	}
+	columns := make([]Column, colCount)
+	for i := range columns {
+		col, err = r.ReadColumnSpec()
+		if err != nil {
+			return err
+		}
+		columns[i] = col
+	}
+	table := &Table{
+		db:             db,
+		name:           tableName,
+		key:            key,
+		columns:        columns,
+		rootAddress:    int(rootAddress),
+		columnsSpecBuf: columnsSpecBuf,
+	}
+	table.rootAccessor = table
+	db.tables = append(db.tables, table)
+	return
 }
 
 func (db *UnkoDB) getRootAddress() (addr int, err error) {
@@ -90,15 +132,18 @@ func (db *UnkoDB) setRootAddress(addr int) (err error) {
 func (db *UnkoDB) loadTableListTable() error {
 	db.tableList = &Table{
 		db:           db,
-		name:         "table_list",
-		key:          &shortStringColumn{name: "table_name"},
-		columns:      []Column{&longBytesColumn{name: "colomns_spec_buf"}},
+		name:         tableListTableName,
+		key:          &shortStringColumn{name: tableListKeyName},
+		columns:      []Column{&longBytesColumn{name: tableListColumnName}},
 		rootAccessor: db,
 	}
 	err := db.tableList.IterateAll(func(rec *Record) (_ bool) {
 		tableName := rec.Key().(string)
-		colomnsSpecBuf := rec.Column("colomns_spec_buf").([]byte)
-		db.loadTableSpec(tableName, colomnsSpecBuf)
+		columnsSpecBuf := rec.Column(tableListColumnName).([]byte)
+		err := db.loadTableSpec(tableName, columnsSpecBuf)
+		if err != nil {
+			panic(err)
+		}
 		return
 	})
 	return err

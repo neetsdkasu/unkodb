@@ -116,3 +116,110 @@ func (encoder *byteEncoder) Int32(src int32) error {
 func (decoder *byteDecoder) Int32(dst *int32) error {
 	return decoder.Value(dst)
 }
+
+func (encoder *byteEncoder) WriteShortString(s string) (err error) {
+	buf := []byte(s)
+	if len(buf) > shortStringMaximumDataByteSize {
+		buf = buf[:shortStringMaximumDataByteSize]
+	}
+	size := uint8(len(buf))
+	err = encoder.Uint8(size)
+	if err != nil {
+		return
+	}
+	err = encoder.RawBytes(buf)
+	return
+}
+
+func (decoder *byteDecoder) ReadShortString() (s string, err error) {
+	var size uint8
+	err = decoder.Uint8(&size)
+	if err != nil {
+		return
+	}
+	buf := make([]byte, size)
+	err = decoder.RawBytes(buf)
+	if err != nil {
+		return
+	}
+	s = string(buf)
+	return
+}
+
+func (encoder *byteEncoder) WriteColumnSpec(col Column) (err error) {
+	err = encoder.WriteShortString(col.Name())
+	if err != nil {
+		return
+	}
+	err = encoder.Uint8(uint8(col.Type()))
+	if err != nil {
+		return
+	}
+	// switch c := col.(type) {
+	// case *fixledSizeShortStringColumn:
+	// case *fixledSizeLongStringColumn:
+	// case *fixledSizeShortBytesColumn:
+	// case *fixledSizeLongBytesColumn:
+	// }
+	return
+}
+
+func (decoder *byteDecoder) ReadColumnSpec() (col Column, err error) {
+	var name string
+	name, err = decoder.ReadShortString()
+	if err != nil {
+		return
+	}
+	var colType uint8
+	err = decoder.Uint8(&colType)
+	if err != nil {
+		return
+	}
+	switch ColumnType(colType) {
+	default:
+		err = WrongFileFormat
+	case Counter:
+		bug.Panic("TODO")
+	case Int8:
+		col = &intColumn[int8]{name: name}
+	case Uint8:
+		col = &intColumn[uint8]{name: name}
+	case Int16:
+		col = &intColumn[int16]{name: name}
+	case Uint16:
+		col = &intColumn[uint16]{name: name}
+	case Int32:
+		col = &intColumn[int32]{name: name}
+	case Uint32:
+		col = &intColumn[uint32]{name: name}
+	case Int64:
+		col = &intColumn[int64]{name: name}
+	case Uint64:
+		col = &intColumn[uint64]{name: name}
+	case Float32:
+		bug.Panic("TODO")
+	case Float64:
+		bug.Panic("TODO")
+	case ShortString:
+		col = &shortStringColumn{name: name}
+	case FixedSizeShortString:
+		bug.Panic("TODO")
+	case LongString:
+		bug.Panic("TODO")
+	case FixedSizeLongString:
+		bug.Panic("TODO")
+	case Text:
+		bug.Panic("TODO")
+	case ShortBytes:
+		col = &shortBytesColumn{name: name}
+	case FixedSizeShortBytes:
+		bug.Panic("TODO")
+	case LongBytes:
+		col = &longBytesColumn{name: name}
+	case FixedSizeLongBytes:
+		bug.Panic("TODO")
+	case Blob:
+		bug.Panic("TODO")
+	}
+	return
+}

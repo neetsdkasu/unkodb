@@ -29,10 +29,6 @@ const (
 )
 
 const (
-	maximumSegmentByteSize = (1 << 31) - 1
-)
-
-const (
 	MaximumTableNameByteSize  = 255
 	MaximumColumnNameByteSize = 255
 	MaximumColumnCount        = 100
@@ -50,6 +46,16 @@ const (
 	longBytesMinimumDataByteSize = 0
 	longBytesMaximumDataByteSize = (1 << 16) - 1
 	longBytesByteSizeDataLength  = 2
+)
+
+const (
+	tableListTableName  = "table_list"
+	tableListKeyName    = "table_name"
+	tableListColumnName = "columns_spec_buf"
+)
+
+const (
+	maximumSegmentByteSize = (1 << 31) - 1
 )
 
 const (

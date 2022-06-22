@@ -186,8 +186,7 @@ func (tree *tableTree) loadNode(addr int) *tableTreeNode {
 	var leftChildAddress int32
 	err = r.Int32(&leftChildAddress)
 	if err != nil {
-		bug.Panic(err) // ここに到達したらどこかにバグがあるか
-		// panic(WrongFileFormat) // 不正なファイル(segmentのサイズ情報が壊れている、など)
+		panic(WrongFileFormat) // 不正なファイル(segmentのサイズ情報が壊れている、など)
 	}
 	var rightChildAddress int32
 	err = r.Int32(&rightChildAddress)
@@ -214,6 +213,15 @@ func (tree *tableTree) loadNode(addr int) *tableTreeNode {
 	}
 	tree.addCache(node)
 	return node
+}
+
+// github.com/neetsdkasu/avltree.NodeReleaser.ReleaseNode() の実装
+func (tree *tableTree) ReleaseNode(node avltree.RealNode) {
+	seg := unwrapTableTreeNode(node).seg
+	err := tree.segManager.ReleaseSegment(seg)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // github.com/neetsdkasu/avltree.RealTree.Root() の実装

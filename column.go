@@ -19,6 +19,8 @@ type Column interface {
 	// カラムのデータ型
 	Type() ColumnType
 
+	IsValidValueType(value any) bool
+
 	// データ領域の最小バイトサイズ
 	MinimumDataByteSize() uint64
 
@@ -75,6 +77,11 @@ func (*intColumn[T]) Type() (_ ColumnType) {
 	}
 }
 
+func (*intColumn[T]) IsValidValueType(value any) (ok bool) {
+	_, ok = value.(T)
+	return
+}
+
 func (*intColumn[T]) MinimumDataByteSize() uint64 {
 	return uint64(unsafe.Sizeof(T(0)))
 }
@@ -129,6 +136,15 @@ func (c *shortStringColumn) Name() string {
 
 func (*shortStringColumn) Type() ColumnType {
 	return ShortString
+}
+
+func (*shortStringColumn) IsValidValueType(value any) bool {
+	if s, ok := value.(string); ok {
+		b := []byte(s)
+		return len(b) <= shortStringMaximumDataByteSize
+	} else {
+		return false
+	}
 }
 
 func (*shortStringColumn) MinimumDataByteSize() uint64 {
@@ -201,6 +217,14 @@ func (*shortBytesColumn) Type() ColumnType {
 	return ShortBytes
 }
 
+func (*shortBytesColumn) IsValidValueType(value any) bool {
+	if b, ok := value.([]byte); ok {
+		return len(b) <= shortBytesMaximumDataByteSize
+	} else {
+		return false
+	}
+}
+
 func (*shortBytesColumn) MinimumDataByteSize() uint64 {
 	return shortBytesMinimumDataByteSize
 }
@@ -269,6 +293,14 @@ func (*longBytesColumn) Type() ColumnType {
 	return LongBytes
 }
 
+func (*longBytesColumn) IsValidValueType(value any) bool {
+	if b, ok := value.([]byte); ok {
+		return len(b) <= longBytesMaximumDataByteSize
+	} else {
+		return false
+	}
+}
+
 func (*longBytesColumn) MinimumDataByteSize() uint64 {
 	return longBytesMinimumDataByteSize
 }
@@ -287,8 +319,8 @@ func (*longBytesColumn) byteSizeHint(value any) (_ uint64) {
 }
 
 func (*longBytesColumn) read(decoder *byteDecoder) (value any, err error) {
-	var size uint8
-	err = decoder.Uint8(&size)
+	var size uint16
+	err = decoder.Uint16(&size)
 	if err != nil {
 		return nil, err
 	}
@@ -305,7 +337,7 @@ func (*longBytesColumn) write(encoder *byteEncoder, value any) (err error) {
 		if len(buf) > longBytesMaximumDataByteSize {
 			buf = buf[:longBytesMaximumDataByteSize]
 		}
-		err = encoder.Uint8(uint8(len(buf)))
+		err = encoder.Uint16(uint16(len(buf)))
 		if err != nil {
 			return
 		}

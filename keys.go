@@ -39,7 +39,7 @@ func (key *geneKey[T]) CompareTo(other avltree.Key) (_ avltree.KeyOrdering) {
 }
 
 func (key *geneKey[T]) Copy() avltree.Key {
-	return intKey[T](key.value)
+	return key
 }
 
 func (key bytesKey) CompareTo(other avltree.Key) (_ avltree.KeyOrdering) {
