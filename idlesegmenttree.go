@@ -9,9 +9,13 @@ import (
 	"github.com/neetsdkasu/avltree"
 )
 
+type idleSegmentTreeNodeCache = map[int]*idleSegmentTreeNode
+
 type idleSegmentTree struct {
-	file  *fileAccessor
-	cache map[int]*idleSegmentTreeNode
+	file        *fileAccessor
+	rootAddress int
+	updatedRoot bool
+	cache       idleSegmentTreeNodeCache
 }
 
 type idleSegmentTreeNode struct {
@@ -28,8 +32,10 @@ var idleSegmentTreeKey = intKey[int32]
 
 func newIdleSegmentTree(file *fileAccessor) *idleSegmentTree {
 	tree := &idleSegmentTree{
-		file:  file,
-		cache: make(map[int]*idleSegmentTreeNode),
+		file:        file,
+		rootAddress: file.IdleSegmentTreeRootAddress(),
+		updatedRoot: false,
+		cache:       make(idleSegmentTreeNodeCache),
 	}
 	return tree
 }
@@ -110,13 +116,49 @@ func (node *idleSegmentTreeNode) flush() error {
 	return nil
 }
 
+func (tree *idleSegmentTree) clearCache() {
+	for _, node := range tree.cache {
+		if node.updated {
+			bug.Panic("idleSegmentTree.clearCache: not flush")
+		}
+	}
+	// 定期的にキャッシュクリアする仕組みが欲しいのかも？
+	// アクセスの古いノードからとか？わからん
+	tree.cache = make(idleSegmentTreeNodeCache)
+}
+
+func (tree *idleSegmentTree) flush() error {
+	for _, node := range tree.cache {
+		err := node.flush()
+		if err != nil {
+			return err
+		}
+	}
+	if tree.updatedRoot {
+		err := tree.file.UpdateIdleSegmentTreeRootAddress(tree.rootAddress)
+		if err != nil {
+			panic(err)
+		}
+	}
+	return nil
+}
+
+func (tree *idleSegmentTree) getCache(address int) (*idleSegmentTreeNode, bool) {
+	node, ok := tree.cache[address]
+	return node, ok
+}
+
+func (tree *idleSegmentTree) addCache(node *idleSegmentTreeNode) {
+	tree.cache[node.position()] = node
+}
+
 // ノード情報をファイルから読み取る
 func (tree *idleSegmentTree) loadNode(address int) *idleSegmentTreeNode {
 	if address == nullAddress {
 		return nil
 	}
-	if cached, ok := tree.cache[address]; ok {
-		return cached
+	if cachedNode, ok := tree.getCache(address); ok {
+		return cachedNode
 	}
 	seg, err := tree.file.ReadSegment(address)
 	if err != nil {
@@ -126,20 +168,17 @@ func (tree *idleSegmentTree) loadNode(address int) *idleSegmentTreeNode {
 	var leftChildAddress int32
 	err = r.Int32(&leftChildAddress)
 	if err != nil {
-		bug.Panic(err) // ここに到達したらどこかにバグがあるか
-		// panic(FileFormatError) // 不正なファイル(segmentのサイズ情報が壊れている、など)
+		panic(WrongFileFormat) // 不正なファイル(segmentのサイズ情報が壊れている、など)
 	}
 	var rightChildAddress int32
 	err = r.Int32(&rightChildAddress)
 	if err != nil {
-		bug.Panic(err) // ここに到達したらどこかにバグがあるか
-		// panic(FileFormatError) // 不正なファイル(segmentのサイズ情報が壊れている、など)
+		panic(WrongFileFormat) // 不正なファイル(segmentのサイズ情報が壊れている、など)
 	}
 	var height uint8
 	err = r.Uint8(&height)
 	if err != nil {
-		bug.Panic(err) // ここに到達したらどこかにバグがあるか
-		// panic(FileFormatError) // 不正なファイル(segmentのサイズ情報が壊れている、など)
+		panic(WrongFileFormat) // 不正なファイル(segmentのサイズ情報が壊れている、など)
 	}
 	node := &idleSegmentTreeNode{
 		tree:              tree,
@@ -150,13 +189,13 @@ func (tree *idleSegmentTree) loadNode(address int) *idleSegmentTreeNode {
 		height:            int(height),
 		updated:           false,
 	}
-	tree.cache[address] = node
+	tree.addCache(node)
 	return node
 }
 
 // github.com/neetsdkasu/avltree.RealTree.Root() の実装
 func (tree *idleSegmentTree) Root() avltree.Node {
-	node := tree.loadNode(tree.file.IdleSegmentTreeRootAddress())
+	node := tree.loadNode(tree.rootAddress)
 	return node.toNode()
 }
 
@@ -171,17 +210,14 @@ func (tree *idleSegmentTree) NewNode(leftChild, rightChild avltree.Node, height 
 		height:            height,
 		updated:           true,
 	}
-	tree.cache[node.position()] = node
+	tree.addCache(node)
 	return node
 }
 
 // github.com/neetsdkasu/avltree.RealTree.SetRoot(...)の実装
 func (tree *idleSegmentTree) SetRoot(newRoot avltree.RealNode) avltree.RealTree {
-	address := unwrapIdleSegmentTreeNode(newRoot).position()
-	err := tree.file.UpdateIdleSegmentTreeRootAddress(address)
-	if err != nil {
-		panic(err)
-	}
+	tree.rootAddress = unwrapIdleSegmentTreeNode(newRoot).position()
+	tree.updatedRoot = true
 	return tree
 }
 

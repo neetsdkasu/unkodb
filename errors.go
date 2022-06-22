@@ -6,6 +6,10 @@ package unkodb
 import "errors"
 
 var (
+	WrongFileFormat = errors.New("WrongFileFormat")
+)
+
+var (
 	TableNameAlreadyExists = errors.New("TableNameAlreadyExists")
 	UninitializedUnkoDB    = errors.New("UninitializedUnkoDB")
 )

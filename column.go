@@ -106,12 +106,12 @@ func (*intColumn[T]) write(encoder *byteEncoder, value any) (err error) {
 	return
 }
 
-func (*intColumn[T]) toKey(value any) avltree.Key {
+func (*intColumn[T]) toKey(value any) (_ avltree.Key) {
 	if v, ok := value.(T); ok {
 		return intKey[T](v)
 	} else {
 		bug.Panicf("intColumn.toKey: value type is not %T (value: %T %#v)", T(0), value, value)
-		return nil
+		return
 	}
 }
 
@@ -135,12 +135,12 @@ func (*shortStringColumn) MaximumDataByteSize() int {
 	return shortStringMaximumDataByteSize
 }
 
-func (*shortStringColumn) byteSizeHint(value any) int {
+func (*shortStringColumn) byteSizeHint(value any) (_ int) {
 	if s, ok := value.(string); ok {
 		return minValue(shortStringMaximumDataByteSize, len([]byte(s))) + 1
 	} else {
 		bug.Panicf("shortStringColumn.byteSizeHint: value type is not string (value: %T %#v)", value, value)
-		return 0
+		return
 	}
 }
 
@@ -176,11 +176,11 @@ func (*shortStringColumn) write(encoder *byteEncoder, value any) (err error) {
 	return
 }
 
-func (*shortStringColumn) toKey(value any) avltree.Key {
+func (*shortStringColumn) toKey(value any) (_ avltree.Key) {
 	if s, ok := value.(string); ok {
 		return stringkey.StringKey(s)
 	} else {
 		bug.Panicf("shortStringColumn.toKey: value type is not string (value: %T %#v)", value, value)
-		return nil
+		return
 	}
 }

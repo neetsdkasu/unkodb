@@ -4,7 +4,8 @@
 package unkodb
 
 type Table struct {
-	name    string
-	key     Column
-	columns []Column
+	name         string
+	key          Column
+	columns      []Column
+	rootAccessor rootAddressAccessor
 }
