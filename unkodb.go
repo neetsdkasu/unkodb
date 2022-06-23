@@ -6,6 +6,9 @@ package unkodb
 import (
 	"bytes"
 	"io"
+	"sort"
+
+	"github.com/neetsdkasu/avltree/stringkey"
 )
 
 type UnkoDB struct {
@@ -16,7 +19,9 @@ type UnkoDB struct {
 }
 
 func Create(emptyFile io.ReadWriteSeeker) (db *UnkoDB, err error) {
-	defer catchError(&err)
+	if !debugMode {
+		defer catchError(&err)
+	}
 	var file *fileAccessor
 	file, err = initializeNewFile(emptyFile)
 	if err != nil {
@@ -27,11 +32,17 @@ func Create(emptyFile io.ReadWriteSeeker) (db *UnkoDB, err error) {
 		segManager: newSegmentManager(file),
 		tables:     nil,
 	}
+	err = db.initTableListTable()
+	if err != nil {
+		db = nil
+	}
 	return
 }
 
 func Open(dbFile io.ReadWriteSeeker) (db *UnkoDB, err error) {
-	defer catchError(&err)
+	if !debugMode {
+		defer catchError(&err)
+	}
 	var file *fileAccessor
 	file, err = readFile(dbFile)
 	if err != nil {
@@ -44,12 +55,17 @@ func Open(dbFile io.ReadWriteSeeker) (db *UnkoDB, err error) {
 		tableList:  nil,
 		tables:     nil,
 	}
-	err = db.loadTableListTable()
+	err = db.initTableListTable()
+	if err != nil {
+		db = nil
+	}
 	return
 }
 
 func (db *UnkoDB) CreateTable(newTableName string) (creator *TableCreator, err error) {
-	defer catchError(&err)
+	if !debugMode {
+		defer catchError(&err)
+	}
 	if db == nil || db.segManager == nil {
 		err = UninitializedUnkoDB
 		return
@@ -68,12 +84,59 @@ func (db *UnkoDB) CreateTable(newTableName string) (creator *TableCreator, err e
 func (db *UnkoDB) newTable(name string, key keyColumn, columns []Column) (*Table, error) {
 	// TODO ちゃんと作る
 	table := &Table{
-		name:         name,
-		key:          key,
-		columns:      columns,
-		rootAccessor: nil,
+		db:             db,
+		name:           name,
+		key:            key,
+		columns:        columns,
+		nodeCount:      0,
+		counter:        0,
+		rootAddress:    nullAddress,
+		rootAccessor:   nil,
+		columnsSpecBuf: nil,
 	}
 	table.rootAccessor = table
+	var b bytes.Buffer
+	w := newByteEncoder(&b, fileByteOrder)
+	err := w.Int32(int32(table.rootAddress))
+	if err != nil {
+		return nil, err
+	}
+	err = w.Int32(int32(table.nodeCount))
+	if err != nil {
+		return nil, err
+	}
+	err = w.Uint32(uint32(table.counter))
+	if err != nil {
+		return nil, err
+	}
+	err = w.WriteColumnSpec(table.key)
+	if err != nil {
+		return nil, err
+	}
+	err = w.Uint8(uint8(len(table.columns)))
+	if err != nil {
+		return nil, err
+	}
+	for _, col := range table.columns {
+		err = w.WriteColumnSpec(col)
+		if err != nil {
+			return nil, err
+		}
+	}
+	table.columnsSpecBuf = b.Bytes()
+	data := make(map[string]any)
+	data[tableListKeyName] = table.name
+	data[tableListColumnName] = table.columnsSpecBuf
+	err = db.tableList.Insert(data)
+	if err != nil {
+		return nil, err
+	}
+	db.tables = append(db.tables, table)
+	sort.Slice(db.tables, func(i, j int) bool {
+		key1 := stringkey.StringKey(db.tables[i].name)
+		key2 := stringkey.StringKey(db.tables[j].name)
+		return key1.CompareTo(key2) < 0
+	})
 	return table, nil
 }
 
@@ -81,6 +144,16 @@ func (db *UnkoDB) loadTableSpec(tableName string, columnsSpecBuf []byte) (err er
 	r := newByteDecoder(bytes.NewReader(columnsSpecBuf), fileByteOrder)
 	var rootAddress int32
 	err = r.Int32(&rootAddress)
+	if err != nil {
+		return
+	}
+	var nodeCount int32
+	err = r.Int32(&nodeCount)
+	if err != nil {
+		return
+	}
+	var counter uint32
+	err = r.Uint32(&counter)
 	if err != nil {
 		return
 	}
@@ -112,6 +185,8 @@ func (db *UnkoDB) loadTableSpec(tableName string, columnsSpecBuf []byte) (err er
 		name:           tableName,
 		key:            key,
 		columns:        columns,
+		nodeCount:      int(nodeCount),
+		counter:        uint(counter),
 		rootAddress:    int(rootAddress),
 		columnsSpecBuf: columnsSpecBuf,
 	}
@@ -129,7 +204,7 @@ func (db *UnkoDB) setRootAddress(addr int) (err error) {
 	return
 }
 
-func (db *UnkoDB) loadTableListTable() error {
+func (db *UnkoDB) initTableListTable() error {
 	db.tableList = &Table{
 		db:           db,
 		name:         tableListTableName,

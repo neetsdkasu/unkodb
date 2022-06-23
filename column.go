@@ -126,6 +126,67 @@ func (*intColumn[T]) toKey(value any) (_ avltree.Key) {
 	}
 }
 
+type counterColumn struct {
+	name string
+}
+
+func (c *counterColumn) Name() string {
+	return c.name
+}
+
+func (*counterColumn) Type() ColumnType {
+	return Counter
+}
+
+func (*counterColumn) IsValidValueType(value any) (ok bool) {
+	_, ok = value.(uint32)
+	return
+}
+
+func (*counterColumn) MinimumDataByteSize() uint64 {
+	return uint64(unsafe.Sizeof(uint32(0)))
+}
+
+func (*counterColumn) MaximumDataByteSize() uint64 {
+	return uint64(unsafe.Sizeof(uint32(0)))
+}
+
+func (*counterColumn) byteSizeHint(value any) (_ uint64) {
+	if _, ok := value.(uint32); ok {
+		return uint64(unsafe.Sizeof(uint32(0)))
+	} else {
+		bug.Panicf("counterColumn.byteSizeHint: value type is not uint32 (value: %T %#v)", value, value)
+		return
+	}
+}
+
+func (*counterColumn) read(decoder *byteDecoder) (value any, err error) {
+	var counting uint32
+	err = decoder.Uint32(&counting)
+	if err != nil {
+		return nil, err
+	}
+	return counting, nil
+}
+
+func (*counterColumn) write(encoder *byteEncoder, value any) (err error) {
+	if v, ok := value.(uint32); ok {
+		err = encoder.Uint32(uint32(v))
+	} else {
+		bug.Panicf("counterColumn.write: value type is not uint32 (value: %T %#v)", value, value)
+	}
+	return
+}
+
+func (*counterColumn) toKey(value any) (_ avltree.Key) {
+	if v, ok := value.(uint32); ok {
+		return intKey[uint32](v)
+	} else {
+		bug.Panicf("counterColumn.toKey: value type is not uint32 (value: %T %#v)", value, value)
+		return
+	}
+}
+
 type shortStringColumn struct {
 	name string
 }

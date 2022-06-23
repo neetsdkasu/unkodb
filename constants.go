@@ -3,6 +3,8 @@
 
 package unkodb
 
+const debugMode = true
+
 const (
 	invalidColumnType ColumnType = iota
 	Counter
@@ -36,16 +38,16 @@ const (
 
 const (
 	shortStringMinimumDataByteSize = 0
-	shortStringMaximumDataByteSize = (1 << 8) - 1
-	shortStringByteSizeDataLength  = 1
+	shortStringMaximumDataByteSize = (1 << 8) - 1 // 255
+	shortStringByteSizeDataLength  = 1            // == unsafe.Sizeof(uint8(0))
 
 	shortBytesMinimumDataByteSize = 0
-	shortBytesMaximumDataByteSize = (1 << 8) - 1
-	shortBytesByteSizeDataLength  = 1
+	shortBytesMaximumDataByteSize = (1 << 8) - 1 // 255
+	shortBytesByteSizeDataLength  = 1            // == unsafe.Sizeof(uint8(0))
 
 	longBytesMinimumDataByteSize = 0
 	longBytesMaximumDataByteSize = (1 << 16) - 1
-	longBytesByteSizeDataLength  = 2
+	longBytesByteSizeDataLength  = 2 // == unsafe.Sizeof(uint16(0))
 )
 
 const (
@@ -61,14 +63,14 @@ const (
 const (
 	fileFormatVersion = 1
 
-	addressByteSize = 4
+	addressByteSize = 4 // == unsafe.Sizeof(int32(0))
 	nullAddress     = 0
 
 	fileHeaderSignaturePosition = 0
 	fileHeaderSignatureLength   = 16
 
 	fileHeaderFileFormatVersionPosition = fileHeaderSignaturePosition + fileHeaderSignatureLength
-	fileHeaderFileFormatVersionLength   = 2
+	fileHeaderFileFormatVersionLength   = 2 // == unsafe.Sizeof(uint16(0))
 
 	fileHeaderNextNewSegmentAddressPosition = fileHeaderFileFormatVersionPosition + fileHeaderFileFormatVersionLength
 	fileHeaderNextNewSegmentAddressLength   = addressByteSize
@@ -98,7 +100,7 @@ const (
 	idleSegmentTreeNodeRightChildLength   = addressByteSize
 
 	idleSegmentTreeNodeHeightPosition = idleSegmentTreeNodeRightChildPosition + idleSegmentTreeNodeRightChildLength
-	idleSegmentTreeNodeHeightLength   = 1
+	idleSegmentTreeNodeHeightLength   = 1 // == unsafe.Sizeof(uint8(0))
 )
 
 // アホみたい
@@ -110,7 +112,20 @@ const (
 	tableTreeNodeRightChildLength   = addressByteSize
 
 	tableTreeNodeHeightPosition = tableTreeNodeRightChildPosition + tableTreeNodeRightChildLength
-	tableTreeNodeHeightLength   = 1
+	tableTreeNodeHeightLength   = 1 // == unsafe.Sizeof(uint8(0))
 
 	tableTreeNodeHeaderByteSize = tableTreeNodeHeightPosition + tableTreeNodeHeightLength
+)
+
+const (
+	tableSpecRootAddressPosition = 0
+	tableSpecRootAddressLength   = addressByteSize
+
+	tableSpecNodeCountPosition = tableSpecRootAddressPosition + tableSpecRootAddressLength
+	tableSpecNodeCountLength   = 4 // == unsafe.Sizeof(int32(0))
+
+	tableSpecCounterPosition = tableSpecNodeCountPosition + tableSpecNodeCountLength
+	tableSpecCounterLength   = 4 // == unsafe.Sizeof(uint32(0))
+
+	tableSpecHeaderByteSize = tableSpecCounterPosition + tableSpecCounterLength
 )

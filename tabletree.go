@@ -132,6 +132,7 @@ func (node *tableTreeNode) writeValue(record tableTreeValue) {
 			bug.Panicf("tableTreeNode.writeValue: column %#v %v", col, err)
 		}
 	}
+	node.updated = true
 }
 
 func (tree *tableTree) calcSegmentByteSize(record tableTreeValue) uint64 {
@@ -231,7 +232,6 @@ func (tree *tableTree) Root() avltree.Node {
 
 // github.com/neetsdkasu/avltree.RealTree.NewNode(...) の実装
 func (tree *tableTree) NewNode(leftChild, rightChild avltree.Node, height int, key avltree.Key, value any) avltree.RealNode {
-	// leftChildAddress + rightChildAddress + height[1 byte]
 	record, ok := value.(tableTreeValue)
 	if !ok {
 		bug.Panicf("tableTree.NewNode: invalid value %#v", value)
@@ -279,7 +279,22 @@ func (node *tableTreeNode) Key() avltree.Key {
 
 // github.com/neetsdkasu/avltree.RealNode.Value() の実装
 func (node *tableTreeNode) Value() any {
-	panic("TODO")
+	var err error
+	table := node.tree.table
+	buf := node.seg.Buffer()[tableTreeNodeHeaderByteSize:]
+	r := newByteDecoder(bytes.NewReader(buf), fileByteOrder)
+	record := make(tableTreeValue)
+	record[table.key.Name()], err = table.key.read(r)
+	if err != nil {
+		panic(err)
+	}
+	for _, col := range table.columns {
+		record[col.Name()], err = col.read(r)
+		if err != nil {
+			panic(err)
+		}
+	}
+	return record
 }
 
 // github.com/neetsdkasu/avltree.RealNode.LeftChild() の実装
@@ -294,7 +309,25 @@ func (node *tableTreeNode) RightChild() avltree.Node {
 
 // github.com/neetsdkasu/avltree.RealNode.SetValue(...) の実装
 func (node *tableTreeNode) SetValue(newValue any) (_ avltree.Node) {
-	panic("TODO")
+	record, ok := newValue.(tableTreeValue)
+	if !ok {
+		bug.Panicf("tableTreeNode.SetValue: invalid value %#v", newValue)
+	}
+	segmentByteSize := node.tree.calcSegmentByteSize(record)
+	if node.seg.BufferSize() < int(segmentByteSize) {
+		seg, err := node.tree.segManager.EmptySegment(segmentByteSize)
+		if err != nil {
+			panic(err)
+		}
+		node.seg, seg = seg, node.seg
+		err = node.tree.segManager.ReleaseSegment(seg)
+		if err != nil {
+			panic(err)
+		}
+	}
+	node.writeValue(record)
+	node.updated = true
+	return node
 }
 
 // github.com/neetsdkasu/avltree.RealNode.Height() の実装

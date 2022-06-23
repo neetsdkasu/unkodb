@@ -117,6 +117,14 @@ func (decoder *byteDecoder) Int32(dst *int32) error {
 	return decoder.Value(dst)
 }
 
+func (encoder *byteEncoder) Uint32(src uint32) error {
+	return encoder.Value(src)
+}
+
+func (decoder *byteDecoder) Uint32(dst *uint32) error {
+	return decoder.Value(dst)
+}
+
 func (encoder *byteEncoder) WriteShortString(s string) (err error) {
 	buf := []byte(s)
 	if len(buf) > shortStringMaximumDataByteSize {

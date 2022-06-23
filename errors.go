@@ -8,6 +8,8 @@ import "errors"
 var (
 	WrongFileFormat = errors.New("WrongFileFormat")
 	TooLargeData    = errors.New("TooLargeData")
+
+	NotFoundData = errors.New("NotFoundData")
 )
 
 var (

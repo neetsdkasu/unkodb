@@ -26,7 +26,7 @@ func TestUnkoDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = tc.Int8Key("id")
+	err = tc.CounterKey("id")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +36,7 @@ func TestUnkoDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = tc.Int8Column("price")
+	err = tc.Int32Column("price")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +47,27 @@ func TestUnkoDB(t *testing.T) {
 	}
 
 	// TODO write test
-	_ = table
+	data := make(map[string]any)
+	data["id"] = uint32(0)
+	data["name"] = "apple"
+	data["price"] = int32(500)
+	err = table.Insert(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	recs := []*Record{}
+	err = table.IterateAll(func(r *Record) (_ bool) {
+		recs = append(recs, r)
+		return
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(recs) != 1 {
+		t.Fatalf("recs length is not 1 (%#v)", recs)
+	}
 
 	t.Skip("TEST IS NOT IMPLEMENTED YET")
 }

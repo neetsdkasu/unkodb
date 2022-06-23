@@ -34,6 +34,8 @@ type Table struct {
 	name           string
 	key            keyColumn
 	columns        []Column
+	nodeCount      int
+	counter        uint
 	columnsSpecBuf []byte
 	rootAddress    int
 	rootAccessor   rootAddressAccessor
@@ -59,9 +61,25 @@ func (table *Table) getRootAddress() (addr int, err error) {
 }
 func (table *Table) setRootAddress(addr int) (err error) {
 	table.rootAddress = addr
-	buf := table.columnsSpecBuf[:addressByteSize]
+	return
+}
+
+func (table *Table) flush() (err error) {
+	if table.columnsSpecBuf == nil {
+		// TODO たぶん tableList （バグチェックのために確認する処理あったほうがいいかも）
+		return
+	}
+	buf := table.columnsSpecBuf[:tableSpecHeaderByteSize]
 	w := newByteEncoder(newByteSliceWriter(buf), fileByteOrder)
-	err = w.Int32(int32(addr))
+	err = w.Int32(int32(table.rootAddress))
+	if err != nil {
+		return
+	}
+	err = w.Int32(int32(table.nodeCount))
+	if err != nil {
+		return
+	}
+	err = w.Uint32(uint32(table.counter))
 	if err != nil {
 		return
 	}
@@ -72,9 +90,12 @@ func (table *Table) setRootAddress(addr int) (err error) {
 	return
 }
 
-func (table *Table) CheckData(data map[string]any) error {
+func (table *Table) CheckData(data map[string]any) (err error) {
+	if !debugMode {
+		defer catchError(&err)
+	}
 	if data == nil {
-		// TODO error
+		return NotFoundData
 	}
 	if keyValue, ok := data[table.key.Name()]; !ok {
 		// TODO error
@@ -96,10 +117,15 @@ func (table *Table) getKey(data map[string]any) avltree.Key {
 }
 
 func (table *Table) Insert(data map[string]any) (err error) {
-	defer catchError(&err)
+	if !debugMode {
+		defer catchError(&err)
+	}
 	err = table.CheckData(data)
 	if err != nil {
 		return
+	}
+	if table.key.Type() == Counter {
+		data[table.key.Name()] = uint32(table.counter) + 1
 	}
 	var tree *tableTree
 	tree, err = newTableTree(table)
@@ -109,14 +135,26 @@ func (table *Table) Insert(data map[string]any) (err error) {
 	key := table.getKey(data)
 	_, ok := avltree.Insert(tree, false, key, tableTreeValue(data))
 	if !ok {
-		// TODO duplicate key error
+
+		err = KeyAlreadyExists // duplicate key error
+		return
 	}
 	err = tree.flush()
+	if err != nil {
+		return
+	}
+	if table.key.Type() == Counter {
+		table.nodeCount += 1
+		table.counter += 1
+	}
+	err = table.flush()
 	return
 }
 
 func (table *Table) Replace(data map[string]any) (err error) {
-	defer catchError(&err)
+	if !debugMode {
+		defer catchError(&err)
+	}
 	err = table.CheckData(data)
 	if err != nil {
 		return
@@ -136,7 +174,9 @@ func (table *Table) Replace(data map[string]any) (err error) {
 }
 
 func (table *Table) IterateAll(callback func(record *Record) (breakIteration bool)) (err error) {
-	defer catchError(&err)
+	if !debugMode {
+		defer catchError(&err)
+	}
 	tree, err := newTableTree(table)
 	if err != nil {
 		return err
