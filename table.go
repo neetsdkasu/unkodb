@@ -21,6 +21,11 @@ func (r *Record) Key() (value any) {
 	return
 }
 
+func (r *Record) Get(name string) (value any, ok bool) {
+	value, ok = r.data[name]
+	return
+}
+
 func (r *Record) Column(name string) any {
 	if value, ok := r.data[name]; ok {
 		return value
@@ -98,9 +103,9 @@ func (table *Table) CheckData(data map[string]any) (err error) {
 		return NotFoundData
 	}
 	if keyValue, ok := data[table.key.Name()]; !ok {
-		// TODO error
+		return NotFoundKeyName{table.key}
 	} else if !table.key.IsValidValueType(keyValue) {
-		// TODO error
+		return UnmatchKeyValueType{table.key}
 	}
 	for _, col := range table.columns {
 		if colValue, ok := data[col.Name()]; !ok {

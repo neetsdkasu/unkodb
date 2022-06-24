@@ -212,6 +212,7 @@ func (db *UnkoDB) initTableListTable() error {
 		columns:      []Column{&longBytesColumn{name: tableListColumnName}},
 		rootAccessor: db,
 	}
+	// TODO データが壊れててテーブル名が重複してたりカラム情報が壊れてたりの対処は？
 	err := db.tableList.IterateAll(func(rec *Record) (_ bool) {
 		tableName := rec.Key().(string)
 		columnsSpecBuf := rec.Column(tableListColumnName).([]byte)

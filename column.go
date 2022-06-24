@@ -4,6 +4,7 @@
 package unkodb
 
 import (
+	"fmt"
 	"unsafe"
 
 	"github.com/neetsdkasu/avltree"
@@ -11,6 +12,57 @@ import (
 )
 
 type ColumnType int
+
+func columnTypeName(col Column) (_ string) {
+	switch col.Type() {
+	default:
+		bug.Panicf("Undefined Type %#v", col)
+	case Counter:
+		return "Counter"
+	case Int8:
+		return "Int8"
+	case Uint8:
+		return "Uint8"
+	case Int16:
+		return "Int16"
+	case Uint16:
+		return "Uint16"
+	case Int32:
+		return "Int32"
+	case Uint32:
+		return "Uint32"
+	case Int64:
+		return "Int64"
+	case Uint64:
+		return "Uint64"
+	case Float32:
+		return "Float32"
+	case Float64:
+		return "Float64"
+	case ShortString:
+		return "ShortString"
+	case FixedSizeShortString:
+		size := col.(*fixedSizeShortStringColumn).size
+		return fmt.Sprint("FixedSizeShortString(", size, ")")
+	case LongString:
+		return "LongString"
+	case FixedSizeLongString:
+		bug.Panic("TODO")
+	case Text:
+		return "Text"
+	case ShortBytes:
+		return "ShortBytes"
+	case FixedSizeShortBytes:
+		bug.Panic("TODO")
+	case LongBytes:
+		return "LongBytes"
+	case FixedSizeLongBytes:
+		bug.Panic("TODO")
+	case Blob:
+		return "Blob"
+	}
+	return
+}
 
 type Column interface {
 	// カラム名
@@ -264,6 +316,160 @@ func (*shortStringColumn) toKey(value any) (_ avltree.Key) {
 		bug.Panicf("shortStringColumn.toKey: value type is not string (value: %T %#v)", value, value)
 		return
 	}
+}
+
+type fixedSizeShortStringColumn struct {
+	name string
+	size uint8
+}
+
+func (c *fixedSizeShortStringColumn) Name() string {
+	return c.name
+}
+
+func (*fixedSizeShortStringColumn) Type() ColumnType {
+	return FixedSizeShortString
+}
+
+func (c *fixedSizeShortStringColumn) IsValidValueType(value any) bool {
+	if s, ok := value.(string); ok {
+		b := []byte(s)
+		return len(b) <= int(c.size)
+	} else {
+		return false
+	}
+}
+
+func (c *fixedSizeShortStringColumn) MinimumDataByteSize() uint64 {
+	return uint64(c.size)
+}
+
+func (c *fixedSizeShortStringColumn) MaximumDataByteSize() uint64 {
+	return uint64(c.size)
+}
+
+func (c *fixedSizeShortStringColumn) byteSizeHint(value any) (_ uint64) {
+	if _, ok := value.(string); ok {
+		return uint64(c.size)
+	} else {
+		bug.Panicf("fixedSizeShortStringColumn.byteSizeHint: value type is not string (value: %T %#v)", value, value)
+		return
+	}
+}
+
+func (c *fixedSizeShortStringColumn) read(decoder *byteDecoder) (value any, err error) {
+	buf := make([]byte, c.size)
+	err = decoder.RawBytes(buf)
+	if err != nil {
+		return nil, err
+	}
+	s := string(buf)
+	return s, nil
+}
+
+func (c *fixedSizeShortStringColumn) write(encoder *byteEncoder, value any) (err error) {
+	if s, ok := value.(string); ok {
+		buf := []byte(s)
+		if len(buf) > int(c.size) {
+			buf = buf[:c.size]
+		} else {
+			for len(buf) < int(c.size) {
+				buf = append(buf, ' ')
+			}
+		}
+		err = encoder.RawBytes(buf)
+	} else {
+		bug.Panicf("fixedSizeShortStringColumn.write: value type is not string (value: %T %#v)", value, value)
+	}
+	return
+}
+
+func (c *fixedSizeShortStringColumn) toKey(value any) (_ avltree.Key) {
+	if s, ok := value.(string); ok {
+		buf := []byte(s)
+		if len(buf) > int(c.size) {
+			s = string(buf[:c.size])
+		} else if len(buf) < int(c.size) {
+			for len(buf) < int(c.size) {
+				buf = append(buf, ' ')
+			}
+			s = string(buf)
+		}
+		return stringkey.StringKey(s)
+	} else {
+		bug.Panicf("fixedSizeShortStringColumn.toKey: value type is not string (value: %T %#v)", value, value)
+		return
+	}
+}
+
+type longStringColumn struct {
+	name string
+}
+
+func (c *longStringColumn) Name() string {
+	return c.name
+}
+
+func (*longStringColumn) Type() ColumnType {
+	return LongString
+}
+
+func (*longStringColumn) IsValidValueType(value any) bool {
+	if s, ok := value.(string); ok {
+		b := []byte(s)
+		return len(b) <= longStringMaximumDataByteSize
+	} else {
+		return false
+	}
+}
+
+func (*longStringColumn) MinimumDataByteSize() uint64 {
+	return longStringMinimumDataByteSize
+}
+
+func (*longStringColumn) MaximumDataByteSize() uint64 {
+	return longStringMaximumDataByteSize
+}
+
+func (*longStringColumn) byteSizeHint(value any) (_ uint64) {
+	if s, ok := value.(string); ok {
+		return uint64(minValue(longStringMaximumDataByteSize, len([]byte(s))) + shortStringByteSizeDataLength)
+	} else {
+		bug.Panicf("longStringColumn.byteSizeHint: value type is not string (value: %T %#v)", value, value)
+		return
+	}
+}
+
+func (*longStringColumn) read(decoder *byteDecoder) (value any, err error) {
+	var size uint16
+	err = decoder.Uint16(&size)
+	if err != nil {
+		return nil, err
+	}
+	buf := make([]byte, size)
+	err = decoder.RawBytes(buf)
+	if err != nil {
+		return nil, err
+	}
+	s := string(buf)
+	return s, nil
+}
+
+func (*longStringColumn) write(encoder *byteEncoder, value any) (err error) {
+	if s, ok := value.(string); ok {
+		buf := []byte(s)
+		if len(buf) > longStringMaximumDataByteSize {
+			buf = buf[:longStringMaximumDataByteSize]
+		}
+		err = encoder.Uint16(uint16(len(buf)))
+		if err != nil {
+			return
+		}
+		err = encoder.RawBytes(buf)
+	} else {
+		bug.Panicf("longStringColumn.write: value type is not string (value: %T %#v)", value, value)
+	}
+	return
 }
 
 type shortBytesColumn struct {

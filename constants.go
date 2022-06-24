@@ -31,15 +31,19 @@ const (
 )
 
 const (
-	MaximumTableNameByteSize  = 255
-	MaximumColumnNameByteSize = 255
-	MaximumColumnCount        = 100
+	MaximumTableNameByteSize     = 255
+	MaximumColumnNameByteSize    = 255
+	MaximumColumnCountWithoutKey = 100
 )
 
 const (
 	shortStringMinimumDataByteSize = 0
 	shortStringMaximumDataByteSize = (1 << 8) - 1 // 255
 	shortStringByteSizeDataLength  = 1            // == unsafe.Sizeof(uint8(0))
+
+	longStringMinimumDataByteSize = 0
+	longStringMaximumDataByteSize = (1 << 16) - 1
+	longStringByteSizeDataLength  = 1 // == unsafe.Sizeof(uint8(0))
 
 	shortBytesMinimumDataByteSize = 0
 	shortBytesMaximumDataByteSize = (1 << 8) - 1 // 255

@@ -60,7 +60,10 @@ func (tc *TableCreator) setKey(column keyColumn) error {
 	if tc.key != nil {
 		return KeyAlreadyExists
 	}
-	// TODO カラム名の文字構成チェック（長さゼロの文字列ダメとか？）
+	// TODO カラム名の文字構成チェックいる？？
+	if len([]byte(column.Name())) == 0 {
+		return NeedColumnName
+	}
 	if len([]byte(column.Name())) > MaximumColumnNameByteSize {
 		return ColumnNameIsTooLong
 	}
@@ -76,7 +79,13 @@ func (tc *TableCreator) addColumn(column Column) error {
 	if tc.created {
 		return InvalidOperation
 	}
-	// TODO カラム名の文字構成チェック（長さゼロの文字列ダメとか？）
+	if len(tc.columns) >= MaximumColumnCountWithoutKey {
+		return ColumnCountIsFull
+	}
+	// TODO カラム名の文字構成チェックいる？？
+	if len([]byte(column.Name())) == 0 {
+		return NeedColumnName
+	}
 	if len([]byte(column.Name())) > MaximumColumnNameByteSize {
 		return ColumnNameIsTooLong
 	}
@@ -198,6 +207,32 @@ func (tc *TableCreator) ShortStringKey(newColumnName string) error {
 
 func (tc *TableCreator) ShortStringColumn(newColumnName string) error {
 	return tc.addColumn(&shortStringColumn{
+		name: newColumnName,
+	})
+}
+
+func (tc *TableCreator) FixedSizeShortStringKey(newColumnName string, size uint8) error {
+	if size == 0 {
+		return SizeMustBePositiveValue
+	}
+	return tc.setKey(&fixedSizeShortStringColumn{
+		name: newColumnName,
+		size: size,
+	})
+}
+
+func (tc *TableCreator) FixedSizeShortStringColumn(newColumnName string, size uint8) error {
+	if size == 0 {
+		return SizeMustBePositiveValue
+	}
+	return tc.addColumn(&fixedSizeShortStringColumn{
+		name: newColumnName,
+		size: size,
+	})
+}
+
+func (tc *TableCreator) LongStringColumn(newColumnName string) error {
+	return tc.addColumn(&longStringColumn{
 		name: newColumnName,
 	})
 }

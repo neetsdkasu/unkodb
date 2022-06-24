@@ -163,12 +163,13 @@ func (encoder *byteEncoder) WriteColumnSpec(col Column) (err error) {
 	if err != nil {
 		return
 	}
-	// switch c := col.(type) {
-	// case *fixledSizeShortStringColumn:
-	// case *fixledSizeLongStringColumn:
-	// case *fixledSizeShortBytesColumn:
-	// case *fixledSizeLongBytesColumn:
-	// }
+	switch c := col.(type) {
+	case *fixedSizeShortStringColumn:
+		err = encoder.Uint8(c.size)
+		// case *fixedSizeLongStringColumn:
+		// case *fixedSizeShortBytesColumn:
+		// case *fixedSizeLongBytesColumn:
+	}
 	return
 }
 
@@ -187,7 +188,7 @@ func (decoder *byteDecoder) ReadColumnSpec() (col Column, err error) {
 	default:
 		err = WrongFileFormat
 	case Counter:
-		bug.Panic("TODO")
+		col = &counterColumn{name: name}
 	case Int8:
 		col = &intColumn[int8]{name: name}
 	case Uint8:
@@ -211,9 +212,18 @@ func (decoder *byteDecoder) ReadColumnSpec() (col Column, err error) {
 	case ShortString:
 		col = &shortStringColumn{name: name}
 	case FixedSizeShortString:
-		bug.Panic("TODO")
+		// TODO サイズの値は正の整数が必要だけど0を読み込んだ場合の対処は？
+		var size uint8
+		err = decoder.Uint8(&size)
+		if err != nil {
+			return
+		}
+		col = &fixedSizeShortStringColumn{
+			name: name,
+			size: size,
+		}
 	case LongString:
-		bug.Panic("TODO")
+		col = &longStringColumn{name: name}
 	case FixedSizeLongString:
 		bug.Panic("TODO")
 	case Text:
