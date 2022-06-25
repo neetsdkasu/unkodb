@@ -242,6 +242,68 @@ func (*counterColumn) toKey(value any) (_ avltree.Key) {
 	}
 }
 
+// 構造的にint系と分ける意味は･･･toKeyがあるか、ないか、か？
+type floatColumn[T float32 | float64] struct {
+	name string
+}
+
+func (c *floatColumn[T]) Name() string {
+	return c.name
+}
+
+func (*floatColumn[T]) Type() (_ ColumnType) {
+	// アホっぽい
+	switch any(T(0)).(type) {
+	case float32:
+		return Float32
+	case float64:
+		return Float64
+	default:
+		bug.Panic("floatColumn.Type: Unreachable")
+		return
+	}
+}
+
+func (*floatColumn[T]) IsValidValueType(value any) (ok bool) {
+	_, ok = value.(T)
+	return
+}
+
+func (*floatColumn[T]) MinimumDataByteSize() uint64 {
+	return uint64(unsafe.Sizeof(T(0)))
+}
+
+func (*floatColumn[T]) MaximumDataByteSize() uint64 {
+	return uint64(unsafe.Sizeof(T(0)))
+}
+
+func (*floatColumn[T]) byteSizeHint(value any) (_ uint64) {
+	if _, ok := value.(T); ok {
+		return uint64(unsafe.Sizeof(T(0)))
+	} else {
+		bug.Panicf("floatColumn.byteSizeHint: value type is not %T (value: %T %#v)", T(0), value, value)
+		return
+	}
+}
+
+func (*floatColumn[T]) read(decoder *byteDecoder) (value any, err error) {
+	var v T
+	err = decoder.Value(&v)
+	if err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+func (*floatColumn[T]) write(encoder *byteEncoder, value any) (err error) {
+	if _, ok := value.(T); ok {
+		err = encoder.Value(value)
+	} else {
+		bug.Panicf("floatColumn.write: value type is not %T (value: %T %#v)", T(0), value, value)
+	}
+	return
+}
+
 type shortStringColumn struct {
 	name string
 }
@@ -436,7 +498,7 @@ func (*longStringColumn) MaximumDataByteSize() uint64 {
 
 func (*longStringColumn) byteSizeHint(value any) (_ uint64) {
 	if s, ok := value.(string); ok {
-		return uint64(minValue(longStringMaximumDataByteSize, len([]byte(s))) + shortStringByteSizeDataLength)
+		return uint64(minValue(longStringMaximumDataByteSize, len([]byte(s))) + longStringByteSizeDataLength)
 	} else {
 		bug.Panicf("longStringColumn.byteSizeHint: value type is not string (value: %T %#v)", value, value)
 		return
@@ -537,6 +599,76 @@ func (c *fixedSizeLongStringColumn) write(encoder *byteEncoder, value any) (err 
 		err = encoder.RawBytes(buf)
 	} else {
 		bug.Panicf("fixedSizeLongStringColumn.write: value type is not string (value: %T %#v)", value, value)
+	}
+	return
+}
+
+type textColumn struct {
+	name string
+}
+
+func (c *textColumn) Name() string {
+	return c.name
+}
+
+func (*textColumn) Type() ColumnType {
+	return Text
+}
+
+func (*textColumn) IsValidValueType(value any) bool {
+	if s, ok := value.(string); ok {
+		b := []byte(s)
+		return len(b) <= textMaximumDataByteSize
+	} else {
+		return false
+	}
+}
+
+func (*textColumn) MinimumDataByteSize() uint64 {
+	return textMinimumDataByteSize
+}
+
+func (*textColumn) MaximumDataByteSize() uint64 {
+	return textMaximumDataByteSize
+}
+
+func (*textColumn) byteSizeHint(value any) (_ uint64) {
+	if s, ok := value.(string); ok {
+		return uint64(minValue(textMaximumDataByteSize, len([]byte(s))) + textByteSizeDataLength)
+	} else {
+		bug.Panicf("textColumn.byteSizeHint: value type is not string (value: %T %#v)", value, value)
+		return
+	}
+}
+
+func (*textColumn) read(decoder *byteDecoder) (value any, err error) {
+	var size uint32
+	err = decoder.Uint32(&size)
+	if err != nil {
+		return nil, err
+	}
+	buf := make([]byte, size)
+	err = decoder.RawBytes(buf)
+	if err != nil {
+		return nil, err
+	}
+	s := string(buf)
+	return s, nil
+}
+
+func (*textColumn) write(encoder *byteEncoder, value any) (err error) {
+	if s, ok := value.(string); ok {
+		buf := []byte(s)
+		if len(buf) > textMaximumDataByteSize {
+			buf = buf[:textMaximumDataByteSize]
+		}
+		err = encoder.Uint32(uint32(len(buf)))
+		if err != nil {
+			return
+		}
+		err = encoder.RawBytes(buf)
+	} else {
+		bug.Panicf("textColumn.write: value type is not string (value: %T %#v)", value, value)
 	}
 	return
 }
@@ -807,6 +939,73 @@ func (c *fixedSizeLongBytesColumn) write(encoder *byteEncoder, value any) (err e
 		err = encoder.RawBytes(tmp)
 	} else {
 		bug.Panicf("fixedSizeLongBytesColumn.write: value type is not []byte (value: %T %#v)", value, value)
+	}
+	return
+}
+
+type blobColumn struct {
+	name string
+}
+
+func (c *blobColumn) Name() string {
+	return c.name
+}
+
+func (*blobColumn) Type() ColumnType {
+	return Blob
+}
+
+func (*blobColumn) IsValidValueType(value any) bool {
+	if b, ok := value.([]byte); ok {
+		return len(b) <= blobMaximumDataByteSize
+	} else {
+		return false
+	}
+}
+
+func (*blobColumn) MinimumDataByteSize() uint64 {
+	return blobMinimumDataByteSize
+}
+
+func (*blobColumn) MaximumDataByteSize() uint64 {
+	return blobMaximumDataByteSize
+}
+
+func (*blobColumn) byteSizeHint(value any) (_ uint64) {
+	if s, ok := value.([]byte); ok {
+		return uint64(minValue(blobMaximumDataByteSize, len(s)) + blobByteSizeDataLength)
+	} else {
+		bug.Panicf("blobColumn.byteSizeHint: value type is not []byte (value: %T %#v)", value, value)
+		return
+	}
+}
+
+func (*blobColumn) read(decoder *byteDecoder) (value any, err error) {
+	var size uint32
+	err = decoder.Uint32(&size)
+	if err != nil {
+		return nil, err
+	}
+	buf := make([]byte, size)
+	err = decoder.RawBytes(buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
+
+func (*blobColumn) write(encoder *byteEncoder, value any) (err error) {
+	if buf, ok := value.([]byte); ok {
+		if len(buf) > blobMaximumDataByteSize {
+			buf = buf[:blobMaximumDataByteSize]
+		}
+		err = encoder.Uint32(uint32(len(buf)))
+		if err != nil {
+			return
+		}
+		err = encoder.RawBytes(buf)
+	} else {
+		bug.Panicf("blobColumn.write: value type is not []byte (value: %T %#v)", value, value)
 	}
 	return
 }

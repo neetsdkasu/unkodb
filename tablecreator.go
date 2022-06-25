@@ -199,6 +199,18 @@ func (tc *TableCreator) CounterKey(newColumnName string) error {
 	})
 }
 
+func (tc *TableCreator) Float32Column(newColumnName string) error {
+	return tc.addColumn(&floatColumn[float32]{
+		name: newColumnName,
+	})
+}
+
+func (tc *TableCreator) Float64Column(newColumnName string) error {
+	return tc.addColumn(&floatColumn[float64]{
+		name: newColumnName,
+	})
+}
+
 func (tc *TableCreator) ShortStringKey(newColumnName string) error {
 	return tc.setKey(&shortStringColumn{
 		name: newColumnName,
@@ -247,6 +259,12 @@ func (tc *TableCreator) FixedSizeLongStringColumn(newColumnName string, size uin
 	})
 }
 
+func (tc *TableCreator) TextColumn(newColumnName string) error {
+	return tc.addColumn(&textColumn{
+		name: newColumnName,
+	})
+}
+
 func (tc *TableCreator) ShortBytesKey(newColumnName string) error {
 	return tc.setKey(&shortBytesColumn{
 		name: newColumnName,
@@ -280,7 +298,7 @@ func (tc *TableCreator) FixedSizeShortBytesColumn(newColumnName string, size uin
 }
 
 func (tc *TableCreator) LongBytesColumn(newColumnName string) error {
-	return tc.addColumn(&shortBytesColumn{
+	return tc.addColumn(&longBytesColumn{
 		name: newColumnName,
 	})
 }
@@ -292,5 +310,11 @@ func (tc *TableCreator) FixedSizeLongBytesColumn(newColumnName string, size uint
 	return tc.addColumn(&fixedSizeLongBytesColumn{
 		name: newColumnName,
 		size: size,
+	})
+}
+
+func (tc *TableCreator) BlobColumn(newColumnName string) error {
+	return tc.addColumn(&blobColumn{
+		name: newColumnName,
 	})
 }

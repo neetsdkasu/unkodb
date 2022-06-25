@@ -173,7 +173,6 @@ func (encoder *byteEncoder) WriteColumnSpec(col Column) (err error) {
 	case *fixedSizeLongBytesColumn:
 		err = encoder.Uint16(c.size)
 	}
-
 	return
 }
 
@@ -210,9 +209,9 @@ func (decoder *byteDecoder) ReadColumnSpec() (col Column, err error) {
 	case Uint64:
 		col = &intColumn[uint64]{name: name}
 	case Float32:
-		bug.Panic("TODO")
+		col = &floatColumn[float32]{name: name}
 	case Float64:
-		bug.Panic("TODO")
+		col = &floatColumn[float64]{name: name}
 	case ShortString:
 		col = &shortStringColumn{name: name}
 	case FixedSizeShortString:
@@ -240,7 +239,7 @@ func (decoder *byteDecoder) ReadColumnSpec() (col Column, err error) {
 			size: size,
 		}
 	case Text:
-		bug.Panic("TODO")
+		col = &textColumn{name: name}
 	case ShortBytes:
 		col = &shortBytesColumn{name: name}
 	case FixedSizeShortBytes:
@@ -268,7 +267,7 @@ func (decoder *byteDecoder) ReadColumnSpec() (col Column, err error) {
 			size: size,
 		}
 	case Blob:
-		bug.Panic("TODO")
+		col = &blobColumn{name: name}
 	}
 	return
 }

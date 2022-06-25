@@ -43,7 +43,11 @@ const (
 
 	longStringMinimumDataByteSize = 0
 	longStringMaximumDataByteSize = (1 << 16) - 1
-	longStringByteSizeDataLength  = 1 // == unsafe.Sizeof(uint8(0))
+	longStringByteSizeDataLength  = 2 // == unsafe.Sizeof(uint16(0))
+
+	textMinimumDataByteSize = 0
+	textMaximumDataByteSize = (1 << 30) - 1
+	textByteSizeDataLength  = 4 // == unsafe.Sizeof(uint32(0))
 
 	shortBytesMinimumDataByteSize = 0
 	shortBytesMaximumDataByteSize = (1 << 8) - 1 // 255
@@ -52,6 +56,10 @@ const (
 	longBytesMinimumDataByteSize = 0
 	longBytesMaximumDataByteSize = (1 << 16) - 1
 	longBytesByteSizeDataLength  = 2 // == unsafe.Sizeof(uint16(0))
+
+	blobMinimumDataByteSize = 0
+	blobMaximumDataByteSize = (1 << 30) - 1
+	blobByteSizeDataLength  = 4 // == unsafe.Sizeof(uint32(0))
 )
 
 const (
