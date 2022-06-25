@@ -20,7 +20,8 @@ var (
 	WrongFileFormat = errors.New("WrongFileFormat")
 	TooLargeData    = errors.New("TooLargeData")
 
-	NotFoundData = errors.New("NotFoundData")
+	NotFoundData  = errors.New("NotFoundData")
+	NotFoundTable = errors.New("NotFoundTable")
 )
 
 var (

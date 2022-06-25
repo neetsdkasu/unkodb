@@ -62,6 +62,15 @@ func Open(dbFile io.ReadWriteSeeker) (db *UnkoDB, err error) {
 	return
 }
 
+func (db *UnkoDB) Table(name string) (*Table, error) {
+	for _, table := range db.tables {
+		if table.Name() == name {
+			return table, nil
+		}
+	}
+	return nil, NotFoundTable
+}
+
 func (db *UnkoDB) CreateTable(newTableName string) (creator *TableCreator, err error) {
 	if !debugMode {
 		defer catchError(&err)
