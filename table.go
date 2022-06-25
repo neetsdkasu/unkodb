@@ -172,7 +172,7 @@ func (table *Table) Replace(data map[string]any) (err error) {
 	key := table.getKey(data)
 	_, ok := avltree.Replace(tree, key, tableTreeValue(data))
 	if !ok {
-		bug.Panic("table.Replace: why?")
+		panic("TODO table.Replace: why? not found key ?")
 	}
 	err = tree.flush()
 	return
