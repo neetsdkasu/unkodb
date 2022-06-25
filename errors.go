@@ -5,15 +5,15 @@ package unkodb
 
 import "errors"
 
-type NotFoundKeyName struct{ Column }
-type UnmatchKeyValueType struct{ Column }
+type NotFoundColumnName struct{ Column }
+type UnmatchColumnValueType struct{ Column }
 
-func (err NotFoundKeyName) Error() string {
-	return "NotFoundKeyName: " + err.Name()
+func (err NotFoundColumnName) Error() string {
+	return "NotFoundColumnName: " + err.Name()
 }
 
-func (err UnmatchKeyValueType) Error() string {
-	return "UnmatchKeyValueType: " + err.Name() + " " + columnTypeName(err)
+func (err UnmatchColumnValueType) Error() string {
+	return "UnmatchColumnValueType: " + err.Name() + " " + columnTypeName(err)
 }
 
 var (

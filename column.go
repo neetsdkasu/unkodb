@@ -47,17 +47,20 @@ func columnTypeName(col Column) (_ string) {
 	case LongString:
 		return "LongString"
 	case FixedSizeLongString:
-		bug.Panic("TODO")
+		size := col.(*fixedSizeLongStringColumn).size
+		return fmt.Sprint("FixedSizeLongString(", size, ")")
 	case Text:
 		return "Text"
 	case ShortBytes:
 		return "ShortBytes"
 	case FixedSizeShortBytes:
-		bug.Panic("TODO")
+		size := col.(*fixedSizeShortBytesColumn).size
+		return fmt.Sprint("FixedSizeShortBytes(", size, ")")
 	case LongBytes:
 		return "LongBytes"
 	case FixedSizeLongBytes:
-		bug.Panic("TODO")
+		size := col.(*fixedSizeLongBytesColumn).size
+		return fmt.Sprint("FixedSizeLongBytes(", size, ")")
 	case Blob:
 		return "Blob"
 	}
@@ -472,6 +475,72 @@ func (*longStringColumn) write(encoder *byteEncoder, value any) (err error) {
 	return
 }
 
+type fixedSizeLongStringColumn struct {
+	name string
+	size uint16
+}
+
+func (c *fixedSizeLongStringColumn) Name() string {
+	return c.name
+}
+
+func (*fixedSizeLongStringColumn) Type() ColumnType {
+	return FixedSizeLongString
+}
+
+func (c *fixedSizeLongStringColumn) IsValidValueType(value any) bool {
+	if s, ok := value.(string); ok {
+		b := []byte(s)
+		return len(b) <= int(c.size)
+	} else {
+		return false
+	}
+}
+
+func (c *fixedSizeLongStringColumn) MinimumDataByteSize() uint64 {
+	return uint64(c.size)
+}
+
+func (c *fixedSizeLongStringColumn) MaximumDataByteSize() uint64 {
+	return uint64(c.size)
+}
+
+func (c *fixedSizeLongStringColumn) byteSizeHint(value any) (_ uint64) {
+	if _, ok := value.(string); ok {
+		return uint64(c.size)
+	} else {
+		bug.Panicf("fixedSizeLongStringColumn.byteSizeHint: value type is not string (value: %T %#v)", value, value)
+		return
+	}
+}
+
+func (c *fixedSizeLongStringColumn) read(decoder *byteDecoder) (value any, err error) {
+	buf := make([]byte, c.size)
+	err = decoder.RawBytes(buf)
+	if err != nil {
+		return nil, err
+	}
+	s := string(buf)
+	return s, nil
+}
+
+func (c *fixedSizeLongStringColumn) write(encoder *byteEncoder, value any) (err error) {
+	if s, ok := value.(string); ok {
+		buf := []byte(s)
+		if len(buf) > int(c.size) {
+			buf = buf[:c.size]
+		} else {
+			for len(buf) < int(c.size) {
+				buf = append(buf, ' ')
+			}
+		}
+		err = encoder.RawBytes(buf)
+	} else {
+		bug.Panicf("fixedSizeLongStringColumn.write: value type is not string (value: %T %#v)", value, value)
+	}
+	return
+}
+
 type shortBytesColumn struct {
 	name string
 }
@@ -548,6 +617,75 @@ func (*shortBytesColumn) toKey(value any) (_ avltree.Key) {
 	}
 }
 
+type fixedSizeShortBytesColumn struct {
+	name string
+	size uint8
+}
+
+func (c *fixedSizeShortBytesColumn) Name() string {
+	return c.name
+}
+
+func (*fixedSizeShortBytesColumn) Type() ColumnType {
+	return FixedSizeShortBytes
+}
+
+func (c *fixedSizeShortBytesColumn) IsValidValueType(value any) bool {
+	if b, ok := value.([]byte); ok {
+		return len(b) <= int(c.size)
+	} else {
+		return false
+	}
+}
+
+func (c *fixedSizeShortBytesColumn) MinimumDataByteSize() uint64 {
+	return uint64(c.size)
+}
+
+func (c *fixedSizeShortBytesColumn) MaximumDataByteSize() uint64 {
+	return uint64(c.size)
+}
+
+func (c *fixedSizeShortBytesColumn) byteSizeHint(value any) (_ uint64) {
+	if _, ok := value.([]byte); ok {
+		return uint64(c.size)
+	} else {
+		bug.Panicf("fixedSizeShortBytesColumn.byteSizeHint: value type is not []byte (value: %T %#v)", value, value)
+		return
+	}
+}
+
+func (c *fixedSizeShortBytesColumn) read(decoder *byteDecoder) (value any, err error) {
+	buf := make([]byte, c.size)
+	err = decoder.RawBytes(buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
+
+func (c *fixedSizeShortBytesColumn) write(encoder *byteEncoder, value any) (err error) {
+	if buf, ok := value.([]byte); ok {
+		tmp := make([]byte, c.size)
+		copy(tmp, buf)
+		err = encoder.RawBytes(tmp)
+	} else {
+		bug.Panicf("fixedSizeShortBytesColumn.write: value type is not []byte (value: %T %#v)", value, value)
+	}
+	return
+}
+
+func (c *fixedSizeShortBytesColumn) toKey(value any) (_ avltree.Key) {
+	if buf, ok := value.([]byte); ok {
+		tmp := make([]byte, c.size)
+		copy(tmp, buf)
+		return bytesKey(tmp)
+	} else {
+		bug.Panicf("fixedSizeShortBytesColumn.toKey: value type is not []byte (value: %T %#v)", value, value)
+		return
+	}
+}
+
 type longBytesColumn struct {
 	name string
 }
@@ -611,6 +749,64 @@ func (*longBytesColumn) write(encoder *byteEncoder, value any) (err error) {
 		err = encoder.RawBytes(buf)
 	} else {
 		bug.Panicf("longBytesColumn.write: value type is not []byte (value: %T %#v)", value, value)
+	}
+	return
+}
+
+type fixedSizeLongBytesColumn struct {
+	name string
+	size uint16
+}
+
+func (c *fixedSizeLongBytesColumn) Name() string {
+	return c.name
+}
+
+func (*fixedSizeLongBytesColumn) Type() ColumnType {
+	return FixedSizeLongBytes
+}
+
+func (c *fixedSizeLongBytesColumn) IsValidValueType(value any) bool {
+	if b, ok := value.([]byte); ok {
+		return len(b) <= int(c.size)
+	} else {
+		return false
+	}
+}
+
+func (c *fixedSizeLongBytesColumn) MinimumDataByteSize() uint64 {
+	return uint64(c.size)
+}
+
+func (c *fixedSizeLongBytesColumn) MaximumDataByteSize() uint64 {
+	return uint64(c.size)
+}
+
+func (c *fixedSizeLongBytesColumn) byteSizeHint(value any) (_ uint64) {
+	if _, ok := value.([]byte); ok {
+		return uint64(c.size)
+	} else {
+		bug.Panicf("fixedSizeLongBytesColumn.byteSizeHint: value type is not []byte (value: %T %#v)", value, value)
+		return
+	}
+}
+
+func (c *fixedSizeLongBytesColumn) read(decoder *byteDecoder) (value any, err error) {
+	buf := make([]byte, c.size)
+	err = decoder.RawBytes(buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
+
+func (c *fixedSizeLongBytesColumn) write(encoder *byteEncoder, value any) (err error) {
+	if buf, ok := value.([]byte); ok {
+		tmp := make([]byte, c.size)
+		copy(tmp, buf)
+		err = encoder.RawBytes(tmp)
+	} else {
+		bug.Panicf("fixedSizeLongBytesColumn.write: value type is not []byte (value: %T %#v)", value, value)
 	}
 	return
 }

@@ -237,6 +237,16 @@ func (tc *TableCreator) LongStringColumn(newColumnName string) error {
 	})
 }
 
+func (tc *TableCreator) FixedSizeLongStringColumn(newColumnName string, size uint16) error {
+	if size == 0 {
+		return SizeMustBePositiveValue
+	}
+	return tc.addColumn(&fixedSizeLongStringColumn{
+		name: newColumnName,
+		size: size,
+	})
+}
+
 func (tc *TableCreator) ShortBytesKey(newColumnName string) error {
 	return tc.setKey(&shortBytesColumn{
 		name: newColumnName,
@@ -249,8 +259,38 @@ func (tc *TableCreator) ShortBytesColumn(newColumnName string) error {
 	})
 }
 
+func (tc *TableCreator) FixedSizeShortBytesKey(newColumnName string, size uint8) error {
+	if size == 0 {
+		return SizeMustBePositiveValue
+	}
+	return tc.setKey(&fixedSizeShortBytesColumn{
+		name: newColumnName,
+		size: size,
+	})
+}
+
+func (tc *TableCreator) FixedSizeShortBytesColumn(newColumnName string, size uint8) error {
+	if size == 0 {
+		return SizeMustBePositiveValue
+	}
+	return tc.addColumn(&fixedSizeShortBytesColumn{
+		name: newColumnName,
+		size: size,
+	})
+}
+
 func (tc *TableCreator) LongBytesColumn(newColumnName string) error {
 	return tc.addColumn(&shortBytesColumn{
 		name: newColumnName,
+	})
+}
+
+func (tc *TableCreator) FixedSizeLongBytesColumn(newColumnName string, size uint16) error {
+	if size == 0 {
+		return SizeMustBePositiveValue
+	}
+	return tc.addColumn(&fixedSizeLongBytesColumn{
+		name: newColumnName,
+		size: size,
 	})
 }

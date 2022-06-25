@@ -103,15 +103,15 @@ func (table *Table) CheckData(data map[string]any) (err error) {
 		return NotFoundData
 	}
 	if keyValue, ok := data[table.key.Name()]; !ok {
-		return NotFoundKeyName{table.key}
+		return NotFoundColumnName{table.key}
 	} else if !table.key.IsValidValueType(keyValue) {
-		return UnmatchKeyValueType{table.key}
+		return UnmatchColumnValueType{table.key}
 	}
 	for _, col := range table.columns {
 		if colValue, ok := data[col.Name()]; !ok {
-			// TODO error
+			return NotFoundColumnName{col}
 		} else if !col.IsValidValueType(colValue) {
-			// TODO error
+			return UnmatchColumnValueType{col}
 		}
 	}
 	return nil

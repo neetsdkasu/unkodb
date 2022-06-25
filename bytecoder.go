@@ -166,10 +166,14 @@ func (encoder *byteEncoder) WriteColumnSpec(col Column) (err error) {
 	switch c := col.(type) {
 	case *fixedSizeShortStringColumn:
 		err = encoder.Uint8(c.size)
-		// case *fixedSizeLongStringColumn:
-		// case *fixedSizeShortBytesColumn:
-		// case *fixedSizeLongBytesColumn:
+	case *fixedSizeLongStringColumn:
+		err = encoder.Uint16(c.size)
+	case *fixedSizeShortBytesColumn:
+		err = encoder.Uint8(c.size)
+	case *fixedSizeLongBytesColumn:
+		err = encoder.Uint16(c.size)
 	}
+
 	return
 }
 
@@ -225,17 +229,44 @@ func (decoder *byteDecoder) ReadColumnSpec() (col Column, err error) {
 	case LongString:
 		col = &longStringColumn{name: name}
 	case FixedSizeLongString:
-		bug.Panic("TODO")
+		// TODO サイズの値は正の整数が必要だけど0を読み込んだ場合の対処は？
+		var size uint16
+		err = decoder.Uint16(&size)
+		if err != nil {
+			return
+		}
+		col = &fixedSizeLongStringColumn{
+			name: name,
+			size: size,
+		}
 	case Text:
 		bug.Panic("TODO")
 	case ShortBytes:
 		col = &shortBytesColumn{name: name}
 	case FixedSizeShortBytes:
-		bug.Panic("TODO")
+		// TODO サイズの値は正の整数が必要だけど0を読み込んだ場合の対処は？
+		var size uint8
+		err = decoder.Uint8(&size)
+		if err != nil {
+			return
+		}
+		col = &fixedSizeShortBytesColumn{
+			name: name,
+			size: size,
+		}
 	case LongBytes:
 		col = &longBytesColumn{name: name}
 	case FixedSizeLongBytes:
-		bug.Panic("TODO")
+		// TODO サイズの値は正の整数が必要だけど0を読み込んだ場合の対処は？
+		var size uint16
+		err = decoder.Uint16(&size)
+		if err != nil {
+			return
+		}
+		col = &fixedSizeLongBytesColumn{
+			name: name,
+			size: size,
+		}
 	case Blob:
 		bug.Panic("TODO")
 	}
