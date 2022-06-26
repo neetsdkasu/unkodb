@@ -33,12 +33,6 @@ type fileAccessor struct {
 	idleSegmentListRootAddress int
 }
 
-type segmentBuffer struct {
-	file     *fileAccessor
-	position int
-	buffer   []byte
-}
-
 func fileSignature() []byte {
 	return []byte{
 		3, 5, 7, 11, 13, 17, 19, 23, 29, 31,
@@ -290,25 +284,5 @@ func (file *fileAccessor) UpdateIdleSegmentTreeRootAddress(newAddress int) error
 		return fmt.Errorf("Failed fileAccessor.UpdateIdleSegmentTreeRootAddress [%w]", err)
 	}
 	file.idleSegmentListRootAddress = newAddress
-	return nil
-}
-
-func (seg *segmentBuffer) Position() int {
-	return seg.position
-}
-
-func (seg *segmentBuffer) BufferSize() int {
-	return len(seg.buffer) - segmentHeaderByteSize
-}
-
-func (seg *segmentBuffer) Buffer() []byte {
-	return seg.buffer[segmentHeaderByteSize:]
-}
-
-func (seg *segmentBuffer) Flush() error {
-	err := seg.file.Write(seg.position, seg.buffer)
-	if err != nil {
-		return fmt.Errorf("Failed segmentBuffer.Flush [%w]", err)
-	}
 	return nil
 }

@@ -7,32 +7,7 @@ import (
 	"github.com/neetsdkasu/avltree"
 )
 
-type Record struct {
-	table *Table
-	data  tableTreeValue
-}
-
-func (r *Record) Table() *Table {
-	return r.table
-}
-
-func (r *Record) Key() (value any) {
-	value = r.data[r.table.key.Name()]
-	return
-}
-
-func (r *Record) Get(name string) (value any, ok bool) {
-	value, ok = r.data[name]
-	return
-}
-
-func (r *Record) Column(name string) any {
-	if value, ok := r.data[name]; ok {
-		return value
-	} else {
-		return nil
-	}
-}
+type IterateCallbackFunc = func(r *Record) (breakIteration bool)
 
 type Table struct {
 	db             *UnkoDB
@@ -121,6 +96,41 @@ func (table *Table) getKey(data map[string]any) avltree.Key {
 	return table.key.toKey(data[table.key.Name()])
 }
 
+func (table *Table) Find(key any) (r *Record, err error) {
+	if !debugMode {
+		defer catchError(&err)
+	}
+	if !table.key.IsValidValueType(key) {
+		err = UnmatchColumnValueType{table.key}
+		return
+	}
+	var tree *tableTree
+	tree, err = newTableTree(table)
+	if err != nil {
+		return
+	}
+	node := avltree.Find(tree, table.key.toKey(key))
+	if node == nil {
+		return
+	}
+	r = &Record{
+		table: table,
+		data:  node.Value().(tableTreeValue),
+	}
+	return
+}
+
+func (table *Table) Count() int {
+	return table.nodeCount
+}
+
+func (table *Table) NextCounterID() (CounterType, error) {
+	if table.key.Type() != Counter {
+		return 0, KeyIsNotCounter
+	}
+	return CounterType(table.counter + 1), nil
+}
+
 func (table *Table) Insert(data map[string]any) (err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -172,13 +182,13 @@ func (table *Table) Replace(data map[string]any) (err error) {
 	key := table.getKey(data)
 	_, ok := avltree.Replace(tree, key, tableTreeValue(data))
 	if !ok {
-		panic("TODO table.Replace: why? not found key ?")
+		return NotFoundKey
 	}
 	err = tree.flush()
 	return
 }
 
-func (table *Table) IterateAll(callback func(record *Record) (breakIteration bool)) (err error) {
+func (table *Table) IterateAll(callback IterateCallbackFunc) (err error) {
 	if !debugMode {
 		defer catchError(&err)
 	}

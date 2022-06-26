@@ -11,58 +11,60 @@ import (
 	"github.com/neetsdkasu/avltree/stringkey"
 )
 
+type CounterType = uint32
+
 type ColumnType int
 
-func columnTypeName(col Column) (_ string) {
+func ColumnTypeName(col Column) (_ string) {
 	switch col.Type() {
 	default:
 		bug.Panicf("Undefined Type %#v", col)
 	case Counter:
-		return "Counter"
+		return "Counter uint32"
 	case Int8:
-		return "Int8"
+		return "Int8 int8"
 	case Uint8:
-		return "Uint8"
+		return "Uint8 uint8"
 	case Int16:
-		return "Int16"
+		return "Int16 int16"
 	case Uint16:
-		return "Uint16"
+		return "Uint16 uint16"
 	case Int32:
-		return "Int32"
+		return "Int32 int32"
 	case Uint32:
-		return "Uint32"
+		return "Uint32 uint32"
 	case Int64:
-		return "Int64"
+		return "Int64 int64"
 	case Uint64:
-		return "Uint64"
+		return "Uint64 uint64"
 	case Float32:
-		return "Float32"
+		return "Float32 float32"
 	case Float64:
-		return "Float64"
+		return "Float64 float64"
 	case ShortString:
-		return "ShortString"
+		return "ShortString string"
 	case FixedSizeShortString:
 		size := col.(*fixedSizeShortStringColumn).size
 		return fmt.Sprint("FixedSizeShortString(", size, ")")
 	case LongString:
-		return "LongString"
+		return "LongString string"
 	case FixedSizeLongString:
 		size := col.(*fixedSizeLongStringColumn).size
 		return fmt.Sprint("FixedSizeLongString(", size, ")")
 	case Text:
-		return "Text"
+		return "Text string"
 	case ShortBytes:
-		return "ShortBytes"
+		return "ShortBytes []byte"
 	case FixedSizeShortBytes:
 		size := col.(*fixedSizeShortBytesColumn).size
 		return fmt.Sprint("FixedSizeShortBytes(", size, ")")
 	case LongBytes:
-		return "LongBytes"
+		return "LongBytes []byte"
 	case FixedSizeLongBytes:
 		size := col.(*fixedSizeLongBytesColumn).size
 		return fmt.Sprint("FixedSizeLongBytes(", size, ")")
 	case Blob:
-		return "Blob"
+		return "Blob []byte"
 	}
 	return
 }

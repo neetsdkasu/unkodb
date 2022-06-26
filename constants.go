@@ -3,8 +3,6 @@
 
 package unkodb
 
-const debugMode = true
-
 const (
 	invalidColumnType ColumnType = iota
 	Counter

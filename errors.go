@@ -13,13 +13,15 @@ func (err NotFoundColumnName) Error() string {
 }
 
 func (err UnmatchColumnValueType) Error() string {
-	return "UnmatchColumnValueType: " + err.Name() + " " + columnTypeName(err)
+	return "UnmatchColumnValueType: " + err.Name() + " " + ColumnTypeName(err)
 }
 
 var (
 	WrongFileFormat = errors.New("WrongFileFormat")
 	TooLargeData    = errors.New("TooLargeData")
+	KeyIsNotCounter = errors.New("KeyIsNotCounter")
 
+	NotFoundKey   = errors.New("NotFoundKey")
 	NotFoundData  = errors.New("NotFoundData")
 	NotFoundTable = errors.New("NotFoundTable")
 )

@@ -301,5 +301,80 @@ func TestUnkoDB(t *testing.T) {
 		t.Fatal(text)
 	}
 
+	table2, err = db2.Table("foodlist")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rec, err := table2.Find(CounterType(2))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if id := rec.Key(); id == nil {
+		t.Fatalf("invalid record %#v", rec)
+	} else if id != any(uint32(2)) {
+		t.Fatalf("invalid id %#v", id)
+	}
+
+	if name := rec.Column("name"); name == nil {
+		t.Fatalf("invalid record %#v", rec)
+	} else if name != any("コロッケカレー") {
+		t.Fatalf("invalid name %#v", name)
+	}
+
+	if price := rec.Column("price"); price == nil {
+		t.Fatalf("invalid record %#v", rec)
+	} else if price != any(int64(600)) {
+		t.Fatalf("invalid price %#v", price)
+	}
+
+	data["id"] = CounterType(2)
+	data["name"] = "カツサンド"
+	data["price"] = int64(500)
+	err = table2.Replace(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data["id"] = CounterType(10)
+	data["name"] = "おにぎり"
+	data["price"] = int64(100)
+	err = table2.Replace(data)
+	if err != NotFoundKey {
+		t.Fatal("not NotFoundKey", err)
+	}
+
+	rec, err = table2.Find(CounterType(2))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if id := rec.Key(); id == nil {
+		t.Fatalf("invalid record %#v", rec)
+	} else if id != any(uint32(2)) {
+		t.Fatalf("invalid id %#v", id)
+	}
+
+	if name := rec.Column("name"); name == nil {
+		t.Fatalf("invalid record %#v", rec)
+	} else if name != any("カツサンド") {
+		t.Fatalf("invalid name %#v", name)
+	}
+
+	if price := rec.Column("price"); price == nil {
+		t.Fatalf("invalid record %#v", rec)
+	} else if price != any(int64(500)) {
+		t.Fatalf("invalid price %#v", price)
+	}
+
+	if table2.Count() != 4 {
+		t.Fatalf("table2.Count is not 4 (%d)", table2.Count())
+	}
+
+	if id, err := table2.NextCounterID(); err != nil || id != 5 {
+		t.Fatalf("wrong neext id %v %v", err, id)
+	}
+
 	t.Skip("TEST IS NOT IMPLEMENTED YET")
 }
