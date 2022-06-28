@@ -294,6 +294,14 @@ func TestUnkoDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if table2.Count() != 3 {
+		t.Fatalf("wrong record count %d", table.Count())
+	}
+
+	if id, err := table2.NextCounterID(); err != KeyIsNotCounter || id != 0 {
+		t.Fatalf("wrong next id %v %v", err, id)
+	}
+
 	text := ""
 	err = table2.IterateAll(func(r *Record) (_ bool) {
 		text += r.Key().(string)
