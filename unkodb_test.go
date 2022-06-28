@@ -376,5 +376,52 @@ func TestUnkoDB(t *testing.T) {
 		t.Fatalf("wrong neext id %v %v", err, id)
 	}
 
+	err = table2.Delete(CounterType(3))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = table2.Delete(CounterType(3))
+	if err != NotFoundKey {
+		t.Fatalf("wrong delete %v", err)
+	}
+
+	if table2.Count() != 3 {
+		t.Fatalf("table2.Count is not 3 (%d)", table2.Count())
+	}
+
+	if id, err := table2.NextCounterID(); err != nil || id != 5 {
+		t.Fatalf("wrong neext id %v %v", err, id)
+	}
+
+	db3, err := Open(tempfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	table3, err := db3.Table("foodlist")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	recs3 := []*Record{}
+	err = table3.IterateAll(func(r *Record) (_ bool) {
+		recs3 = append(recs3, r)
+		return
+	})
+
+	if len(recs3) != 3 {
+		t.Fatalf("wrong record count %#v", recs3)
+	}
+
+	text3 := ""
+	for _, r := range recs3 {
+		text3 += fmt.Sprint(r.Key(), r.Column("name"), r.Column("price"))
+	}
+
+	if text3 != "1カツカレー8002カツサンド5004ざるそば400" {
+		t.Fatal(text3)
+	}
+
 	t.Skip("TEST IS NOT IMPLEMENTED YET")
 }

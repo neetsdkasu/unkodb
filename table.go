@@ -120,6 +120,33 @@ func (table *Table) Find(key any) (r *Record, err error) {
 	return
 }
 
+func (table *Table) Delete(key any) (err error) {
+	if !debugMode {
+		defer catchError(&err)
+	}
+	if !table.key.IsValidValueType(key) {
+		err = UnmatchColumnValueType{table.key}
+		return
+	}
+	var tree *tableTree
+	tree, err = newTableTree(table)
+	if err != nil {
+		return
+	}
+	_, node := avltree.Delete(tree, table.key.toKey(key))
+	if node == nil {
+		err = NotFoundKey
+		return
+	}
+	err = tree.flush()
+	if err != nil {
+		return
+	}
+	table.nodeCount--
+	err = table.flush()
+	return
+}
+
 func (table *Table) Count() int {
 	return table.nodeCount
 }
@@ -158,8 +185,8 @@ func (table *Table) Insert(data map[string]any) (err error) {
 	if err != nil {
 		return
 	}
+	table.nodeCount += 1
 	if table.key.Type() == Counter {
-		table.nodeCount += 1
 		table.counter += 1
 	}
 	err = table.flush()
