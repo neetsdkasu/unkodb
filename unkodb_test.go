@@ -156,6 +156,14 @@ func TestUnkoDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if table.Count() != 3 {
+		t.Fatalf("wrong record count %d", table.Count())
+	}
+
+	if id, err := table.NextCounterID(); err != KeyIsNotCounter || id != 0 {
+		t.Fatalf("wrong next id %v %v", err, id)
+	}
+
 	table, err = db.Table("foodlist")
 	if err != nil {
 		t.Fatal(err)
@@ -373,7 +381,7 @@ func TestUnkoDB(t *testing.T) {
 	}
 
 	if id, err := table2.NextCounterID(); err != nil || id != 5 {
-		t.Fatalf("wrong neext id %v %v", err, id)
+		t.Fatalf("wrong next id %v %v", err, id)
 	}
 
 	err = table2.Delete(CounterType(3))
@@ -391,7 +399,7 @@ func TestUnkoDB(t *testing.T) {
 	}
 
 	if id, err := table2.NextCounterID(); err != nil || id != 5 {
-		t.Fatalf("wrong neext id %v %v", err, id)
+		t.Fatalf("wrong next id %v %v", err, id)
 	}
 
 	db3, err := Open(tempfile)
