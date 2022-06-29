@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/neetsdkasu/avltree"
 )
 
 func TestUnkoDB(t *testing.T) {
@@ -436,6 +438,60 @@ func TestUnkoDB(t *testing.T) {
 	}
 
 	if text3 != "1カツカレー8002カツサンド5004ざるそば400" {
+		t.Fatal(text3)
+	}
+
+	if c := avltree.Count(db3.segManager.tree); c != 1 {
+		t.Fatalf("wrong idle tree count %d", c)
+	}
+
+	data["id"] = CounterType(0)
+	data["name"] = "明太ピザ"
+	data["price"] = int64(1200)
+	err = table3.Insert(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data["id"] = CounterType(0)
+	data["name"] = "チーズインハンバーグ"
+	data["price"] = int64(1200)
+	err = table3.Insert(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if c := avltree.Count(db3.segManager.tree); c != 1 {
+		t.Fatalf("wrong idle tree count %d", c)
+	}
+
+	data["id"] = CounterType(0)
+	data["name"] = "明太子おにぎり"
+	data["price"] = int64(200)
+	err = table3.Insert(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if c := avltree.Count(db3.segManager.tree); c != 0 {
+		t.Fatalf("wrong idle tree count %d", c)
+	}
+
+	rec, err = table3.Find(CounterType(7))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.Column("name").(string) != "明太子おにぎり" {
+		t.Fatal(rec.data)
+	}
+
+	text3 = ""
+	err = table3.IterateRange(CounterType(3), CounterType(5), func(r *Record) (_ bool) {
+		text3 += fmt.Sprint(r.Key(), r.Column("name"), r.Column("price"))
+		return
+	})
+
+	if text3 != "4ざるそば4005明太ピザ1200" {
 		t.Fatal(text3)
 	}
 

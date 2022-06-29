@@ -232,3 +232,38 @@ func (table *Table) IterateAll(callback IterateCallbackFunc) (err error) {
 	})
 	return
 }
+
+func (table *Table) IterateRange(lowerKey, upperKey any, callback IterateCallbackFunc) (err error) {
+	if !debugMode {
+		defer catchError(&err)
+	}
+	var lKey, rKey avltree.Key
+	if lowerKey != nil {
+		if table.key.IsValidValueType(lowerKey) {
+			lKey = table.key.toKey(lowerKey)
+		} else {
+			err = UnmatchColumnValueType{table.key}
+			return
+		}
+	}
+	if upperKey != nil {
+		if table.key.IsValidValueType(upperKey) {
+			rKey = table.key.toKey(upperKey)
+		} else {
+			err = UnmatchColumnValueType{table.key}
+			return
+		}
+	}
+	tree, err := newTableTree(table)
+	if err != nil {
+		return err
+	}
+	avltree.RangeIterate(tree, false, lKey, rKey, func(node avltree.Node) (breakIteration bool) {
+		rec := &Record{
+			table: table,
+			data:  node.Value().(tableTreeValue),
+		}
+		return callback(rec)
+	})
+	return
+}
