@@ -495,5 +495,25 @@ func TestUnkoDB(t *testing.T) {
 		t.Fatal(text3)
 	}
 
+	text3 = ""
+	err = table3.IterateRange(nil, CounterType(3), func(r *Record) (_ bool) {
+		text3 += fmt.Sprint(r.Key(), r.Column("name"), r.Column("price"))
+		return
+	})
+
+	if text3 != "1カツカレー8002カツサンド500" {
+		t.Fatal(text3)
+	}
+
+	text3 = ""
+	err = table3.IterateRange(CounterType(5), nil, func(r *Record) (_ bool) {
+		text3 += fmt.Sprint(r.Key(), r.Column("name"), r.Column("price"))
+		return
+	})
+
+	if text3 != "5明太ピザ12006チーズインハンバーグ12007明太子おにぎり200" {
+		t.Fatal(text3)
+	}
+
 	t.Skip("TEST IS NOT IMPLEMENTED YET")
 }
