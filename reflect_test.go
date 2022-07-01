@@ -9,14 +9,14 @@ import (
 
 func TestParseStruct(t *testing.T) {
 
-	type Foo struct {
-		Key   uint32 `unkodb:"id,key@Counter"`
+	type Food struct {
+		Id    uint32 `unkodb:"id,key@Counter"`
 		Name  string `unkodb:"name,ShortString"`
 		Price int64  `unkodb:"price,Int64"`
 	}
 
-	foo := &Foo{
-		Key:   11,
+	foo := &Food{
+		Id:    11,
 		Name:  "カツカレー",
 		Price: 800,
 	}

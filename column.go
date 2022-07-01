@@ -113,6 +113,39 @@ func (ct ColumnType) GoTypeHint() string {
 	}
 }
 
+func (ct ColumnType) keyColumnType() bool {
+	switch ct {
+	default:
+		return false
+	case Counter:
+		return true
+	case Int8:
+		return true
+	case Uint8:
+		return true
+	case Int16:
+		return true
+	case Uint16:
+		return true
+	case Int32:
+		return true
+	case Uint32:
+		return true
+	case Int64:
+		return true
+	case Uint64:
+		return true
+	case ShortString:
+		return true
+	case FixedSizeShortString:
+		return true
+	case ShortBytes:
+		return true
+	case FixedSizeShortBytes:
+		return true
+	}
+}
+
 func ColumnTypeHint(col Column) string {
 	ct := col.Type()
 	switch ct {
