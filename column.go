@@ -15,58 +15,122 @@ type CounterType = uint32
 
 type ColumnType int
 
-func ColumnTypeName(col Column) (_ string) {
-	switch col.Type() {
+func (ct ColumnType) String() string {
+	switch ct {
 	default:
-		bug.Panicf("Undefined Type %#v", col)
+		return fmt.Sprint("Invalid(", int(ct), ")")
 	case Counter:
-		return "Counter uint32"
+		return "Counter"
 	case Int8:
-		return "Int8 int8"
+		return "Int8"
 	case Uint8:
-		return "Uint8 uint8"
+		return "Uint8"
 	case Int16:
-		return "Int16 int16"
+		return "Int16"
 	case Uint16:
-		return "Uint16 uint16"
+		return "Uint16"
 	case Int32:
-		return "Int32 int32"
+		return "Int32"
 	case Uint32:
-		return "Uint32 uint32"
+		return "Uint32"
 	case Int64:
-		return "Int64 int64"
+		return "Int64"
 	case Uint64:
-		return "Uint64 uint64"
+		return "Uint64"
 	case Float32:
-		return "Float32 float32"
+		return "Float32"
 	case Float64:
-		return "Float64 float64"
+		return "Float64"
 	case ShortString:
-		return "ShortString string"
+		return "ShortString"
+	case FixedSizeShortString:
+		return "FixedSizeShortString"
+	case LongString:
+		return "LongString"
+	case FixedSizeLongString:
+		return "FixedSizeLongString"
+	case Text:
+		return "Text"
+	case ShortBytes:
+		return "ShortBytes"
+	case FixedSizeShortBytes:
+		return "FixedSizeShortBytes"
+	case LongBytes:
+		return "LongBytes"
+	case FixedSizeLongBytes:
+		return "FixedSizeLongBytes"
+	case Blob:
+		return "Blob"
+	}
+}
+
+func (ct ColumnType) GoTypeHint() string {
+	switch ct {
+	default:
+		return fmt.Sprint("Invalid(", int(ct), ")")
+	case Counter:
+		return "uint32"
+	case Int8:
+		return "int8"
+	case Uint8:
+		return "uint8"
+	case Int16:
+		return "int16"
+	case Uint16:
+		return "uint16"
+	case Int32:
+		return "int32"
+	case Uint32:
+		return "uint32"
+	case Int64:
+		return "int64"
+	case Uint64:
+		return "uint64"
+	case Float32:
+		return "float32"
+	case Float64:
+		return "float64"
+	case ShortString:
+		return "string"
+	case FixedSizeShortString:
+		return "string"
+	case LongString:
+		return "string"
+	case FixedSizeLongString:
+		return "string"
+	case Text:
+		return "string"
+	case ShortBytes:
+		return "[]byte"
+	case FixedSizeShortBytes:
+		return "[]byte"
+	case LongBytes:
+		return "[]byte"
+	case FixedSizeLongBytes:
+		return "[]byte"
+	case Blob:
+		return "[]byte"
+	}
+}
+
+func ColumnTypeHint(col Column) string {
+	ct := col.Type()
+	switch ct {
+	default:
+		return ct.String() + " " + ct.GoTypeHint()
 	case FixedSizeShortString:
 		size := col.(*fixedSizeShortStringColumn).size
-		return fmt.Sprint("FixedSizeShortString(", size, ")")
-	case LongString:
-		return "LongString string"
+		return fmt.Sprint(ct.String(), "(", size, ") ", ct.GoTypeHint())
 	case FixedSizeLongString:
 		size := col.(*fixedSizeLongStringColumn).size
-		return fmt.Sprint("FixedSizeLongString(", size, ")")
-	case Text:
-		return "Text string"
-	case ShortBytes:
-		return "ShortBytes []byte"
+		return fmt.Sprint(ct.String(), "(", size, ") ", ct.GoTypeHint())
 	case FixedSizeShortBytes:
 		size := col.(*fixedSizeShortBytesColumn).size
-		return fmt.Sprint("FixedSizeShortBytes(", size, ")")
-	case LongBytes:
-		return "LongBytes []byte"
+		return fmt.Sprint(ct.String(), "(", size, ") ", ct.GoTypeHint())
 	case FixedSizeLongBytes:
 		size := col.(*fixedSizeLongBytesColumn).size
-		return fmt.Sprint("FixedSizeLongBytes(", size, ")")
-	case Blob:
-		return "Blob []byte"
+		return fmt.Sprint(ct.String(), "(", size, ") ", ct.GoTypeHint())
 	}
-	return
 }
 
 type Column interface {

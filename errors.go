@@ -5,6 +5,10 @@ package unkodb
 
 import "errors"
 
+var (
+	notStruct = errors.New("notStruct")
+)
+
 type NotFoundColumnName struct{ Column }
 type UnmatchColumnValueType struct{ Column }
 
@@ -13,7 +17,7 @@ func (err NotFoundColumnName) Error() string {
 }
 
 func (err UnmatchColumnValueType) Error() string {
-	return "UnmatchColumnValueType: " + err.Name() + " " + ColumnTypeName(err)
+	return "UnmatchColumnValueType: " + err.Name() + " " + ColumnTypeHint(err)
 }
 
 var (
