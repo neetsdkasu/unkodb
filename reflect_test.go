@@ -57,5 +57,36 @@ func TestParseStruct(t *testing.T) {
 		}
 	}
 
+	type Hoge struct {
+		CounterValue uint32    `unkodb:"key@Counter"`
+		Int8value    int8      `unkodb:"i8,Int8"`
+		Int16value   int16     `unkodb:"i16,Int16"`
+		Int32value   int32     `unkodb:"i32,Int32"`
+		Int64value   int64     `unkodb:"i64,Int64"`
+		Uint8value   uint8     `unkodb:"u8,Uint8"`
+		Uint16value  uint16    `unkodb:"u16,Uint16"`
+		Uint32value  uint32    `unkodb:"u32,Uint32"`
+		Uint64value  uint64    `unkodb:"u64,Uint64"`
+		Float32value float32   `unkodb:"f32,Float32"`
+		Float64value float64   `unkodb:"f64,Float64"`
+		SSvalue      string    `unkodb:"ss,ShortString"`
+		FSSSvalue    string    `unkodb:"fsss,FixedSizeShortString[100]"`
+		LSvalue      string    `unkodb:"ls,LongString"`
+		FSLSvalue    string    `unkodb:"fsls,FixedSizeLongString[300]"`
+		Text         string    `unkodb:"tx,Text"`
+		SBvalue      []byte    `unkodb:"sb,ShortBytes"`
+		FSSBvalue    [20]byte  `unkodb:"fssb,FixedSizeShortBytes[20]"`
+		LBvalue      []byte    `unkodb:"lb,LongBytes"`
+		FSLBvalue    [300]byte `unkodb:"fslb,FixedSizeLongBytes[300]"`
+		Blob         []byte    `unkodb:"bl,Blob"`
+	}
+
+	hoge := &Hoge{}
+
+	_, err = parseData(hoge)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	t.Skip("TEST IS NOT IMPLEMENTED YET")
 }

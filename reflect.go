@@ -117,11 +117,11 @@ func parseTagColumnType(s string) (isKey bool, ct ColumnType, size uint64, err e
 		err = fmt.Errorf("invalid key type")
 		return
 	}
-	if !strings.HasPrefix(s, "(") || !strings.HasSuffix(s, ")") {
+	if !strings.HasPrefix(s, "[") || !strings.HasSuffix(s, "]") {
 		err = fmt.Errorf("not found size syntax")
 		return
 	}
-	s = strings.TrimSuffix(strings.TrimPrefix(s, "("), ")")
+	s = strings.TrimSuffix(strings.TrimPrefix(s, "["), "]")
 	tmp, e := strconv.ParseUint(s, 10, 16)
 	if e != nil || tmp == 0 || tmp > size {
 		err = fmt.Errorf("wrong size")
@@ -271,7 +271,12 @@ func parseStruct(st any) (tableTreeValue, error) {
 		value := v.FieldByIndex(f.Index)
 		index := strings.LastIndex(tv, ",")
 		mKey := tv
-		if index >= 0 {
+		if index < 0 {
+			if value.Kind() == reflect.Array {
+				sl := value.Len()
+				value = value.Slice(0, sl)
+			}
+		} else {
 			isKey, ct, size, e := parseTagColumnType(tv[index+1:])
 			if e != nil {
 				return nil, TagError{fmt.Errorf("%w (field: %s)", e, f.Name)}
