@@ -11,6 +11,7 @@ var (
 
 type NotFoundColumnName struct{ Column }
 type UnmatchColumnValueType struct{ Column }
+type TagError struct{ inner error }
 
 func (err NotFoundColumnName) Error() string {
 	return "NotFoundColumnName: " + err.Name()
@@ -18,6 +19,10 @@ func (err NotFoundColumnName) Error() string {
 
 func (err UnmatchColumnValueType) Error() string {
 	return "UnmatchColumnValueType: " + err.Name() + " " + ColumnTypeHint(err)
+}
+
+func (err TagError) Error() string {
+	return "TagError: " + err.inner.Error()
 }
 
 var (

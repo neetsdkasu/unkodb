@@ -150,19 +150,19 @@ func ColumnTypeHint(col Column) string {
 	ct := col.Type()
 	switch ct {
 	default:
-		return ct.String() + " " + ct.GoTypeHint()
+		return ct.String() + " (" + ct.GoTypeHint() + ")"
 	case FixedSizeShortString:
 		size := col.(*fixedSizeShortStringColumn).size
-		return fmt.Sprint(ct.String(), "(", size, ") ", ct.GoTypeHint())
+		return fmt.Sprint(ct.String(), "[", size, "] (", ct.GoTypeHint(), ")")
 	case FixedSizeLongString:
 		size := col.(*fixedSizeLongStringColumn).size
-		return fmt.Sprint(ct.String(), "(", size, ") ", ct.GoTypeHint())
+		return fmt.Sprint(ct.String(), "[", size, "] (", ct.GoTypeHint(), ")")
 	case FixedSizeShortBytes:
 		size := col.(*fixedSizeShortBytesColumn).size
-		return fmt.Sprint(ct.String(), "(", size, ") ", ct.GoTypeHint())
+		return fmt.Sprint(ct.String(), "[", size, "] (", ct.GoTypeHint(), ")")
 	case FixedSizeLongBytes:
 		size := col.(*fixedSizeLongBytesColumn).size
-		return fmt.Sprint(ct.String(), "(", size, ") ", ct.GoTypeHint())
+		return fmt.Sprint(ct.String(), "[", size, "] (", ct.GoTypeHint(), ")")
 	}
 }
 
