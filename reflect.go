@@ -37,6 +37,277 @@ func init() {
 	}
 }
 
+func createTableByTag(tc *TableCreator, st any) error {
+	t := reflect.TypeOf(st)
+	for t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	if t.Kind() != reflect.Struct {
+		return notStruct
+	}
+	hasKey := false
+	m := make(map[string]bool)
+	for _, f := range reflect.VisibleFields(t) {
+		tv, ok := f.Tag.Lookup("unkodb")
+		if !ok {
+			continue
+		}
+		index := strings.LastIndex(tv, ",")
+		mKey := tv
+		var (
+			isKey bool
+			ct    ColumnType
+			size  uint64
+			err   error
+		)
+		if index < 0 {
+			ct, size, err = inferColumnType(f.Type)
+			if err != nil {
+				return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+			}
+		} else {
+			mKey = tv[:index]
+			isKey, ct, size, err = parseTagColumnType(tv[index+1:])
+			if err != nil {
+				return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+			}
+			if isKey {
+				if hasKey {
+					return TagError{fmt.Errorf("duplicate key (field: %s)", f.Name)}
+				}
+				hasKey = true
+			}
+			if !canConvertType(f.Type, ct, size) {
+				return TagError{fmt.Errorf("cannot convert type %s to %s (field: %s)", f.Type, ct.GoTypeHint(), f.Name)}
+			}
+		}
+		if len(mKey) == 0 {
+			mKey = f.Name
+		}
+		if _, ok = m[mKey]; ok {
+			return TagError{fmt.Errorf(`duplicate name "%s" (field: %s)`, mKey, f.Name)}
+		}
+		m[mKey] = true
+		err = makeColumn(tc, mKey, isKey, ct, size)
+		if err != nil {
+			return err
+		}
+	}
+	if !hasKey {
+		return NotFoundKey
+	}
+	return nil
+}
+
+func makeColumn(tc *TableCreator, mKey string, isKey bool, ct ColumnType, size uint64) (err error) {
+	switch ct {
+	default:
+		bug.Panicf("invalid column type %d", int(ct))
+	case Counter:
+		if isKey {
+			err = tc.CounterKey(mKey)
+		} else {
+			bug.Panic("UNREACHABLE")
+		}
+	case Int8:
+		if isKey {
+			err = tc.Int8Key(mKey)
+		} else {
+			err = tc.Int8Column(mKey)
+		}
+	case Uint8:
+		if isKey {
+			err = tc.Uint8Key(mKey)
+		} else {
+			err = tc.Uint8Column(mKey)
+		}
+	case Int16:
+		if isKey {
+			err = tc.Int16Key(mKey)
+		} else {
+			err = tc.Int16Column(mKey)
+		}
+	case Uint16:
+		if isKey {
+			err = tc.Uint16Key(mKey)
+		} else {
+			err = tc.Uint16Column(mKey)
+		}
+	case Int32:
+		if isKey {
+			err = tc.Int32Key(mKey)
+		} else {
+			err = tc.Int32Column(mKey)
+		}
+	case Uint32:
+		if isKey {
+			err = tc.Uint32Key(mKey)
+		} else {
+			err = tc.Uint32Column(mKey)
+		}
+	case Int64:
+		if isKey {
+			bug.Panic("UNREACHABLE")
+		} else {
+			err = tc.Int64Column(mKey)
+		}
+	case Uint64:
+		if isKey {
+			bug.Panic("UNREACHABLE")
+		} else {
+			err = tc.Uint64Column(mKey)
+		}
+	case Float32:
+		if isKey {
+			bug.Panic("UNREACHABLE")
+		} else {
+			err = tc.Float32Column(mKey)
+		}
+	case Float64:
+		if isKey {
+			bug.Panic("UNREACHABLE")
+		} else {
+			err = tc.Float64Column(mKey)
+		}
+	case ShortString:
+		if isKey {
+			err = tc.ShortStringKey(mKey)
+		} else {
+			err = tc.ShortStringColumn(mKey)
+		}
+	case FixedSizeShortString:
+		if size == 0 || size > shortStringMaximumDataByteSize {
+			err = fmt.Errorf("1 <= FixedSizeShortString size <= %d", shortStringMaximumDataByteSize)
+			return
+		}
+		if isKey {
+			err = tc.FixedSizeShortStringKey(mKey, uint8(size))
+		} else {
+			err = tc.FixedSizeShortStringColumn(mKey, uint8(size))
+		}
+	case LongString:
+		if isKey {
+			bug.Panic("UNREACHABLE")
+		} else {
+			err = tc.LongStringColumn(mKey)
+		}
+	case FixedSizeLongString:
+		if size == 0 || size > longStringMaximumDataByteSize {
+			err = fmt.Errorf("1 <= FixedSizeLongString size <= %d", longStringMaximumDataByteSize)
+			return
+		}
+		if isKey {
+			bug.Panic("UNREACHABLE")
+		} else {
+			err = tc.FixedSizeLongStringColumn(mKey, uint16(size))
+		}
+	case Text:
+		if isKey {
+			bug.Panic("UNREACHABLE")
+		} else {
+			err = tc.TextColumn(mKey)
+		}
+	case ShortBytes:
+		if isKey {
+			err = tc.ShortBytesKey(mKey)
+		} else {
+			err = tc.ShortBytesColumn(mKey)
+		}
+	case FixedSizeShortBytes:
+		if size == 0 || size > shortBytesMaximumDataByteSize {
+			err = fmt.Errorf("1 <= FixedSizeShortBytes size <= %d", shortBytesMaximumDataByteSize)
+			return
+		}
+		if isKey {
+			err = tc.FixedSizeShortBytesKey(mKey, uint8(size))
+		} else {
+			err = tc.FixedSizeShortBytesColumn(mKey, uint8(size))
+		}
+	case LongBytes:
+		if isKey {
+			bug.Panic("UNREACHABLE")
+		} else {
+			err = tc.LongBytesColumn(mKey)
+		}
+	case FixedSizeLongBytes:
+		if size == 0 || size > longBytesMaximumDataByteSize {
+			err = fmt.Errorf("1 <= FixedSizeLongBytes size <= %d", longBytesMaximumDataByteSize)
+			return
+		}
+		if isKey {
+			bug.Panic("UNREACHABLE")
+		} else {
+			err = tc.FixedSizeLongBytesColumn(mKey, uint16(size))
+		}
+	case Blob:
+		if isKey {
+			bug.Panic("UNREACHABLE")
+		} else {
+			err = tc.BlobColumn(mKey)
+		}
+	}
+	return
+}
+
+func inferColumnType(t reflect.Type) (ct ColumnType, size uint64, err error) {
+	for t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	switch t.Kind() {
+	default:
+		err = fmt.Errorf("cannot convert to column type")
+	case reflect.Int8:
+		ct = Int8
+	case reflect.Int16:
+		ct = Int16
+	case reflect.Int32:
+		ct = Int32
+	case reflect.Int64:
+		ct = Int64
+	case reflect.Uint8:
+		ct = Uint8
+	case reflect.Uint16:
+		ct = Uint16
+	case reflect.Uint32:
+		ct = Uint32
+	case reflect.Uint64:
+		ct = Uint64
+	case reflect.Float32:
+		ct = Float32
+	case reflect.Float64:
+		ct = Float64
+	case reflect.String:
+		ct = Text
+	case reflect.Slice:
+		if t.Elem().Kind() == reflect.Uint8 {
+			ct = Blob
+		} else {
+			err = fmt.Errorf("cannot convert to columun type")
+		}
+	case reflect.Array:
+		if t.Elem().Kind() == reflect.Uint8 {
+			if t.Len() == 0 {
+				err = fmt.Errorf("cannot convert to columun type")
+			} else if t.Len() <= shortStringMaximumDataByteSize {
+				ct = FixedSizeShortBytes
+				size = uint64(t.Len())
+			} else if t.Len() <= longBytesMaximumDataByteSize {
+				ct = FixedSizeLongBytes
+				size = uint64(t.Len())
+			} else {
+				ct = Blob
+			}
+		} else {
+			err = fmt.Errorf("cannot convert to columun type")
+		}
+	}
+	return
+}
+
+func canConvertType(t reflect.Type, ct ColumnType, size uint64) bool {
+	panic("TODO")
+}
+
 func parseData(data any) (tableTreeValue, error) {
 	if data == nil {
 		return nil, NotFoundData
@@ -82,6 +353,10 @@ func parseTagColumnType(s string) (isKey bool, ct ColumnType, size uint64, err e
 		s = strings.TrimPrefix(s, "key@")
 	}
 	if tmp, ok := simpleColumnTypes[s]; ok {
+		if tmp == Counter && !isKey {
+			err = fmt.Errorf(`Counter type need prefix "key@"`)
+			return
+		}
 		if isKey && !tmp.keyColumnType() {
 			err = fmt.Errorf("invalid key type")
 		} else {
@@ -133,6 +408,9 @@ func parseTagColumnType(s string) (isKey bool, ct ColumnType, size uint64, err e
 
 func tryConvertValue(v reflect.Value, ct ColumnType, size uint64) (r reflect.Value, ok bool) {
 	for v.Kind() == reflect.Pointer {
+		if v.IsNil() {
+			return
+		}
 		v = v.Elem()
 	}
 	switch ct {
@@ -269,6 +547,12 @@ func parseStruct(st any) (tableTreeValue, error) {
 			continue
 		}
 		value := v.FieldByIndex(f.Index)
+		for value.Kind() == reflect.Pointer {
+			if value.IsNil() {
+				return nil, NotFoundData
+			}
+			value = value.Elem()
+		}
 		index := strings.LastIndex(tv, ",")
 		mKey := tv
 		if index < 0 {
