@@ -54,7 +54,7 @@ func TestUnkoDB(t *testing.T) {
 	data["id"] = uint32(0)
 	data["name"] = "カツカレー"
 	data["price"] = int64(800)
-	err = table.Insert(data)
+	_, err = table.Insert(data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,21 +139,21 @@ func TestUnkoDB(t *testing.T) {
 	data["ゲームタイトル"] = "バイオハザード"
 	data["ハード"] = "PS"
 	data["好き具合"] = -1.234
-	err = table.Insert(data)
+	_, err = table.Insert(data)
 	if err != nil {
 		t.Fatal(err)
 	}
 	data["ゲームタイトル"] = "ドラクエ5"
 	data["ハード"] = "SFC"
 	data["好き具合"] = 123.4
-	err = table.Insert(data)
+	_, err = table.Insert(data)
 	if err != nil {
 		t.Fatal(err)
 	}
 	data["ゲームタイトル"] = "スペランカー"
 	data["ハード"] = "FC"
 	data["好き具合"] = 5.4
-	err = table.Insert(data)
+	_, err = table.Insert(data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,7 +174,7 @@ func TestUnkoDB(t *testing.T) {
 	data["id"] = uint32(0)
 	data["name"] = "コロッケカレー"
 	data["price"] = int64(600)
-	err = table.Insert(data)
+	_, err = table.Insert(data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,7 +182,7 @@ func TestUnkoDB(t *testing.T) {
 	data["id"] = uint32(0)
 	data["name"] = "チャーシュー麺"
 	data["price"] = int64(700)
-	err = table.Insert(data)
+	_, err = table.Insert(data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,7 +201,7 @@ func TestUnkoDB(t *testing.T) {
 	data["id"] = uint32(0)
 	data["name"] = "ざるそば"
 	data["price"] = int64(400)
-	err = table2.Insert(data)
+	_, err = table2.Insert(data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -350,7 +350,7 @@ func TestUnkoDB(t *testing.T) {
 	data["id"] = CounterType(2)
 	data["name"] = "カツサンド"
 	data["price"] = int64(500)
-	err = table2.Replace(data)
+	_, err = table2.Replace(data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -358,7 +358,7 @@ func TestUnkoDB(t *testing.T) {
 	data["id"] = CounterType(10)
 	data["name"] = "おにぎり"
 	data["price"] = int64(100)
-	err = table2.Replace(data)
+	_, err = table2.Replace(data)
 	if err != NotFoundKey {
 		t.Fatal("not NotFoundKey", err)
 	}
@@ -448,7 +448,7 @@ func TestUnkoDB(t *testing.T) {
 	data["id"] = CounterType(0)
 	data["name"] = "明太ピザ"
 	data["price"] = int64(1200)
-	err = table3.Insert(data)
+	_, err = table3.Insert(data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -456,7 +456,7 @@ func TestUnkoDB(t *testing.T) {
 	data["id"] = CounterType(0)
 	data["name"] = "チーズインハンバーグ"
 	data["price"] = int64(1200)
-	err = table3.Insert(data)
+	_, err = table3.Insert(data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -468,7 +468,7 @@ func TestUnkoDB(t *testing.T) {
 	data["id"] = CounterType(0)
 	data["name"] = "明太子おにぎり"
 	data["price"] = int64(200)
-	err = table3.Insert(data)
+	_, err = table3.Insert(data)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -136,7 +136,7 @@ func (db *UnkoDB) newTable(name string, key keyColumn, columns []Column) (*Table
 	data := make(map[string]any)
 	data[tableListKeyName] = table.name
 	data[tableListColumnName] = table.columnsSpecBuf
-	err = db.tableList.Insert(data)
+	_, err = db.tableList.Insert(data)
 	if err != nil {
 		return nil, err
 	}

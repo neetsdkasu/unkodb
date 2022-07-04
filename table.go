@@ -66,7 +66,7 @@ func (table *Table) flush() (err error) {
 	data := make(map[string]any)
 	data[tableListKeyName] = table.name
 	data[tableListColumnName] = table.columnsSpecBuf
-	err = table.db.tableList.Replace(data)
+	_, err = table.db.tableList.Replace(data)
 	return
 }
 
@@ -158,7 +158,7 @@ func (table *Table) NextCounterID() (CounterType, error) {
 	return CounterType(table.counter + 1), nil
 }
 
-func (table *Table) Insert(data map[string]any) (err error) {
+func (table *Table) Insert(data map[string]any) (r *Record, err error) {
 	if !debugMode {
 		defer catchError(&err)
 	}
@@ -190,10 +190,18 @@ func (table *Table) Insert(data map[string]any) (err error) {
 		table.counter += 1
 	}
 	err = table.flush()
+	node := avltree.Find(tree, key)
+	if node == nil {
+		bug.Panic("not found node")
+	}
+	r = &Record{
+		table: table,
+		data:  node.Value().(tableTreeValue),
+	}
 	return
 }
 
-func (table *Table) Replace(data map[string]any) (err error) {
+func (table *Table) Replace(data map[string]any) (r *Record, err error) {
 	if !debugMode {
 		defer catchError(&err)
 	}
@@ -209,9 +217,18 @@ func (table *Table) Replace(data map[string]any) (err error) {
 	key := table.getKey(data)
 	_, ok := avltree.Replace(tree, key, tableTreeValue(data))
 	if !ok {
-		return NotFoundKey
+		err = NotFoundKey
+		return
 	}
 	err = tree.flush()
+	node := avltree.Find(tree, key)
+	if node == nil {
+		bug.Panic("not found node")
+	}
+	r = &Record{
+		table: table,
+		data:  node.Value().(tableTreeValue),
+	}
 	return
 }
 
