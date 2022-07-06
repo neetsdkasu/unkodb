@@ -4,6 +4,8 @@
 package unkodb
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 )
@@ -86,6 +88,76 @@ func TestParseStruct(t *testing.T) {
 	_, err = parseData(hoge)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	t.Skip("TEST IS NOT IMPLEMENTED YET")
+}
+
+func TestCreateTableByTag(t *testing.T) {
+	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tempfile.Close()
+
+	db, err := Create(tempfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tc, err := db.CreateTable("foodlist")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	type Food struct {
+		Id    uint32 `unkodb:"id,key@Counter"`
+		Name  string `unkodb:"name,ShortString"`
+		Price int64  `unkodb:"price,Int64"`
+	}
+
+	err = createTableByTag(tc, (*Food)(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	table, err := tc.Create()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	list := []*Food{
+		&Food{
+			Name:  "コロッケ",
+			Price: 130,
+		},
+		&Food{
+			Name:  "からあげ",
+			Price: 150,
+		},
+		&Food{
+			Name:  "みかんゼリー",
+			Price: 160,
+		},
+		&Food{
+			Name:  "ヨーグルト",
+			Price: 140,
+		},
+		&Food{
+			Name:  "板チョコ",
+			Price: 120,
+		},
+	}
+
+	for _, food := range list {
+		data, err := parseData(food)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = table.Insert(data)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	t.Skip("TEST IS NOT IMPLEMENTED YET")

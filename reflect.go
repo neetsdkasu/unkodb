@@ -52,6 +52,10 @@ func createTableByTag(tc *TableCreator, st any) error {
 		if !ok {
 			continue
 		}
+		ft := f.Type
+		for ft.Kind() == reflect.Pointer {
+			ft = ft.Elem()
+		}
 		index := strings.LastIndex(tv, ",")
 		mKey := tv
 		var (
@@ -61,7 +65,7 @@ func createTableByTag(tc *TableCreator, st any) error {
 			err   error
 		)
 		if index < 0 {
-			ct, size, err = inferColumnType(f.Type)
+			ct, size, err = inferColumnType(ft)
 			if err != nil {
 				return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
 			}
@@ -77,8 +81,8 @@ func createTableByTag(tc *TableCreator, st any) error {
 				}
 				hasKey = true
 			}
-			if !canConvertType(f.Type, ct, size) {
-				return TagError{fmt.Errorf("cannot convert type %s to %s (field: %s)", f.Type, ct.GoTypeHint(), f.Name)}
+			if !canConvertToColumnType(ft, ct, size) {
+				return TagError{fmt.Errorf("cannot convert type %s to %s (field: %s)", ft, ct.GoTypeHint(), f.Name)}
 			}
 		}
 		if len(mKey) == 0 {
@@ -304,8 +308,77 @@ func inferColumnType(t reflect.Type) (ct ColumnType, size uint64, err error) {
 	return
 }
 
-func canConvertType(t reflect.Type, ct ColumnType, size uint64) bool {
-	panic("TODO")
+func canConvertToColumnType(t reflect.Type, ct ColumnType, size uint64) (_ bool) {
+	for t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	switch ct {
+	default:
+		bug.Panic("UNREACHABLE")
+	case Counter, Uint32:
+		return t.Kind() == reflect.Uint32 ||
+			t.ConvertibleTo(reflect.TypeOf(uint32(0)))
+	case Int8:
+		return t.Kind() == reflect.Int8 ||
+			t.ConvertibleTo(reflect.TypeOf(int8(0)))
+	case Uint8:
+		return t.Kind() == reflect.Uint8 ||
+			t.ConvertibleTo(reflect.TypeOf(uint8(0)))
+	case Int16:
+		return t.Kind() == reflect.Int16 ||
+			t.ConvertibleTo(reflect.TypeOf(int16(0)))
+	case Uint16:
+		return t.Kind() == reflect.Uint16 ||
+			t.ConvertibleTo(reflect.TypeOf(uint16(0)))
+	case Int32:
+		return t.Kind() == reflect.Int32 ||
+			t.ConvertibleTo(reflect.TypeOf(int32(0)))
+	case Int64:
+		return t.Kind() == reflect.Int64 ||
+			t.ConvertibleTo(reflect.TypeOf(int64(0)))
+	case Uint64:
+		return t.Kind() == reflect.Uint64 ||
+			t.ConvertibleTo(reflect.TypeOf(uint64(0)))
+	case Float32:
+		return t.Kind() == reflect.Float32 ||
+			t.ConvertibleTo(reflect.TypeOf(float32(0)))
+	case Float64:
+		return t.Kind() == reflect.Float64 ||
+			t.ConvertibleTo(reflect.TypeOf(float64(0)))
+	case ShortString, FixedSizeShortString, LongString, FixedSizeLongString, Text:
+		return t.Kind() == reflect.String
+	case ShortBytes:
+		if t.Kind() == reflect.Slice && t.Elem().Kind() == reflect.Uint8 {
+			return true
+		} else if t.Kind() == reflect.Array && t.Elem().Kind() == reflect.Uint8 {
+			return t.Len() <= shortBytesMaximumDataByteSize
+		}
+	case FixedSizeShortBytes:
+		if t.Kind() == reflect.Slice && t.Elem().Kind() == reflect.Uint8 {
+			return true
+		} else if t.Kind() == reflect.Array && t.Elem().Kind() == reflect.Uint8 {
+			return uint64(t.Len()) == size
+		}
+	case LongBytes:
+		if t.Kind() == reflect.Slice && t.Elem().Kind() == reflect.Uint8 {
+			return true
+		} else if t.Kind() == reflect.Array && t.Elem().Kind() == reflect.Uint8 {
+			return t.Len() <= longBytesMaximumDataByteSize
+		}
+	case FixedSizeLongBytes:
+		if t.Kind() == reflect.Slice && t.Elem().Kind() == reflect.Uint8 {
+			return true
+		} else if t.Kind() == reflect.Array && t.Elem().Kind() == reflect.Uint8 {
+			return uint64(t.Len()) == size
+		}
+	case Blob:
+		if t.Kind() == reflect.Slice && t.Elem().Kind() == reflect.Uint8 {
+			return true
+		} else if t.Kind() == reflect.Array && t.Elem().Kind() == reflect.Uint8 {
+			return t.Len() <= blobMaximumDataByteSize
+		}
+	}
+	return
 }
 
 func parseData(data any) (tableTreeValue, error) {
@@ -406,7 +479,7 @@ func parseTagColumnType(s string) (isKey bool, ct ColumnType, size uint64, err e
 	return
 }
 
-func tryConvertValue(v reflect.Value, ct ColumnType, size uint64) (r reflect.Value, ok bool) {
+func tryConvertToColumnValue(v reflect.Value, ct ColumnType, size uint64) (r reflect.Value, ok bool) {
 	for v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			return
@@ -572,9 +645,13 @@ func parseStruct(st any) (tableTreeValue, error) {
 				hasKey = true
 			}
 			mKey = tv[:index]
-			value, ok = tryConvertValue(value, ct, size)
+			value, ok = tryConvertToColumnValue(value, ct, size)
 			if !ok {
-				return nil, TagError{fmt.Errorf("cannot convert type %s to %s (field: %s)", f.Type, ct.GoTypeHint(), f.Name)}
+				ft := f.Type
+				for ft.Kind() == reflect.Pointer {
+					ft = ft.Elem()
+				}
+				return nil, TagError{fmt.Errorf("cannot convert type %s to %s (field: %s)", ft, ct.GoTypeHint(), f.Name)}
 			}
 		}
 		if len(mKey) == 0 {
