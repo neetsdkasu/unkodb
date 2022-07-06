@@ -33,6 +33,8 @@ var (
 	NotFoundKey   = errors.New("NotFoundKey")
 	NotFoundData  = errors.New("NotFoundData")
 	NotFoundTable = errors.New("NotFoundTable")
+
+	CannotAssignValueToField = errors.New("CannotAssignValueToField")
 )
 
 var (

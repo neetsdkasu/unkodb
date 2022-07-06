@@ -4,6 +4,10 @@
 package unkodb
 
 const (
+	structTagKey = "unkodb"
+)
+
+const (
 	invalidColumnType ColumnType = iota
 	Counter
 	Int8

@@ -37,6 +37,126 @@ func init() {
 	}
 }
 
+func fillDataByTag(r *Record, st any) error {
+	v := reflect.ValueOf(st)
+	for v.Kind() == reflect.Pointer {
+		if v.IsNil() {
+			return notStruct
+		}
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return notStruct
+	}
+	for _, f := range reflect.VisibleFields(v.Type()) {
+		tv, ok := f.Tag.Lookup(structTagKey)
+		if !ok {
+			continue
+		}
+		ft := f.Type
+		for ft.Kind() == reflect.Pointer {
+			ft = ft.Elem()
+		}
+		index := strings.LastIndex(tv, ",")
+		mKey := tv
+		var (
+			err  error
+			ct   ColumnType = invalidColumnType
+			size uint64     = 0
+		)
+		if index < 0 {
+			_, _, err = inferColumnType(ft)
+			if err != nil {
+				return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+			}
+		} else {
+			mKey = tv[:index]
+			_, ct, size, err = parseTagColumnType(tv[index+1:])
+			if err != nil {
+				return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+			}
+			if !canConvertToColumnType(ft, ct, size) {
+				return TagError{fmt.Errorf("cannot convert type %s to %s (field: %s)", ft, ct.GoTypeHint(), f.Name)}
+			}
+		}
+		if len(mKey) == 0 {
+			mKey = f.Name
+		}
+		rv, ok := r.Get(mKey)
+		if !ok {
+			return TagError{fmt.Errorf(`not found column "%s" (field: %s)`, mKey, f.Name)}
+		}
+		var col Column
+		if r.table.key.Name() == mKey {
+			col = r.table.key
+		} else {
+			for _, c := range r.table.columns {
+				if c.Name() != mKey {
+					continue
+				}
+				col = c
+				break
+			}
+		}
+		if ct != invalidColumnType {
+			if col.Type() != ct {
+				return TagError{fmt.Errorf("umatch column type (field: %s)", f.Name)}
+			}
+			if size > 0 && size != col.MaximumDataByteSize() {
+				return TagError{fmt.Errorf("umatch column type (field: %s)", f.Name)}
+			}
+		}
+		fv := v.FieldByIndex(f.Index)
+		err = tryFillDataValue(fv, rv, col)
+		if err != nil {
+			return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+		}
+	}
+	return nil
+}
+
+func tryFillDataValue(fv reflect.Value, rv any, col Column) error {
+	for fv.Kind() == reflect.Pointer {
+		if fv.IsNil() {
+			return CannotAssignValueToField
+		}
+		fv = fv.Elem()
+	}
+	if !fv.CanSet() {
+		return CannotAssignValueToField
+	}
+	value := reflect.ValueOf(rv)
+	switch col.Type() {
+	default:
+		bug.Panic("UNREACHABLE")
+	case Counter, Int8, Uint8, Int16, Uint16, Int32, Uint32, Int64, Uint64, Float32, Float64:
+		if fv.Kind() == value.Kind() {
+			fv.Set(value)
+		} else if value.CanConvert(fv.Type()) {
+			fv.Set(value.Convert(fv.Type()))
+		} else {
+			return CannotAssignValueToField
+		}
+	case ShortString, FixedSizeShortString, LongString, FixedSizeLongString, Text:
+		if fv.Kind() == value.Kind() {
+			fv.Set(value)
+		} else {
+			return CannotAssignValueToField
+		}
+	case ShortBytes:
+		panic("TODO")
+	case FixedSizeShortBytes:
+		panic("TODO")
+	case LongBytes:
+		panic("TODO")
+	case FixedSizeLongBytes:
+		panic("TODO")
+	case Blob:
+		panic("TODO")
+	}
+	return nil
+}
+
 func createTableByTag(tc *TableCreator, st any) error {
 	t := reflect.TypeOf(st)
 	for t.Kind() == reflect.Pointer {
@@ -48,7 +168,7 @@ func createTableByTag(tc *TableCreator, st any) error {
 	hasKey := false
 	m := make(map[string]bool)
 	for _, f := range reflect.VisibleFields(t) {
-		tv, ok := f.Tag.Lookup("unkodb")
+		tv, ok := f.Tag.Lookup(structTagKey)
 		if !ok {
 			continue
 		}
@@ -615,7 +735,7 @@ func parseStruct(st any) (tableTreeValue, error) {
 	hasKey := false
 	m := make(tableTreeValue)
 	for _, f := range reflect.VisibleFields(v.Type()) {
-		tv, ok := f.Tag.Lookup("unkodb")
+		tv, ok := f.Tag.Lookup(structTagKey)
 		if !ok {
 			continue
 		}

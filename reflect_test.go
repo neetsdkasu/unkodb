@@ -13,9 +13,9 @@ import (
 func TestParseStruct(t *testing.T) {
 
 	type Food struct {
-		Id    uint32 `unkodb:"id,key@Counter"`
-		Name  string `unkodb:"name,ShortString"`
-		Price int64  `unkodb:"price,Int64"`
+		Id    CounterType `unkodb:"id,key@Counter"`
+		Name  string      `unkodb:"name,ShortString"`
+		Price int64       `unkodb:"price,Int64"`
 	}
 
 	foo := &Food{
@@ -60,27 +60,27 @@ func TestParseStruct(t *testing.T) {
 	}
 
 	type Hoge struct {
-		CounterValue uint32    `unkodb:"key@Counter"`
-		Int8value    int8      `unkodb:"i8,Int8"`
-		Int16value   int16     `unkodb:"i16,Int16"`
-		Int32value   int32     `unkodb:"i32,Int32"`
-		Int64value   int64     `unkodb:"i64,Int64"`
-		Uint8value   uint8     `unkodb:"u8,Uint8"`
-		Uint16value  uint16    `unkodb:"u16,Uint16"`
-		Uint32value  uint32    `unkodb:"u32,Uint32"`
-		Uint64value  uint64    `unkodb:"u64,Uint64"`
-		Float32value float32   `unkodb:"f32,Float32"`
-		Float64value float64   `unkodb:"f64,Float64"`
-		SSvalue      string    `unkodb:"ss,ShortString"`
-		FSSSvalue    string    `unkodb:"fsss,FixedSizeShortString[100]"`
-		LSvalue      string    `unkodb:"ls,LongString"`
-		FSLSvalue    string    `unkodb:"fsls,FixedSizeLongString[300]"`
-		Text         string    `unkodb:"tx,Text"`
-		SBvalue      []byte    `unkodb:"sb,ShortBytes"`
-		FSSBvalue    [20]byte  `unkodb:"fssb,FixedSizeShortBytes[20]"`
-		LBvalue      []byte    `unkodb:"lb,LongBytes"`
-		FSLBvalue    [300]byte `unkodb:"fslb,FixedSizeLongBytes[300]"`
-		Blob         []byte    `unkodb:"bl,Blob"`
+		CounterValue CounterType `unkodb:"key@Counter"`
+		Int8value    int8        `unkodb:"i8,Int8"`
+		Int16value   int16       `unkodb:"i16,Int16"`
+		Int32value   int32       `unkodb:"i32,Int32"`
+		Int64value   int64       `unkodb:"i64,Int64"`
+		Uint8value   uint8       `unkodb:"u8,Uint8"`
+		Uint16value  uint16      `unkodb:"u16,Uint16"`
+		Uint32value  uint32      `unkodb:"u32,Uint32"`
+		Uint64value  uint64      `unkodb:"u64,Uint64"`
+		Float32value float32     `unkodb:"f32,Float32"`
+		Float64value float64     `unkodb:"f64,Float64"`
+		SSvalue      string      `unkodb:"ss,ShortString"`
+		FSSSvalue    string      `unkodb:"fsss,FixedSizeShortString[100]"`
+		LSvalue      string      `unkodb:"ls,LongString"`
+		FSLSvalue    string      `unkodb:"fsls,FixedSizeLongString[300]"`
+		Text         string      `unkodb:"tx,Text"`
+		SBvalue      []byte      `unkodb:"sb,ShortBytes"`
+		FSSBvalue    [20]byte    `unkodb:"fssb,FixedSizeShortBytes[20]"`
+		LBvalue      []byte      `unkodb:"lb,LongBytes"`
+		FSLBvalue    [300]byte   `unkodb:"fslb,FixedSizeLongBytes[300]"`
+		Blob         []byte      `unkodb:"bl,Blob"`
 	}
 
 	hoge := &Hoge{}
@@ -111,7 +111,7 @@ func TestCreateTableByTag(t *testing.T) {
 	}
 
 	type Food struct {
-		Id    uint32 `unkodb:"id,key@Counter"`
+		Id    int    `unkodb:"id,key@Counter"`
 		Name  string `unkodb:"name,ShortString"`
 		Price int64  `unkodb:"price,Int64"`
 	}
@@ -157,6 +157,37 @@ func TestCreateTableByTag(t *testing.T) {
 		_, err = table.Insert(data)
 		if err != nil {
 			t.Fatal(err)
+		}
+	}
+
+	results := []*Food{}
+
+	err = table.IterateAll(func(r *Record) (_ bool) {
+		f := &Food{}
+		e := fillDataByTag(r, f)
+		if e != nil {
+			t.Fatal(e)
+		}
+		results = append(results, f)
+		return
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(list) != len(results) {
+		t.Fatalf("invalid length %d %d", len(list), len(results))
+	}
+
+	for i, res := range results {
+		if i+1 != res.Id {
+			t.Fatalf("invalid id %d %#v", i+1, res)
+		}
+		if list[i].Name != res.Name {
+			t.Fatalf("unmatch Name %s %#v", list[i].Name, res)
+		}
+		if list[i].Price != res.Price {
+			t.Fatalf("unmatch Price %d %#v", list[i].Price, res)
 		}
 	}
 
