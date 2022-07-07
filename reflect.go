@@ -125,11 +125,11 @@ func tryFillDataValue(fv reflect.Value, rv any, col Column) error {
 	if !fv.CanSet() {
 		return CannotAssignValueToField
 	}
-	value := reflect.ValueOf(rv)
 	switch col.Type() {
 	default:
 		bug.Panic("UNREACHABLE")
 	case Counter, Int8, Uint8, Int16, Uint16, Int32, Uint32, Int64, Uint64, Float32, Float64:
+		value := reflect.ValueOf(rv)
 		if fv.Kind() == value.Kind() {
 			fv.Set(value)
 		} else if value.CanConvert(fv.Type()) {
@@ -138,21 +138,26 @@ func tryFillDataValue(fv reflect.Value, rv any, col Column) error {
 			return CannotAssignValueToField
 		}
 	case ShortString, FixedSizeShortString, LongString, FixedSizeLongString, Text:
-		if fv.Kind() == value.Kind() {
-			fv.Set(value)
+		if fv.Kind() == reflect.String {
+			fv.Set(reflect.ValueOf(rv))
 		} else {
 			return CannotAssignValueToField
 		}
-	case ShortBytes:
-		panic("TODO")
-	case FixedSizeShortBytes:
-		panic("TODO")
-	case LongBytes:
-		panic("TODO")
-	case FixedSizeLongBytes:
-		panic("TODO")
-	case Blob:
-		panic("TODO")
+	case ShortBytes, FixedSizeShortBytes, LongBytes, FixedSizeLongBytes, Blob:
+		if fv.Kind() == reflect.Slice && fv.Type().Elem().Kind() == reflect.Uint8 {
+			// 本当にこれコピーする必要あるの？これ無駄処理ぽそう
+			buf := append(fv.Bytes()[:0], rv.([]byte)...)
+			fv.SetBytes(buf)
+		} else if fv.Kind() == reflect.Array && fv.Type().Elem().Kind() == reflect.Uint8 {
+			if fv.Len() == len(rv.([]byte)) {
+				// 固定長配列へのコピーを許容するのはアリなの？
+				copy(fv.Slice(0, fv.Len()).Bytes(), rv.([]byte))
+			} else {
+				return CannotAssignValueToField
+			}
+		} else {
+			return CannotAssignValueToField
+		}
 	}
 	return nil
 }

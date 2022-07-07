@@ -4,6 +4,7 @@
 package unkodb
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -111,9 +112,11 @@ func TestCreateTableByTag(t *testing.T) {
 	}
 
 	type Food struct {
-		Id    int    `unkodb:"id,key@Counter"`
-		Name  string `unkodb:"name,ShortString"`
-		Price int64  `unkodb:"price,Int64"`
+		Id    int     `unkodb:"id,key@Counter"`
+		Name  string  `unkodb:"name,ShortString"`
+		Price int64   `unkodb:"price,Int64"`
+		B1    []byte  `unkodb:"b1,ShortBytes"`
+		B2    [3]byte `unkodb:"b2,FixedSizeShortBytes[3]"`
 	}
 
 	err = createTableByTag(tc, (*Food)(nil))
@@ -130,22 +133,32 @@ func TestCreateTableByTag(t *testing.T) {
 		&Food{
 			Name:  "コロッケ",
 			Price: 130,
+			B1:    []byte{1, 0, 3, 0, 4, 0},
+			B2:    [3]byte{0, 3, 1},
 		},
 		&Food{
 			Name:  "からあげ",
 			Price: 150,
+			B1:    []byte{1, 0, 5, 0, 6, 0},
+			B2:    [3]byte{0, 5, 1},
 		},
 		&Food{
 			Name:  "みかんゼリー",
 			Price: 160,
+			B1:    []byte{1, 0, 6, 0, 7, 0},
+			B2:    [3]byte{0, 6, 1},
 		},
 		&Food{
 			Name:  "ヨーグルト",
 			Price: 140,
+			B1:    []byte{1, 0, 4, 0, 5, 0},
+			B2:    [3]byte{0, 4, 1},
 		},
 		&Food{
 			Name:  "板チョコ",
 			Price: 120,
+			B1:    []byte{1, 0, 2, 0, 3, 0},
+			B2:    [3]byte{0, 2, 1},
 		},
 	}
 
@@ -188,6 +201,12 @@ func TestCreateTableByTag(t *testing.T) {
 		}
 		if list[i].Price != res.Price {
 			t.Fatalf("unmatch Price %d %#v", list[i].Price, res)
+		}
+		if !bytes.Equal(list[i].B1, res.B1) {
+			t.Fatalf("unmatch B1 %v %#v", list[i].B1, res)
+		}
+		if !bytes.Equal(list[i].B2[:], res.B2[:]) {
+			t.Fatalf("unmatch B2 %v %#v", list[i].B2, res)
 		}
 	}
 
