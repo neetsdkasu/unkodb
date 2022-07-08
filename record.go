@@ -29,3 +29,11 @@ func (r *Record) Column(name string) any {
 		return nil
 	}
 }
+
+func (r *Record) Columns() []any {
+	list := make([]any, len(r.table.columns))
+	for i, col := range r.table.columns {
+		list[i] = r.data[col.Name()]
+	}
+	return list
+}

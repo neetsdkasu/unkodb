@@ -25,7 +25,7 @@ func TestParseStruct(t *testing.T) {
 		Price: 800,
 	}
 
-	m, err := parseData(foo)
+	m, err := parseData(nil, foo)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func TestParseStruct(t *testing.T) {
 		t.Fatalf("unmatch %#v, %#v", m, data)
 	}
 
-	_, err = parseData((*Food)(nil))
+	_, err = parseData(nil, (*Food)(nil))
 	if err != NotFoundData {
 		t.Fatal(err)
 	}
@@ -48,7 +48,7 @@ func TestParseStruct(t *testing.T) {
 	boo["id"] = 10
 	boo["point"] = 120
 	boo["count"] = 50
-	if bm, err := parseData(boo); err != nil {
+	if bm, err := parseData(nil, boo); err != nil {
 		t.Fatal(err)
 	} else {
 		mm := make(tableTreeValue)
@@ -86,7 +86,7 @@ func TestParseStruct(t *testing.T) {
 
 	hoge := &Hoge{}
 
-	_, err = parseData(hoge)
+	_, err = parseData(nil, hoge)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,7 +119,7 @@ func TestCreateTableByTag(t *testing.T) {
 		B2    [3]byte `unkodb:"b2,FixedSizeShortBytes[3]"`
 	}
 
-	err = createTableByTag(tc, (*Food)(nil))
+	err = createTableByTaggedStruct(tc, (*Food)(nil))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +163,7 @@ func TestCreateTableByTag(t *testing.T) {
 	}
 
 	for _, food := range list {
-		data, err := parseData(food)
+		data, err := parseData(table, food)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -177,7 +177,7 @@ func TestCreateTableByTag(t *testing.T) {
 
 	err = table.IterateAll(func(r *Record) (_ bool) {
 		f := &Food{}
-		e := fillDataByTag(r, f)
+		e := fillDataToTaggedStruct(r, f)
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -207,6 +207,83 @@ func TestCreateTableByTag(t *testing.T) {
 		}
 		if !bytes.Equal(list[i].B2[:], res.B2[:]) {
 			t.Fatalf("unmatch B2 %v %#v", list[i].B2, res)
+		}
+	}
+
+	t.Skip("TEST IS NOT IMPLEMENTED YET")
+}
+
+func TestParseDataStruct(t *testing.T) {
+	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tempfile.Close()
+
+	db, err := Create(tempfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tc, err := db.CreateTable("foodlist")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	type Food struct {
+		Id    int    `unkodb:"id,key@Counter"`
+		Name  string `unkodb:"name,ShortString"`
+		Price int64  `unkodb:"price,Int64"`
+	}
+
+	err = createTableByTaggedStruct(tc, (*Food)(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	table, err := tc.Create()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	list := []*Data{
+		&Data{
+			Key: CounterType(1),
+			Columns: []any{
+				"apple",
+				int64(123),
+			},
+		},
+		&Data{
+			Key: CounterType(2),
+			Columns: []any{
+				"orange",
+				int64(456),
+			},
+		},
+		&Data{
+			Key: CounterType(3),
+			Columns: []any{
+				"pine",
+				int64(999),
+			},
+		},
+	}
+
+	for _, d := range list {
+		m := parseDataStruct(table, d)
+		if m == nil {
+			t.Fatalf("empty %#v", d)
+		}
+		r, err := table.Insert(m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(d.Key, r.Key()) {
+			t.Fatalf("umnatch key %#v %#v", d.Key, r.Key())
+		}
+		if !reflect.DeepEqual(d.Columns, r.Columns()) {
+			t.Fatalf("umnatch column name %#v %#v", d.Columns, r.Columns())
 		}
 	}
 

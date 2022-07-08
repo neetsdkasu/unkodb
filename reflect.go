@@ -10,6 +10,11 @@ import (
 	"strings"
 )
 
+type Data struct {
+	Key     any
+	Columns []any
+}
+
 var simpleColumnTypes = make(map[string]ColumnType)
 
 func init() {
@@ -37,7 +42,34 @@ func init() {
 	}
 }
 
-func fillDataByTag(r *Record, st any) error {
+func fillData(r *Record, dst any) (err error) {
+	if dst == nil {
+		// TODO 適切なエラーに直す
+		err = NotFoundData
+		return
+	}
+	if m, ok := dst.(tableTreeValue); ok {
+		for k, v := range r.data {
+			m[k] = v
+		}
+		return
+	}
+	if err = fillDataToDataStruct(r, dst); err != notStruct {
+		return
+	}
+	if err = fillDataToTaggedStruct(r, dst); err != notStruct {
+		return
+	}
+	err = nil
+	// TODO parseDataのMapの逆をやる？
+	return
+}
+
+func fillDataToDataStruct(r *Record, st any) error {
+	panic("TODO")
+}
+
+func fillDataToTaggedStruct(r *Record, st any) error {
 	v := reflect.ValueOf(st)
 	for v.Kind() == reflect.Pointer {
 		if v.IsNil() {
@@ -162,7 +194,7 @@ func tryFillDataValue(fv reflect.Value, rv any, col Column) error {
 	return nil
 }
 
-func createTableByTag(tc *TableCreator, st any) error {
+func createTableByTaggedStruct(tc *TableCreator, st any) error {
 	t := reflect.TypeOf(st)
 	for t.Kind() == reflect.Pointer {
 		t = t.Elem()
@@ -506,14 +538,17 @@ func canConvertToColumnType(t reflect.Type, ct ColumnType, size uint64) (_ bool)
 	return
 }
 
-func parseData(data any) (tableTreeValue, error) {
+func parseData(table *Table, data any) (tableTreeValue, error) {
 	if data == nil {
 		return nil, NotFoundData
 	}
 	if m, ok := data.(tableTreeValue); ok {
 		return m, nil
 	}
-	if m, err := parseStruct(data); err != notStruct {
+	if m := parseDataStruct(table, data); m != nil {
+		return m, nil
+	}
+	if m, err := parseTaggedStruct(data); err != notStruct {
 		return m, err
 	}
 	v := reflect.ValueOf(data)
@@ -543,6 +578,28 @@ func parseData(data any) (tableTreeValue, error) {
 		}
 	}
 	return r, nil
+}
+
+func parseDataStruct(table *Table, data any) tableTreeValue {
+	v := reflect.ValueOf(data)
+	for v.Kind() == reflect.Pointer {
+		if v.IsNil() {
+			return nil
+		}
+		v = v.Elem()
+	}
+	d, ok := v.Interface().(Data)
+	if !ok {
+		return nil
+	}
+	m := make(tableTreeValue)
+	m[table.key.Name()] = d.Key
+	for i, col := range table.columns {
+		if i < len(d.Columns) {
+			m[col.Name()] = d.Columns[i]
+		}
+	}
+	return m
 }
 
 func parseTagColumnType(s string) (isKey bool, ct ColumnType, size uint64, err error) {
@@ -725,7 +782,7 @@ func tryConvertToColumnValue(v reflect.Value, ct ColumnType, size uint64) (r ref
 	return
 }
 
-func parseStruct(st any) (tableTreeValue, error) {
+func parseTaggedStruct(st any) (tableTreeValue, error) {
 	v := reflect.ValueOf(st)
 	for v.Kind() == reflect.Pointer {
 		// forじゃなくifがいいのだろうか・・・・？
