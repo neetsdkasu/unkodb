@@ -66,7 +66,36 @@ func fillData(r *Record, dst any) (err error) {
 }
 
 func fillDataToDataStruct(r *Record, st any) error {
-	panic("TODO")
+	if st == nil {
+		return notStruct
+	}
+	v := reflect.ValueOf(st)
+	if v.Kind() != reflect.Pointer {
+		return notStruct
+	}
+	dt := reflect.TypeOf((*Data)(nil))
+	for v.Kind() == reflect.Pointer {
+		if v.Type() == dt {
+			break
+		}
+		v = v.Elem()
+	}
+	if v.Type() != dt {
+		return notStruct
+	}
+	if v.IsNil() {
+		v.Set(reflect.ValueOf(new(Data)))
+	}
+	d := v.Interface().(*Data)
+	d.Key = r.table.key.copyValue(r.Key())
+	if d.Columns != nil {
+		d.Columns = d.Columns[:0]
+	}
+	for _, col := range r.table.columns {
+		cv := col.copyValue(r.Column(col.Name()))
+		d.Columns = append(d.Columns, cv)
+	}
+	return nil
 }
 
 func fillDataToTaggedStruct(r *Record, st any) error {

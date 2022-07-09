@@ -189,6 +189,9 @@ type Column interface {
 
 	// レコードバッファへのデータの書き込み
 	write(encoder *byteEncoder, value any) (err error)
+
+	// データコピーを生成
+	copyValue(value any) (copiedVale any)
 }
 
 type keyColumn interface {
@@ -271,6 +274,10 @@ func (*intColumn[T]) write(encoder *byteEncoder, value any) (err error) {
 	return
 }
 
+func (*intColumn[T]) copyValue(value any) any {
+	return value
+}
+
 func (*intColumn[T]) toKey(value any) (_ avltree.Key) {
 	if v, ok := value.(T); ok {
 		return intKey[T](v)
@@ -330,6 +337,10 @@ func (*counterColumn) write(encoder *byteEncoder, value any) (err error) {
 		bug.Panicf("counterColumn.write: value type is not uint32 (value: %T %#v)", value, value)
 	}
 	return
+}
+
+func (*counterColumn) copyValue(value any) any {
+	return value
 }
 
 func (*counterColumn) toKey(value any) (_ avltree.Key) {
@@ -403,6 +414,10 @@ func (*floatColumn[T]) write(encoder *byteEncoder, value any) (err error) {
 	return
 }
 
+func (*floatColumn[T]) copyValue(value any) any {
+	return value
+}
+
 type shortStringColumn struct {
 	name string
 }
@@ -471,6 +486,10 @@ func (*shortStringColumn) write(encoder *byteEncoder, value any) (err error) {
 		bug.Panicf("shortStringColumn.write: value type is not string (value: %T %#v)", value, value)
 	}
 	return
+}
+
+func (*shortStringColumn) copyValue(value any) any {
+	return value
 }
 
 func (*shortStringColumn) toKey(value any) (_ avltree.Key) {
@@ -546,6 +565,10 @@ func (c *fixedSizeShortStringColumn) write(encoder *byteEncoder, value any) (err
 		bug.Panicf("fixedSizeShortStringColumn.write: value type is not string (value: %T %#v)", value, value)
 	}
 	return
+}
+
+func (*fixedSizeShortStringColumn) copyValue(value any) any {
+	return value
 }
 
 func (c *fixedSizeShortStringColumn) toKey(value any) (_ avltree.Key) {
@@ -636,6 +659,10 @@ func (*longStringColumn) write(encoder *byteEncoder, value any) (err error) {
 	return
 }
 
+func (*longStringColumn) copyValue(value any) any {
+	return value
+}
+
 type fixedSizeLongStringColumn struct {
 	name string
 	size uint16
@@ -700,6 +727,10 @@ func (c *fixedSizeLongStringColumn) write(encoder *byteEncoder, value any) (err 
 		bug.Panicf("fixedSizeLongStringColumn.write: value type is not string (value: %T %#v)", value, value)
 	}
 	return
+}
+
+func (*fixedSizeLongStringColumn) copyValue(value any) any {
+	return value
 }
 
 type textColumn struct {
@@ -772,6 +803,10 @@ func (*textColumn) write(encoder *byteEncoder, value any) (err error) {
 	return
 }
 
+func (*textColumn) copyValue(value any) any {
+	return value
+}
+
 type shortBytesColumn struct {
 	name string
 }
@@ -839,6 +874,17 @@ func (*shortBytesColumn) write(encoder *byteEncoder, value any) (err error) {
 	return
 }
 
+func (*shortBytesColumn) copyValue(value any) (_ any) {
+	if s, ok := value.([]byte); ok {
+		r := make([]byte, len(s))
+		copy(r, s)
+		return r
+	} else {
+		bug.Panicf("shortBytesColumn.copyValue: value type is not []byte (value: %T %#v)", value, value)
+		return
+	}
+}
+
 func (*shortBytesColumn) toKey(value any) (_ avltree.Key) {
 	if s, ok := value.([]byte); ok {
 		return bytesKey(s)
@@ -904,6 +950,17 @@ func (c *fixedSizeShortBytesColumn) write(encoder *byteEncoder, value any) (err 
 		bug.Panicf("fixedSizeShortBytesColumn.write: value type is not []byte (value: %T %#v)", value, value)
 	}
 	return
+}
+
+func (c *fixedSizeShortBytesColumn) copyValue(value any) (_ any) {
+	if s, ok := value.([]byte); ok {
+		r := make([]byte, c.size)
+		copy(r, s)
+		return r
+	} else {
+		bug.Panicf("fixedSizeShortBytesColumn.copyValue: value type is not []byte (value: %T %#v)", value, value)
+		return
+	}
 }
 
 func (c *fixedSizeShortBytesColumn) toKey(value any) (_ avltree.Key) {
@@ -984,6 +1041,17 @@ func (*longBytesColumn) write(encoder *byteEncoder, value any) (err error) {
 	return
 }
 
+func (*longBytesColumn) copyValue(value any) (_ any) {
+	if s, ok := value.([]byte); ok {
+		r := make([]byte, len(s))
+		copy(r, s)
+		return r
+	} else {
+		bug.Panicf("longBytesColumn.copyValue: value type is not []byte (value: %T %#v)", value, value)
+		return
+	}
+}
+
 type fixedSizeLongBytesColumn struct {
 	name string
 	size uint16
@@ -1040,6 +1108,17 @@ func (c *fixedSizeLongBytesColumn) write(encoder *byteEncoder, value any) (err e
 		bug.Panicf("fixedSizeLongBytesColumn.write: value type is not []byte (value: %T %#v)", value, value)
 	}
 	return
+}
+
+func (c *fixedSizeLongBytesColumn) copyValue(value any) (_ any) {
+	if s, ok := value.([]byte); ok {
+		r := make([]byte, c.size)
+		copy(r, s)
+		return r
+	} else {
+		bug.Panicf("fixedSizeLongBytesColumn.copyValue: value type is not []byte (value: %T %#v)", value, value)
+		return
+	}
 }
 
 type blobColumn struct {
@@ -1107,4 +1186,15 @@ func (*blobColumn) write(encoder *byteEncoder, value any) (err error) {
 		bug.Panicf("blobColumn.write: value type is not []byte (value: %T %#v)", value, value)
 	}
 	return
+}
+
+func (*blobColumn) copyValue(value any) (_ any) {
+	if s, ok := value.([]byte); ok {
+		r := make([]byte, len(s))
+		copy(r, s)
+		return r
+	} else {
+		bug.Panicf("blobColumn.copyValue: value type is not []byte (value: %T %#v)", value, value)
+		return
+	}
 }
