@@ -80,12 +80,22 @@ func fillDataToDataStruct(r *Record, st any) error {
 		}
 		v = v.Elem()
 	}
-	if v.Type() != dt {
+	if v.Kind() != reflect.Pointer {
 		return notStruct
 	}
 	if v.IsNil() {
+		if !v.CanSet() {
+			return notStruct
+		}
 		v.Set(reflect.ValueOf(new(Data)))
 	}
+	// fillDataToTaggedStruct/tryFillDataValueでは
+	// byteスライスが存在する場合は再利用するのに
+	// こちらでは別にコピーを生成して代入して、元のスライスを破棄してしまってる
+	// 例えば
+	//  copy(d.Columns[0].([]byte), r.Columns[0])
+	// などとした場合、サイズが合わなければ結局割り当てなおしが必要なわけで…
+	// 普通に最初からコピーの割り当てでもいいか
 	d := v.Interface().(*Data)
 	d.Key = r.table.key.copyValue(r.Key())
 	if d.Columns != nil {

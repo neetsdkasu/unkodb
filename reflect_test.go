@@ -369,5 +369,11 @@ func TestFillDataToDataStruct(t *testing.T) {
 		t.Fatal("unmatch name")
 	}
 
+	var z ***Data
+	err = fillDataToDataStruct(r, &z)
+	if err != notStruct {
+		t.Fatal("not notStruct")
+	}
+
 	t.Skip("TEST IS NOT IMPLEMENTED YET")
 }
