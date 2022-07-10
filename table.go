@@ -29,6 +29,18 @@ func (table *Table) Key() Column {
 	return table.key
 }
 
+func (table *Table) Column(name string) Column {
+	if table.key.Name() == name {
+		return table.key
+	}
+	for _, col := range table.columns {
+		if col.Name() == name {
+			return col
+		}
+	}
+	return nil
+}
+
 func (table *Table) Columns() []Column {
 	columns := make([]Column, len(table.columns))
 	copy(columns, table.columns)

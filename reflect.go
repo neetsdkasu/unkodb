@@ -49,8 +49,26 @@ func fillData(r *Record, dst any) (err error) {
 		return
 	}
 	if m, ok := dst.(tableTreeValue); ok {
-		for k, v := range r.data {
-			m[k] = v
+		if m == nil {
+			// TODO 適切なエラーに直す
+			err = NotFoundData
+		} else {
+			m[r.table.key.Name()] = r.table.key.copyValue(r.Key())
+			for _, col := range r.table.columns {
+				m[col.Name()] = col.copyValue(r.Column(col.Name()))
+			}
+		}
+		return
+	}
+	if ap, ok := dst.(*any); ok {
+		if ap == nil {
+			// TODO 適切なエラーに直す
+			err = NotFoundData
+		} else {
+			if *ap == nil {
+				*ap = make(tableTreeValue)
+			}
+			err = fillData(r, *ap)
 		}
 		return
 	}
@@ -60,8 +78,40 @@ func fillData(r *Record, dst any) (err error) {
 	if err = fillDataToTaggedStruct(r, dst); err != notStruct {
 		return
 	}
+	v := reflect.ValueOf(dst)
+	if v.Kind() == reflect.Pointer {
+		if v.IsNil() {
+			// TODO 適切なエラーに直す
+			err = NotFoundData
+		} else {
+			err = fillData(r, v.Elem().Interface())
+		}
+		return
+	}
+	if v.Kind() != reflect.Map || v.IsNil() || !v.CanSet() {
+		// TODO 適切なエラーに直す
+		err = NotFoundData
+		return
+	}
+	if v.Type().Key() != reflect.TypeOf("") {
+		// TODO 適切なエラーに直す
+		err = NotFoundData
+		return
+	}
+	et := v.Type().Elem()
+	for _, value := range r.data {
+		if !reflect.ValueOf(value).CanConvert(et) {
+			// TODO 適切なエラーに直す
+			err = NotFoundData
+			return
+		}
+	}
+	for name, value := range r.data {
+		value = r.table.Column(name).copyValue(value)
+		cv := reflect.ValueOf(value).Convert(et)
+		v.SetMapIndex(reflect.ValueOf(name), cv)
+	}
 	err = nil
-	// TODO parseDataのMapの逆をやる？
 	return
 }
 
@@ -77,6 +127,9 @@ func fillDataToDataStruct(r *Record, st any) error {
 	for v.Kind() == reflect.Pointer {
 		if v.Type() == dt {
 			break
+		}
+		if v.IsNil() {
+			return notStruct
 		}
 		v = v.Elem()
 	}
