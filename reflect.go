@@ -108,11 +108,28 @@ func fillDataToDataStruct(r *Record, st any) error {
 	return nil
 }
 
+func isTaggedStruct(t reflect.Type) bool {
+	if t.Kind() != reflect.Struct {
+		return false
+	}
+	for _, f := range reflect.VisibleFields(t) {
+		_, ok := f.Tag.Lookup(structTagKey)
+		if ok {
+			return true
+		}
+	}
+	return false
+}
+
 func fillDataToTaggedStruct(r *Record, st any) error {
 	v := reflect.ValueOf(st)
 	for v.Kind() == reflect.Pointer {
 		if v.IsNil() {
-			return notStruct
+			if isTaggedStruct(v.Type().Elem()) && v.CanSet() {
+				v.Set(reflect.New(v.Type().Elem()))
+			} else {
+				return notStruct
+			}
 		}
 		v = v.Elem()
 	}

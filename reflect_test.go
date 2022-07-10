@@ -280,10 +280,10 @@ func TestParseDataStruct(t *testing.T) {
 			t.Fatal(err)
 		}
 		if !reflect.DeepEqual(d.Key, r.Key()) {
-			t.Fatalf("umnatch key %#v %#v", d.Key, r.Key())
+			t.Fatalf("unmatch key %#v %#v", d.Key, r.Key())
 		}
 		if !reflect.DeepEqual(d.Columns, r.Columns()) {
-			t.Fatalf("umnatch column name %#v %#v", d.Columns, r.Columns())
+			t.Fatalf("unmatch column name %#v %#v", d.Columns, r.Columns())
 		}
 	}
 
@@ -348,7 +348,7 @@ func TestFillDataToDataStruct(t *testing.T) {
 		t.Fatal("unmatch name")
 	}
 	if x.Columns[1].(int64) != 123 {
-		t.Fatal("unmatch name")
+		t.Fatal("unmatch price")
 	}
 
 	var y Data
@@ -366,11 +366,93 @@ func TestFillDataToDataStruct(t *testing.T) {
 		t.Fatal("unmatch name")
 	}
 	if y.Columns[1].(int64) != 123 {
-		t.Fatal("unmatch name")
+		t.Fatal("unmatch price")
 	}
 
 	var z ***Data
 	err = fillDataToDataStruct(r, &z)
+	if err != notStruct {
+		t.Fatal("not notStruct")
+	}
+
+	t.Skip("TEST IS NOT IMPLEMENTED YET")
+}
+
+func TestFillDataToTaggedStruct(t *testing.T) {
+	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tempfile.Close()
+
+	db, err := Create(tempfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tc, err := db.CreateTable("foodlist")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	type Food struct {
+		Id    CounterType `unkodb:"id,key@Counter"`
+		Name  string      `unkodb:"name,ShortString"`
+		Price int64       `unkodb:"price,Int64"`
+	}
+
+	err = createTableByTaggedStruct(tc, (*Food)(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	table, err := tc.Create()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := make(tableTreeValue)
+	data["id"] = CounterType(0)
+	data["name"] = "Apple"
+	data["price"] = int64(123)
+
+	r, err := table.Insert(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var x *Food
+	err = fillDataToTaggedStruct(r, &x)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if x.Id != 1 {
+		t.Fatal("unmatch id")
+	}
+	if x.Name != "Apple" {
+		t.Fatal("unmatch name")
+	}
+	if x.Price != 123 {
+		t.Fatal("unmatch price")
+	}
+
+	var y Food
+	err = fillDataToTaggedStruct(r, &y)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if y.Id != 1 {
+		t.Fatal("unmatch id")
+	}
+	if y.Name != "Apple" {
+		t.Fatal("unmatch name")
+	}
+	if y.Price != 123 {
+		t.Fatal("unmatch price")
+	}
+
+	var z ***Food
+	err = fillDataToTaggedStruct(r, &z)
 	if err != notStruct {
 		t.Fatal("not notStruct")
 	}
