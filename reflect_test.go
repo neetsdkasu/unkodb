@@ -213,6 +213,125 @@ func TestCreateTableByTag(t *testing.T) {
 	t.Skip("TEST IS NOT IMPLEMENTED YET")
 }
 
+func TestMoveDataToTaggedStruct(t *testing.T) {
+	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tempfile.Close()
+
+	db, err := Create(tempfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tc, err := db.CreateTable("foodlist")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	type Food struct {
+		Id    int     `unkodb:"id,key@Counter"`
+		Name  string  `unkodb:"name,ShortString"`
+		Price int64   `unkodb:"price,Int64"`
+		B1    []byte  `unkodb:"b1,ShortBytes"`
+		B2    [3]byte `unkodb:"b2,FixedSizeShortBytes[3]"`
+	}
+
+	err = createTableByTaggedStruct(tc, (*Food)(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	table, err := tc.Create()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	list := []*Food{
+		&Food{
+			Name:  "コロッケ",
+			Price: 130,
+			B1:    []byte{1, 0, 3, 0, 4, 0},
+			B2:    [3]byte{0, 3, 1},
+		},
+		&Food{
+			Name:  "からあげ",
+			Price: 150,
+			B1:    []byte{1, 0, 5, 0, 6, 0},
+			B2:    [3]byte{0, 5, 1},
+		},
+		&Food{
+			Name:  "みかんゼリー",
+			Price: 160,
+			B1:    []byte{1, 0, 6, 0, 7, 0},
+			B2:    [3]byte{0, 6, 1},
+		},
+		&Food{
+			Name:  "ヨーグルト",
+			Price: 140,
+			B1:    []byte{1, 0, 4, 0, 5, 0},
+			B2:    [3]byte{0, 4, 1},
+		},
+		&Food{
+			Name:  "板チョコ",
+			Price: 120,
+			B1:    []byte{1, 0, 2, 0, 3, 0},
+			B2:    [3]byte{0, 2, 1},
+		},
+	}
+
+	for _, food := range list {
+		data, err := parseData(table, food)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = table.Insert(data)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	results := []*Food{}
+
+	err = table.IterateAll(func(r *Record) (_ bool) {
+		f := &Food{}
+		e := moveDataToTaggedStruct(r, f)
+		if e != nil {
+			t.Fatal(e)
+		}
+		results = append(results, f)
+		return
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(list) != len(results) {
+		t.Fatalf("invalid length %d %d", len(list), len(results))
+	}
+
+	for i, res := range results {
+		if i+1 != res.Id {
+			t.Fatalf("invalid id %d %#v", i+1, res)
+		}
+		if list[i].Name != res.Name {
+			t.Fatalf("unmatch Name %s %#v", list[i].Name, res)
+		}
+		if list[i].Price != res.Price {
+			t.Fatalf("unmatch Price %d %#v", list[i].Price, res)
+		}
+		if !bytes.Equal(list[i].B1, res.B1) {
+			t.Fatalf("unmatch B1 %v %#v", list[i].B1, res)
+		}
+		if !bytes.Equal(list[i].B2[:], res.B2[:]) {
+			t.Fatalf("unmatch B2 %v %#v", list[i].B2, res)
+		}
+	}
+
+	t.Skip("TEST IS NOT IMPLEMENTED YET")
+}
+
 func TestParseDataStruct(t *testing.T) {
 	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
 	if err != nil {
@@ -285,6 +404,94 @@ func TestParseDataStruct(t *testing.T) {
 		if !reflect.DeepEqual(d.Columns, r.Columns()) {
 			t.Fatalf("unmatch column name %#v %#v", d.Columns, r.Columns())
 		}
+	}
+
+	t.Skip("TEST IS NOT IMPLEMENTED YET")
+}
+
+func TestMoveDataToDataStruct(t *testing.T) {
+	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tempfile.Close()
+
+	db, err := Create(tempfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tc, err := db.CreateTable("foodlist")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	type Food struct {
+		Id    int    `unkodb:"id,key@Counter"`
+		Name  string `unkodb:"name,ShortString"`
+		Price int64  `unkodb:"price,Int64"`
+	}
+
+	err = createTableByTaggedStruct(tc, (*Food)(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	table, err := tc.Create()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := make(tableTreeValue)
+	data["id"] = CounterType(0)
+	data["name"] = "Apple"
+	data["price"] = int64(123)
+
+	r, err := table.Insert(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var x *Data
+	err = moveDataToDataStruct(r, &x)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if x.Key.(CounterType) != 1 {
+		t.Fatal("unmatch key")
+	}
+	if len(x.Columns) != 2 {
+		t.Fatal("unmatch len")
+	}
+	if x.Columns[0].(string) != "Apple" {
+		t.Fatal("unmatch name")
+	}
+	if x.Columns[1].(int64) != 123 {
+		t.Fatal("unmatch price")
+	}
+
+	var y Data
+	err = moveDataToDataStruct(r, &y)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if y.Key.(CounterType) != 1 {
+		t.Fatal("unmatch key")
+	}
+	if len(y.Columns) != 2 {
+		t.Fatal("unmatch len")
+	}
+	if y.Columns[0].(string) != "Apple" {
+		t.Fatal("unmatch name")
+	}
+	if y.Columns[1].(int64) != 123 {
+		t.Fatal("unmatch price")
+	}
+
+	var z ***Data
+	err = moveDataToDataStruct(r, &z)
+	if err != notStruct {
+		t.Fatal("not notStruct")
 	}
 
 	t.Skip("TEST IS NOT IMPLEMENTED YET")

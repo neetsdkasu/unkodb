@@ -42,6 +42,76 @@ func init() {
 	}
 }
 
+func moveData(r *Record, dst any) (err error) {
+	if dst == nil {
+		// TODO 適切なエラーに直す
+		err = NotFoundData
+		return
+	}
+	if m, ok := dst.(tableTreeValue); ok {
+		if m == nil {
+			// TODO 適切なエラーに直す
+			err = NotFoundData
+		} else {
+			for name, value := range r.data {
+				m[name] = value
+			}
+		}
+		return
+	}
+	if ap, ok := dst.(*any); ok {
+		if ap == nil {
+			// TODO 適切なエラーに直す
+			err = NotFoundData
+		} else if *ap == nil {
+			*ap = r.data
+		} else {
+			err = moveData(r, *ap)
+		}
+		return
+	}
+	if err = moveDataToDataStruct(r, dst); err != notStruct {
+		return
+	}
+	if err = moveDataToTaggedStruct(r, dst); err != notStruct {
+		return
+	}
+	v := reflect.ValueOf(dst)
+	if v.Kind() == reflect.Pointer {
+		if v.IsNil() {
+			// TODO 適切なエラーに直す
+			err = NotFoundData
+		} else {
+			err = moveData(r, v.Elem().Interface())
+		}
+		return
+	}
+	if v.Kind() != reflect.Map || v.IsNil() || !v.CanSet() {
+		// TODO 適切なエラーに直す
+		err = NotFoundData
+		return
+	}
+	if v.Type().Key() != reflect.TypeOf("") {
+		// TODO 適切なエラーに直す
+		err = NotFoundData
+		return
+	}
+	et := v.Type().Elem()
+	for _, value := range r.data {
+		if !reflect.ValueOf(value).CanConvert(et) {
+			// TODO 適切なエラーに直す
+			err = NotFoundData
+			return
+		}
+	}
+	for name, value := range r.data {
+		cv := reflect.ValueOf(value).Convert(et)
+		v.SetMapIndex(reflect.ValueOf(name), cv)
+	}
+	err = nil
+	return
+}
+
 func fillData(r *Record, dst any) (err error) {
 	if dst == nil {
 		// TODO 適切なエラーに直す
@@ -115,6 +185,51 @@ func fillData(r *Record, dst any) (err error) {
 	return
 }
 
+func moveDataToDataStruct(r *Record, st any) error {
+	if st == nil {
+		return notStruct
+	}
+	v := reflect.ValueOf(st)
+	if v.Kind() != reflect.Pointer {
+		return notStruct
+	}
+	dt := reflect.TypeOf((*Data)(nil))
+	for v.Kind() == reflect.Pointer {
+		if v.Type() == dt {
+			break
+		}
+		if v.IsNil() {
+			return notStruct
+		}
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Pointer {
+		return notStruct
+	}
+	if v.IsNil() {
+		if !v.CanSet() {
+			return notStruct
+		}
+		v.Set(reflect.ValueOf(new(Data)))
+	}
+	// fillDataToTaggedStruct/tryFillDataValueでは
+	// byteスライスが存在する場合は再利用するのに
+	// こちらでは別にコピーを生成して代入して、元のスライスを破棄してしまってる
+	// 例えば
+	//  copy(d.Columns[0].([]byte), r.Columns[0])
+	// などとした場合、サイズが合わなければ結局割り当てなおしが必要なわけで…
+	// 普通に最初からコピーの割り当てでもいいか
+	d := v.Interface().(*Data)
+	d.Key = r.Key()
+	if d.Columns != nil {
+		d.Columns = d.Columns[:0]
+	}
+	for _, col := range r.table.columns {
+		d.Columns = append(d.Columns, r.Column(col.Name()))
+	}
+	return nil
+}
+
 func fillDataToDataStruct(r *Record, st any) error {
 	if st == nil {
 		return notStruct
@@ -172,6 +287,88 @@ func isTaggedStruct(t reflect.Type) bool {
 		}
 	}
 	return false
+}
+
+func moveDataToTaggedStruct(r *Record, st any) error {
+	v := reflect.ValueOf(st)
+	for v.Kind() == reflect.Pointer {
+		if v.IsNil() {
+			if isTaggedStruct(v.Type().Elem()) && v.CanSet() {
+				v.Set(reflect.New(v.Type().Elem()))
+			} else {
+				return notStruct
+			}
+		}
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return notStruct
+	}
+	for _, f := range reflect.VisibleFields(v.Type()) {
+		tv, ok := f.Tag.Lookup(structTagKey)
+		if !ok {
+			continue
+		}
+		ft := f.Type
+		for ft.Kind() == reflect.Pointer {
+			ft = ft.Elem()
+		}
+		index := strings.LastIndex(tv, ",")
+		mKey := tv
+		var (
+			err  error
+			ct   ColumnType = invalidColumnType
+			size uint64     = 0
+		)
+		if index < 0 {
+			_, _, err = inferColumnType(ft)
+			if err != nil {
+				return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+			}
+		} else {
+			mKey = tv[:index]
+			_, ct, size, err = parseTagColumnType(tv[index+1:])
+			if err != nil {
+				return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+			}
+			if !canConvertToColumnType(ft, ct, size) {
+				return TagError{fmt.Errorf("cannot convert type %s to %s (field: %s)", ft, ct.GoTypeHint(), f.Name)}
+			}
+		}
+		if len(mKey) == 0 {
+			mKey = f.Name
+		}
+		rv, ok := r.Get(mKey)
+		if !ok {
+			return TagError{fmt.Errorf(`not found column "%s" (field: %s)`, mKey, f.Name)}
+		}
+		var col Column
+		if r.table.key.Name() == mKey {
+			col = r.table.key
+		} else {
+			for _, c := range r.table.columns {
+				if c.Name() != mKey {
+					continue
+				}
+				col = c
+				break
+			}
+		}
+		if ct != invalidColumnType {
+			if col.Type() != ct {
+				return TagError{fmt.Errorf("umatch column type (field: %s)", f.Name)}
+			}
+			if size > 0 && size != col.MaximumDataByteSize() {
+				return TagError{fmt.Errorf("umatch column type (field: %s)", f.Name)}
+			}
+		}
+		fv := v.FieldByIndex(f.Index)
+		err = tryMoveDataValue(fv, rv, col)
+		if err != nil {
+			return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+		}
+	}
+	return nil
 }
 
 func fillDataToTaggedStruct(r *Record, st any) error {
@@ -251,6 +448,51 @@ func fillDataToTaggedStruct(r *Record, st any) error {
 		err = tryFillDataValue(fv, rv, col)
 		if err != nil {
 			return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+		}
+	}
+	return nil
+}
+
+func tryMoveDataValue(fv reflect.Value, rv any, col Column) error {
+	for fv.Kind() == reflect.Pointer {
+		if fv.IsNil() {
+			return CannotAssignValueToField
+		}
+		fv = fv.Elem()
+	}
+	if !fv.CanSet() {
+		return CannotAssignValueToField
+	}
+	switch col.Type() {
+	default:
+		bug.Panic("UNREACHABLE")
+	case Counter, Int8, Uint8, Int16, Uint16, Int32, Uint32, Int64, Uint64, Float32, Float64:
+		value := reflect.ValueOf(rv)
+		if fv.Kind() == value.Kind() {
+			fv.Set(value)
+		} else if value.CanConvert(fv.Type()) {
+			fv.Set(value.Convert(fv.Type()))
+		} else {
+			return CannotAssignValueToField
+		}
+	case ShortString, FixedSizeShortString, LongString, FixedSizeLongString, Text:
+		if fv.Kind() == reflect.String {
+			fv.Set(reflect.ValueOf(rv))
+		} else {
+			return CannotAssignValueToField
+		}
+	case ShortBytes, FixedSizeShortBytes, LongBytes, FixedSizeLongBytes, Blob:
+		if fv.Kind() == reflect.Slice && fv.Type().Elem().Kind() == reflect.Uint8 {
+			fv.Set(reflect.ValueOf(rv))
+		} else if fv.Kind() == reflect.Array && fv.Type().Elem().Kind() == reflect.Uint8 {
+			if fv.Len() == len(rv.([]byte)) {
+				// 固定長配列へのコピーを許容するのはアリなの？
+				copy(fv.Slice(0, fv.Len()).Bytes(), rv.([]byte))
+			} else {
+				return CannotAssignValueToField
+			}
+		} else {
+			return CannotAssignValueToField
 		}
 	}
 	return nil
