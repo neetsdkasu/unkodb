@@ -12,6 +12,7 @@ var (
 type NotFoundColumnName struct{ Column }
 type UnmatchColumnValueType struct{ Column }
 type TagError struct{ inner error }
+type FileFormatError struct { description string }
 
 func (err NotFoundColumnName) Error() string {
 	return "NotFoundColumnName: " + err.Name()
@@ -23,6 +24,10 @@ func (err UnmatchColumnValueType) Error() string {
 
 func (err TagError) Error() string {
 	return "TagError: " + err.inner.Error()
+}
+
+func (err FileFormatError) Error() string {
+    return "FileFormatError: " + err.description
 }
 
 var (
