@@ -276,9 +276,9 @@ func TestUnkoDB(t *testing.T) {
 		t.Fatalf("wrong next id %v %v", err, id)
 	}
 
-	table, err = db.Table("foodlist")
-	if err != nil {
-		t.Fatal(err)
+	table = db.Table("foodlist")
+	if table == nil {
+		t.Fatal("not found foodlist")
 	}
 
 	data["id"] = uint32(0)
@@ -302,9 +302,9 @@ func TestUnkoDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	table2, err := db2.Table("foodlist")
-	if err != nil {
-		t.Fatal(err)
+	table2 := db2.Table("foodlist")
+	if table2 == nil {
+		t.Fatal("not found foodlist")
 	}
 
 	data = make(map[string]any)
@@ -401,9 +401,9 @@ func TestUnkoDB(t *testing.T) {
 		t.Fatalf("invalid price %#v", price)
 	}
 
-	table2, err = db2.Table("ゲームリスト")
-	if err != nil {
-		t.Fatal(err)
+	table2 = db2.Table("ゲームリスト")
+	if table2 == nil {
+		t.Fatal("not found ゲームリスト")
 	}
 
 	if table2.Count() != 3 {
@@ -429,9 +429,9 @@ func TestUnkoDB(t *testing.T) {
 		t.Fatal(text)
 	}
 
-	table2, err = db2.Table("foodlist")
-	if err != nil {
-		t.Fatal(err)
+	table2 = db2.Table("foodlist")
+	if table2 == nil {
+		t.Fatal("not found foodlist")
 	}
 
 	rec, err := table2.Find(CounterType(2))
@@ -527,9 +527,9 @@ func TestUnkoDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	table3, err := db3.Table("foodlist")
-	if err != nil {
-		t.Fatal(err)
+	table3 := db3.Table("foodlist")
+	if table3 == nil {
+		t.Fatal("not found foodlist")
 	}
 
 	recs3 := []*Record{}
@@ -700,9 +700,9 @@ func TestUnkoDB_openFile(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		table1, err := db1.Table("foodlist")
-		if err != nil {
-			t.Fatal(err)
+		table1 := db1.Table("foodlist")
+		if table1 == nil {
+			t.Fatal("not found foodlist")
 		}
 
 		result1 := []*Food{}
@@ -749,9 +749,9 @@ func TestUnkoDB_openFile(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		table2, err := db2.Table("foodlist")
-		if err != nil {
-			t.Fatal(err)
+		table2 := db2.Table("foodlist")
+		if table2 == nil {
+			t.Fatal("not found foodlist")
 		}
 
 		result2 := []*Food{}
@@ -790,6 +790,217 @@ func TestUnkoDB_openFile(t *testing.T) {
 			if item.Price != result2[i].Price {
 				t.Fatal("unmatch price")
 			}
+		}
+	}
+
+	t.Skip("TEST IS NOT IMPLEMENTED YET")
+}
+
+func TestUnkoDB_DeleteTable(t *testing.T) {
+	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tempfile.Close()
+
+	db1, err := Create(tempfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	type Food struct {
+		Id    CounterType `unkodb:"id,key@Counter"`
+		Name  string      `unkodb:"name,ShortString"`
+		Price int64       `unkodb:"price,Int64"`
+	}
+
+	type Book struct {
+		Id    CounterType `unkodb:"id,key@Counter"`
+		Title string      `unkodb:"title,ShortString"`
+		Price int64       `unkodb:"price,Int64"`
+	}
+
+	type ProgLang struct {
+		Id           CounterType `unkodb:"id,key@Counter"`
+		Name         string      `unkodb:"name,ShortString"`
+		Difficulties int64       `unkodb:"diff,Int64"`
+	}
+
+	{
+		table1, err := db1.CreateTableByTaggedStruct("foodlist", (*Food)(nil))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		list1 := []*Food{
+			&Food{
+				Name:  "りんご",
+				Price: 500,
+			},
+			&Food{
+				Name:  "ソフトクリーム",
+				Price: 800,
+			},
+			&Food{
+				Name:  "カレーライス",
+				Price: 1200,
+			},
+		}
+
+		for _, item := range list1 {
+			_, err = table1.Insert(item)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		table2, err := db1.CreateTableByTaggedStruct("booklist", (*Book)(nil))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		list2 := []*Book{
+			&Book{
+				Title: "プログラミング入門",
+				Price: 3500,
+			},
+			&Book{
+				Title: "すごいプログラミング",
+				Price: 2800,
+			},
+			&Book{
+				Title: "幼児でも解るプログラミング",
+				Price: 1500,
+			},
+		}
+
+		for _, item := range list2 {
+			_, err = table2.Insert(item)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		table3, err := db1.CreateTableByTaggedStruct("proglang", (*ProgLang)(nil))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		list3 := []*ProgLang{
+			&ProgLang{
+				Name:         "Rust",
+				Difficulties: 9000,
+			},
+			&ProgLang{
+				Name:         "Java",
+				Difficulties: 7000,
+			},
+			&ProgLang{
+				Name:         "Go",
+				Difficulties: 8000,
+			},
+		}
+
+		for _, item := range list3 {
+			_, err = table3.Insert(item)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		if foodlist := db1.Table("foodlist"); foodlist == nil {
+			t.Fatal("not found foodlist")
+		}
+		if booklist := db1.Table("booklist"); booklist == nil {
+			t.Fatal("not found booklist")
+		}
+		if proglang := db1.Table("proglang"); proglang == nil {
+			t.Fatal("not found proglang")
+		}
+	}
+
+	{
+		db2, err := Open(tempfile)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if len(db2.tables) != 3 {
+			t.Fatal("wrong len(db.tables)")
+		}
+
+		if foodlist := db2.Table("foodlist"); foodlist == nil {
+			t.Fatal("not found foodlist")
+		}
+		if booklist := db2.Table("booklist"); booklist == nil {
+			t.Fatal("not found booklist")
+		}
+		if proglang := db2.Table("proglang"); proglang == nil {
+			t.Fatal("not found proglang")
+		}
+
+		err = db2.DeleteTable("foodlist")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if len(db2.tables) != 2 {
+			t.Fatal("wrong len(db.tables)")
+		}
+
+		if foodlist := db2.Table("foodlist"); foodlist != nil {
+			t.Fatal("found foodlist")
+		}
+		if booklist := db2.Table("booklist"); booklist == nil {
+			t.Fatal("not found booklist")
+		}
+		if proglang := db2.Table("proglang"); proglang == nil {
+			t.Fatal("not found proglang")
+		}
+	}
+
+	{
+		db3, err := Open(tempfile)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if len(db3.tables) != 2 {
+			t.Fatal("wrong len(db.tables)")
+		}
+
+		if foodlist := db3.Table("foodlist"); foodlist != nil {
+			t.Fatal("found foodlist")
+		}
+		if booklist := db3.Table("booklist"); booklist == nil {
+			t.Fatal("not found booklist")
+		}
+		if proglang := db3.Table("proglang"); proglang == nil {
+			t.Fatal("not found proglang")
+		}
+
+		books := ""
+		err = db3.Table("booklist").IterateAll(func(r *Record) (_ bool) {
+			books += r.Column("title").(string)
+			return
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if books != "プログラミング入門すごいプログラミング幼児でも解るプログラミング" {
+			t.Fatal(books)
+		}
+
+		langs := ""
+		err = db3.Table("proglang").IterateAll(func(r *Record) (_ bool) {
+			langs += r.Column("name").(string)
+			return
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if langs != "RustJavaGo" {
+			t.Fatal(langs)
 		}
 	}
 

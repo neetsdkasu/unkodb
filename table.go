@@ -143,6 +143,23 @@ func (table *Table) Find(key any) (r *Record, err error) {
 	return
 }
 
+func (table *Table) deleteAll() (err error) {
+	var tree *tableTree
+	tree, err = newTableTree(table)
+	if err != nil {
+		return
+	}
+	avltree.Clear(tree)
+	err = tree.flush()
+	if err != nil {
+		return
+	}
+	table.counter = 0
+	table.nodeCount = 0
+	err = table.flush()
+	return
+}
+
 func (table *Table) Delete(key any) (err error) {
 	if !debugMode {
 		defer catchError(&err)

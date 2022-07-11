@@ -62,13 +62,54 @@ func Open(dbFile io.ReadWriteSeeker) (db *UnkoDB, err error) {
 	return
 }
 
-func (db *UnkoDB) Table(name string) (*Table, error) {
+func (db *UnkoDB) Tables() []*Table {
+	list := make([]*Table, len(db.tables))
+	copy(list, db.tables)
+	return list
+}
+
+func (db *UnkoDB) Table(name string) *Table {
 	for _, table := range db.tables {
 		if table.Name() == name {
-			return table, nil
+			return table
 		}
 	}
-	return nil, NotFoundTable
+	return nil
+}
+
+func (db *UnkoDB) DeleteTable(name string) (err error) {
+	if !debugMode {
+		defer catchError(&err)
+	}
+	var index = 0
+	var table *Table = nil
+	for i, t := range db.tables {
+		if t.Name() == name {
+			index = i
+			table = t
+			break
+		}
+	}
+	if table == nil {
+		err = NotFoundTable
+		return
+	}
+	err = table.deleteAll()
+	if err != nil {
+		return
+	}
+	err = db.tableList.Delete(name)
+	if err != nil {
+		return
+	}
+	list := []*Table{}
+	for i, t := range db.tables {
+		if i != index {
+			list = append(list, t)
+		}
+	}
+	db.tables = list
+	return
 }
 
 func (db *UnkoDB) CreateTable(newTableName string) (creator *TableCreator, err error) {
