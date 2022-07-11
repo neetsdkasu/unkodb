@@ -12,8 +12,9 @@ import (
 )
 
 func ExampleUnkoDB() {
-	const FileExists = false
 
+	// Exampleのテスト用のファイルなのでテスト実行後は削除する･･･
+	const FileExists = false
 	file, err := os.CreateTemp("", "example.unkodb")
 	if err != nil {
 		log.Fatal(err)
@@ -26,7 +27,8 @@ func ExampleUnkoDB() {
 	)
 
 	if FileExists {
-		// if UnkoDB file exists
+		// file, err := os.OpenFile("example.unkodb", os.O_RDWR, 0755)
+		// defer file.Close()
 
 		db, err = unkodb.Open(file)
 		if err != nil {
@@ -39,6 +41,8 @@ func ExampleUnkoDB() {
 		}
 
 	} else {
+		// file, err := os.Create("example.unkodb")
+		// defer file.Close()
 
 		db, err = unkodb.Create(file)
 		if err != nil {
