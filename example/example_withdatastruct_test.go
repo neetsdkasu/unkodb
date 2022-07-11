@@ -118,7 +118,10 @@ func ExampleUnkoDB_withDataStruct() {
 
 	err = table.IterateAll(func(r *unkodb.Record) (breakIteration bool) {
 		f := &unkodb.Data{}
-		r.MoveTo(f)
+		err := r.MoveTo(f)
+		if err != nil {
+			log.Fatal(err)
+		}
 		fmt.Printf("[ITER] id: %d, name: %s, price: %d\n", f.Key, f.Columns[0], f.Columns[1])
 		return
 	})

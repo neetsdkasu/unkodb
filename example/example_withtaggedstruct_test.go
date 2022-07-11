@@ -116,7 +116,10 @@ func ExampleUnkoDB_withTaggedStruct() {
 
 	err = table.IterateAll(func(r *unkodb.Record) (breakIteration bool) {
 		f := &Food{}
-		r.MoveTo(f)
+		err := r.MoveTo(f)
+		if err != nil {
+			log.Fatal(err)
+		}
 		fmt.Printf("[ITER] id: %d, name: %s, price: %d\n", f.Id, f.Name, f.Price)
 		return
 	})
