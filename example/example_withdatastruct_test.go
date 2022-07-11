@@ -99,6 +99,16 @@ func ExampleUnkoDB_withDataStruct() {
 			log.Fatal(err)
 		}
 
+		// Replace id=4 ジャムパン
+		replace := &unkodb.Data{
+			Key:     unkodb.CounterType(4),
+			Columns: []any{"イチゴジャムパン", int64(987)},
+		}
+		_, err = table.Replace(replace)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 	}
 
 	// Find id=2 あんぱん
@@ -113,16 +123,7 @@ func ExampleUnkoDB_withDataStruct() {
 	}
 	fmt.Printf("[FIND] ID: %d, NAME: %s, PRICE: %d\n", food.Key, food.Columns[0], food.Columns[1])
 
-	// Replace id=4 ジャムパン
-	replace := &unkodb.Data{
-		Key:     unkodb.CounterType(4),
-		Columns: []any{"イチゴジャムパン", int64(987)},
-	}
-	_, err = table.Replace(replace)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+	// Iteration データを順番に辿る
 	err = table.IterateAll(func(r *unkodb.Record) (breakIteration bool) {
 		f := &unkodb.Data{}
 		err := r.MoveTo(f)
@@ -132,6 +133,9 @@ func ExampleUnkoDB_withDataStruct() {
 		fmt.Printf("[ITER] id: %d, name: %s, price: %d\n", f.Key, f.Columns[0], f.Columns[1])
 		return
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Output:
 	// [FIND] ID: 2, NAME: あんぱん, PRICE: 123

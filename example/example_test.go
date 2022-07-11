@@ -123,10 +123,15 @@ func ExampleUnkoDB() {
 		log.Fatal(err)
 	}
 	fmt.Printf("[FIND] ID: %d, NAME: %s, PRICE: %d\n", r.Key(), r.Column("name"), r.Column("price"))
+
+	// Iteration データを順番に辿る
 	err = table.IterateAll(func(r *unkodb.Record) (breakIteration bool) {
 		fmt.Printf("[ITER] id: %d, name: %s, price: %d\n", r.Column("id"), r.Column("name"), r.Column("price"))
 		return
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Output:
 	// [FIND] ID: 2, NAME: あんぱん, PRICE: 123

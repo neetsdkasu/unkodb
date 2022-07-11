@@ -96,6 +96,17 @@ func ExampleUnkoDB_withTaggedStruct() {
 			log.Fatal(err)
 		}
 
+		// Replace id=4 ジャムパン
+		replace := &Food{
+			Id:    4,
+			Name:  "イチゴジャムパン",
+			Price: 987,
+		}
+		_, err = table.Replace(replace)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 	}
 
 	// Find id=2 あんぱん
@@ -110,17 +121,7 @@ func ExampleUnkoDB_withTaggedStruct() {
 	}
 	fmt.Printf("[FIND] ID: %d, NAME: %s, PRICE: %d\n", food.Id, food.Name, food.Price)
 
-	// Replace id=4 ジャムパン
-	replace := &Food{
-		Id:    4,
-		Name:  "イチゴジャムパン",
-		Price: 987,
-	}
-	_, err = table.Replace(replace)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+	// Iteration データを順番に辿る
 	err = table.IterateAll(func(r *unkodb.Record) (breakIteration bool) {
 		f := &Food{}
 		err := r.MoveTo(f)
@@ -130,6 +131,9 @@ func ExampleUnkoDB_withTaggedStruct() {
 		fmt.Printf("[ITER] id: %d, name: %s, price: %d\n", f.Id, f.Name, f.Price)
 		return
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Output:
 	// [FIND] ID: 2, NAME: あんぱん, PRICE: 123
