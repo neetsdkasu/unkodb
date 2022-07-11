@@ -60,36 +60,42 @@ func ExampleUnkoDB_withTaggedStruct() {
 			log.Fatal(err)
 		}
 
-	}
+		list := []*Food{
+			&Food{
+				Name:  "クリームパン",
+				Price: 234,
+			},
+			&Food{
+				Name:  "あんぱん",
+				Price: 123,
+			},
+			&Food{
+				Name:  "カレーパン",
+				Price: 345,
+			},
+			&Food{
+				Name:  "ジャムパン",
+				Price: 222,
+			},
+			&Food{
+				Name:  "食パン",
+				Price: 333,
+			},
+		}
 
-	list := []*Food{
-		&Food{
-			Name:  "クリームパン",
-			Price: 234,
-		},
-		&Food{
-			Name:  "あんぱん",
-			Price: 123,
-		},
-		&Food{
-			Name:  "カレーパン",
-			Price: 345,
-		},
-		&Food{
-			Name:  "ジャムパン",
-			Price: 222,
-		},
-		&Food{
-			Name:  "食パン",
-			Price: 333,
-		},
-	}
+		for _, item := range list {
+			_, err = table.Insert(item)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
 
-	for _, item := range list {
-		_, err = table.Insert(item)
+		// Delete id=3 カレーパン
+		err = table.Delete(unkodb.CounterType(3))
 		if err != nil {
 			log.Fatal(err)
 		}
+
 	}
 
 	// Find id=2 あんぱん
@@ -103,12 +109,6 @@ func ExampleUnkoDB_withTaggedStruct() {
 		log.Fatal(err)
 	}
 	fmt.Printf("[FIND] ID: %d, NAME: %s, PRICE: %d\n", food.Id, food.Name, food.Price)
-
-	// Delete id=3 カレーパン
-	err = table.Delete(unkodb.CounterType(3))
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	// Replace id=4 ジャムパン
 	replace := &Food{

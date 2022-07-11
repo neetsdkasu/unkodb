@@ -63,36 +63,42 @@ func ExampleUnkoDB_withDataStruct() {
 			log.Fatal(err)
 		}
 
-	}
+		list := []*unkodb.Data{
+			&unkodb.Data{
+				Key:     unkodb.CounterType(0),
+				Columns: []any{"クリームパン", int64(234)},
+			},
+			&unkodb.Data{
+				Key:     unkodb.CounterType(0),
+				Columns: []any{"あんぱん", int64(123)},
+			},
+			&unkodb.Data{
+				Key:     unkodb.CounterType(0),
+				Columns: []any{"カレーパン", int64(345)},
+			},
+			&unkodb.Data{
+				Key:     unkodb.CounterType(0),
+				Columns: []any{"ジャムパン", int64(222)},
+			},
+			&unkodb.Data{
+				Key:     unkodb.CounterType(0),
+				Columns: []any{"食パン", int64(333)},
+			},
+		}
 
-	list := []*unkodb.Data{
-		&unkodb.Data{
-			Key:     unkodb.CounterType(0),
-			Columns: []any{"クリームパン", int64(234)},
-		},
-		&unkodb.Data{
-			Key:     unkodb.CounterType(0),
-			Columns: []any{"あんぱん", int64(123)},
-		},
-		&unkodb.Data{
-			Key:     unkodb.CounterType(0),
-			Columns: []any{"カレーパン", int64(345)},
-		},
-		&unkodb.Data{
-			Key:     unkodb.CounterType(0),
-			Columns: []any{"ジャムパン", int64(222)},
-		},
-		&unkodb.Data{
-			Key:     unkodb.CounterType(0),
-			Columns: []any{"食パン", int64(333)},
-		},
-	}
+		for _, item := range list {
+			_, err = table.Insert(item)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
 
-	for _, item := range list {
-		_, err = table.Insert(item)
+		// Delete id=3 カレーパン
+		err = table.Delete(unkodb.CounterType(3))
 		if err != nil {
 			log.Fatal(err)
 		}
+
 	}
 
 	// Find id=2 あんぱん
@@ -106,12 +112,6 @@ func ExampleUnkoDB_withDataStruct() {
 		log.Fatal(err)
 	}
 	fmt.Printf("[FIND] ID: %d, NAME: %s, PRICE: %d\n", food.Key, food.Columns[0], food.Columns[1])
-
-	// Delete id=3 カレーパン
-	err = table.Delete(unkodb.CounterType(3))
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	// Replace id=4 ジャムパン
 	replace := &unkodb.Data{

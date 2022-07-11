@@ -63,41 +63,58 @@ func ExampleUnkoDB() {
 			log.Fatal(err)
 		}
 
-	}
+		list := []map[string]any{
+			map[string]any{
+				"id":    unkodb.CounterType(0),
+				"name":  "クリームパン",
+				"price": int64(234),
+			},
+			map[string]any{
+				"id":    unkodb.CounterType(0),
+				"name":  "あんぱん",
+				"price": int64(123),
+			},
+			map[string]any{
+				"id":    unkodb.CounterType(0),
+				"name":  "カレーパン",
+				"price": int64(345),
+			},
+			map[string]any{
+				"id":    unkodb.CounterType(0),
+				"name":  "ジャムパン",
+				"price": int64(222),
+			},
+			map[string]any{
+				"id":    unkodb.CounterType(0),
+				"name":  "食パン",
+				"price": int64(333),
+			},
+		}
 
-	list := []map[string]any{
-		map[string]any{
-			"id":    unkodb.CounterType(0),
-			"name":  "クリームパン",
-			"price": int64(234),
-		},
-		map[string]any{
-			"id":    unkodb.CounterType(0),
-			"name":  "あんぱん",
-			"price": int64(123),
-		},
-		map[string]any{
-			"id":    unkodb.CounterType(0),
-			"name":  "カレーパン",
-			"price": int64(345),
-		},
-		map[string]any{
-			"id":    unkodb.CounterType(0),
-			"name":  "ジャムパン",
-			"price": int64(222),
-		},
-		map[string]any{
-			"id":    unkodb.CounterType(0),
-			"name":  "食パン",
-			"price": int64(333),
-		},
-	}
+		for _, item := range list {
+			_, err = table.Insert(item)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
 
-	for _, item := range list {
-		_, err = table.Insert(item)
+		// Delete id=3 カレーパン
+		err = table.Delete(unkodb.CounterType(3))
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		// Replace id=4 ジャムパン
+		replace := map[string]any{
+			"id":    unkodb.CounterType(4),
+			"name":  "イチゴジャムパン",
+			"price": int64(987),
+		}
+		_, err = table.Replace(replace)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 	}
 
 	// Find id=2 あんぱん
@@ -106,24 +123,6 @@ func ExampleUnkoDB() {
 		log.Fatal(err)
 	}
 	fmt.Printf("[FIND] ID: %d, NAME: %s, PRICE: %d\n", r.Key(), r.Column("name"), r.Column("price"))
-
-	// Delete id=3 カレーパン
-	err = table.Delete(unkodb.CounterType(3))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Replace id=4 ジャムパン
-	replace := map[string]any{
-		"id":    unkodb.CounterType(4),
-		"name":  "イチゴジャムパン",
-		"price": int64(987),
-	}
-	_, err = table.Replace(replace)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	err = table.IterateAll(func(r *unkodb.Record) (breakIteration bool) {
 		fmt.Printf("[ITER] id: %d, name: %s, price: %d\n", r.Column("id"), r.Column("name"), r.Column("price"))
 		return
