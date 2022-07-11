@@ -627,3 +627,171 @@ func TestUnkoDB(t *testing.T) {
 
 	t.Skip("TEST IS NOT IMPLEMENTED YET")
 }
+
+func TestUnkoDB_openFile(t *testing.T) {
+	tempfileName := filepath.Join(t.TempDir(), "test.unkodb")
+
+	type Food struct {
+		Id    CounterType `unkodb:"id,key@Counter"`
+		Name  string      `unkodb:"name,ShortString"`
+		Price int64       `unkodb:"price,Int64"`
+	}
+
+	list := []*Food{
+		&Food{Name: "ハンバーガー", Price: 250},
+		&Food{Name: "サンドイッチ", Price: 200},
+		&Food{Name: "おにぎり", Price: 130},
+		&Food{Name: "お弁当", Price: 600},
+		&Food{Name: "グラタン", Price: 800},
+	}
+
+	{
+		tempfile, err := os.Create(tempfileName)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer tempfile.Close()
+
+		db, err := Create(tempfile)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		table, err := db.CreateTableByTaggedStruct("foodlist", (*Food)(nil))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for _, item := range list {
+			_, err = table.Insert(item)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		err = table.Delete(CounterType(3))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = tempfile.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	list1 := []*Food{
+		&Food{Name: "アイスクリーム", Price: 180},
+		&Food{Name: "板チョコ", Price: 150},
+		&Food{Name: "キャンディー", Price: 100},
+		&Food{Name: "ポテチ", Price: 190},
+		&Food{Name: "せんべい", Price: 240},
+	}
+
+	{
+		openfile, err := os.OpenFile(tempfileName, os.O_RDWR, 0755)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer openfile.Close()
+
+		db1, err := Open(openfile)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		table1, err := db1.Table("foodlist")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		result1 := []*Food{}
+		err = table1.IterateAll(func(r *Record) (_ bool) {
+			f := &Food{}
+			err = r.MoveTo(f)
+			if err != nil {
+				t.Fatal(err)
+			}
+			result1 = append(result1, f)
+			return
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if len(result1) != 4 {
+			t.Fatal("unmatch length result")
+		}
+
+		for _, item := range list1 {
+			_, err = table1.Insert(item)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		err = openfile.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	{
+		// os.Openはリードオンリー
+		openfile2, err := os.Open(tempfileName)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer openfile2.Close()
+
+		db2, err := Open(openfile2)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		table2, err := db2.Table("foodlist")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		result2 := []*Food{}
+		err = table2.IterateAll(func(r *Record) (_ bool) {
+			f := &Food{}
+			err = r.MoveTo(f)
+			if err != nil {
+				t.Fatal(err)
+			}
+			result2 = append(result2, f)
+			return
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if len(result2) != 9 {
+			t.Fatal("unmatch length result")
+		}
+
+		list2 := append(append(append([]*Food{}, list[:2]...), list[3:]...), list1...)
+
+		for i, item := range list2 {
+			if i < 2 {
+				if result2[i].Id != CounterType(i+1) {
+					t.Fatal("unmatch id")
+				}
+			} else {
+				if result2[i].Id != CounterType(i+2) {
+					t.Fatal("unmatch id")
+				}
+			}
+			if item.Name != result2[i].Name {
+				t.Fatal("unmatch name")
+			}
+			if item.Price != result2[i].Price {
+				t.Fatal("unmatch price")
+			}
+		}
+	}
+
+	t.Skip("TEST IS NOT IMPLEMENTED YET")
+}
