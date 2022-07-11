@@ -5,6 +5,7 @@ package unkodb
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"sort"
 
@@ -30,6 +31,7 @@ func Create(emptyFile io.ReadWriteSeeker) (db *UnkoDB, err error) {
 	db = &UnkoDB{
 		file:       file,
 		segManager: newSegmentManager(file),
+		tableList:  nil,
 		tables:     nil,
 	}
 	err = db.initTableListTable()
@@ -48,7 +50,6 @@ func Open(dbFile io.ReadWriteSeeker) (db *UnkoDB, err error) {
 	if err != nil {
 		return
 	}
-	// TODO テーブルリスト読み込み？
 	db = &UnkoDB{
 		file:       file,
 		segManager: newSegmentManager(file),
@@ -121,6 +122,10 @@ func (db *UnkoDB) CreateTable(newTableName string) (creator *TableCreator, err e
 		return
 	}
 	// TODO テーブル名の文字構成ルールチェック（文字列長のチェックくらい？）
+	if len([]byte(newTableName)) > MaximumTableNameByteSize {
+		err = TableNameIsTooLong
+		return
+	}
 	for _, t := range db.tables {
 		if t.name == newTableName {
 			err = TableNameAlreadyExists
@@ -149,7 +154,6 @@ func (db *UnkoDB) CreateTableByTaggedStruct(newTableName string, taggedStruct an
 }
 
 func (db *UnkoDB) newTable(name string, key keyColumn, columns []Column) (*Table, error) {
-	// TODO ちゃんと作る
 	table := &Table{
 		db:             db,
 		name:           name,
@@ -231,7 +235,8 @@ func (db *UnkoDB) loadTableSpec(tableName string, columnsSpecBuf []byte) (err er
 	}
 	key, ok := col.(keyColumn)
 	if !ok {
-		// TODO error
+		// TODO ちゃんとしたエラー作る
+		err = fmt.Errorf("invalid key in %s", tableName)
 		return
 	}
 	var colCount uint8
