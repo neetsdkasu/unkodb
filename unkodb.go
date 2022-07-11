@@ -90,6 +90,23 @@ func (db *UnkoDB) CreateTable(newTableName string) (creator *TableCreator, err e
 	return
 }
 
+func (db *UnkoDB) CreateTableByTaggedStruct(newTableName string, taggedStruct any) (table *Table, err error) {
+	if !debugMode {
+		defer catchError(&err)
+	}
+	var creator *TableCreator
+	creator, err = db.CreateTable(newTableName)
+	if err != nil {
+		return
+	}
+	err = createTableByTaggedStruct(creator, taggedStruct)
+	if err != nil {
+		return
+	}
+	table, err = creator.Create()
+	return
+}
+
 func (db *UnkoDB) newTable(name string, key keyColumn, columns []Column) (*Table, error) {
 	// TODO ちゃんと作る
 	table := &Table{

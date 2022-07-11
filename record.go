@@ -37,3 +37,28 @@ func (r *Record) Columns() []any {
 	}
 	return list
 }
+
+func (r *Record) MoveTo(dst any) (err error) {
+	if !debugMode {
+		defer catchError(&err)
+	}
+	err = moveData(r, dst)
+	r.table = nil
+	r.data = nil
+	return
+}
+
+func (r *Record) CopyTo(dst any) (err error) {
+	if !debugMode {
+		defer catchError(&err)
+	}
+	err = fillData(r, dst)
+	return
+}
+
+func (r *Record) Take() (data map[string]any) {
+	data = r.data
+	r.table = nil
+	r.data = nil
+	return
+}

@@ -82,20 +82,25 @@ func (table *Table) flush() (err error) {
 	return
 }
 
-func (table *Table) CheckData(data map[string]any) (err error) {
+func (table *Table) CheckData(data any) (err error) {
 	if !debugMode {
 		defer catchError(&err)
 	}
 	if data == nil {
 		return NotFoundData
 	}
-	if keyValue, ok := data[table.key.Name()]; !ok {
+	var mdata tableTreeValue
+	mdata, err = parseData(table, data)
+	if err != nil {
+		return
+	}
+	if keyValue, ok := mdata[table.key.Name()]; !ok {
 		return NotFoundColumnName{table.key}
 	} else if !table.key.IsValidValueType(keyValue) {
 		return UnmatchColumnValueType{table.key}
 	}
 	for _, col := range table.columns {
-		if colValue, ok := data[col.Name()]; !ok {
+		if colValue, ok := mdata[col.Name()]; !ok {
 			return NotFoundColumnName{col}
 		} else if !col.IsValidValueType(colValue) {
 			return UnmatchColumnValueType{col}
@@ -111,6 +116,12 @@ func (table *Table) getKey(data map[string]any) avltree.Key {
 func (table *Table) Find(key any) (r *Record, err error) {
 	if !debugMode {
 		defer catchError(&err)
+	}
+	if mdata, e := parseData(table, key); e == nil {
+		// parseDataするのコスト高すぎる
+		if k, ok := mdata[table.key.Name()]; ok {
+			key = k
+		}
 	}
 	if !table.key.IsValidValueType(key) {
 		err = UnmatchColumnValueType{table.key}
@@ -135,6 +146,12 @@ func (table *Table) Find(key any) (r *Record, err error) {
 func (table *Table) Delete(key any) (err error) {
 	if !debugMode {
 		defer catchError(&err)
+	}
+	// parseDataするのコスト高すぎる
+	if mdata, e := parseData(table, key); e == nil {
+		if k, ok := mdata[table.key.Name()]; ok {
+			key = k
+		}
 	}
 	if !table.key.IsValidValueType(key) {
 		err = UnmatchColumnValueType{table.key}
@@ -170,24 +187,38 @@ func (table *Table) NextCounterID() (CounterType, error) {
 	return CounterType(table.counter + 1), nil
 }
 
-func (table *Table) Insert(data map[string]any) (r *Record, err error) {
+func (table *Table) Insert(data any) (r *Record, err error) {
 	if !debugMode {
 		defer catchError(&err)
 	}
-	err = table.CheckData(data)
+	var mdata tableTreeValue
+	mdata, err = parseData(table, data)
 	if err != nil {
 		return
 	}
 	if table.key.Type() == Counter {
-		data[table.key.Name()] = uint32(table.counter) + 1
+		if oldKey, ok := mdata[table.key.Name()]; ok {
+			defer func() {
+				mdata[table.key.Name()] = oldKey
+			}()
+		} else {
+			defer func() {
+				delete(mdata, table.key.Name())
+			}()
+		}
+		mdata[table.key.Name()] = uint32(table.counter) + 1
+	}
+	err = table.CheckData(mdata)
+	if err != nil {
+		return
 	}
 	var tree *tableTree
 	tree, err = newTableTree(table)
 	if err != nil {
 		return
 	}
-	key := table.getKey(data)
-	_, ok := avltree.Insert(tree, false, key, tableTreeValue(data))
+	key := table.getKey(mdata)
+	_, ok := avltree.Insert(tree, false, key, tableTreeValue(mdata))
 	if !ok {
 
 		err = KeyAlreadyExists // duplicate key error
@@ -204,7 +235,7 @@ func (table *Table) Insert(data map[string]any) (r *Record, err error) {
 	err = table.flush()
 	node := avltree.Find(tree, key)
 	if node == nil {
-		bug.Panic("not found node")
+		bug.Panic("why? not found node")
 	}
 	r = &Record{
 		table: table,
@@ -213,11 +244,13 @@ func (table *Table) Insert(data map[string]any) (r *Record, err error) {
 	return
 }
 
-func (table *Table) Replace(data map[string]any) (r *Record, err error) {
+func (table *Table) Replace(data any) (r *Record, err error) {
 	if !debugMode {
 		defer catchError(&err)
 	}
-	err = table.CheckData(data)
+	var mdata tableTreeValue
+	mdata, err = parseData(table, data)
+	err = table.CheckData(mdata)
 	if err != nil {
 		return
 	}
@@ -226,8 +259,8 @@ func (table *Table) Replace(data map[string]any) (r *Record, err error) {
 	if err != nil {
 		return
 	}
-	key := table.getKey(data)
-	_, ok := avltree.Replace(tree, key, tableTreeValue(data))
+	key := table.getKey(mdata)
+	_, ok := avltree.Replace(tree, key, mdata)
 	if !ok {
 		err = NotFoundKey
 		return
@@ -235,7 +268,7 @@ func (table *Table) Replace(data map[string]any) (r *Record, err error) {
 	err = tree.flush()
 	node := avltree.Find(tree, key)
 	if node == nil {
-		bug.Panic("not found node")
+		bug.Panic("why? not found node")
 	}
 	r = &Record{
 		table: table,
