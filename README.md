@@ -8,6 +8,7 @@
 ### 例
 
 ##### `map[string]any`でデータを取り扱う
+キー名やカラム名をマップのキーとして各値を保持する。（値の型に注意する必要がある）
 ```go
 package example
 
@@ -131,10 +132,15 @@ func ExampleUnkoDB() {
 		log.Fatal(err)
 	}
 	fmt.Printf("[FIND] ID: %d, NAME: %s, PRICE: %d\n", r.Key(), r.Column("name"), r.Column("price"))
+
+	// Iteration データを順番に辿る
 	err = table.IterateAll(func(r *unkodb.Record) (breakIteration bool) {
 		fmt.Printf("[ITER] id: %d, name: %s, price: %d\n", r.Column("id"), r.Column("name"), r.Column("price"))
 		return
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Output:
 	// [FIND] ID: 2, NAME: あんぱん, PRICE: 123
@@ -147,6 +153,7 @@ func ExampleUnkoDB() {
 
 
 ##### `unkodb.Data`でデータを取り扱う
+キーの値とカラムの値だけを保持する`unkodb.Data`を用いる。（値の型に注意する必要がある）
 ```go
 package example
 
@@ -246,6 +253,16 @@ func ExampleUnkoDB_withDataStruct() {
 			log.Fatal(err)
 		}
 
+		// Replace id=4 ジャムパン
+		replace := &unkodb.Data{
+			Key:     unkodb.CounterType(4),
+			Columns: []any{"イチゴジャムパン", int64(987)},
+		}
+		_, err = table.Replace(replace)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 	}
 
 	// Find id=2 あんぱん
@@ -260,16 +277,7 @@ func ExampleUnkoDB_withDataStruct() {
 	}
 	fmt.Printf("[FIND] ID: %d, NAME: %s, PRICE: %d\n", food.Key, food.Columns[0], food.Columns[1])
 
-	// Replace id=4 ジャムパン
-	replace := &unkodb.Data{
-		Key:     unkodb.CounterType(4),
-		Columns: []any{"イチゴジャムパン", int64(987)},
-	}
-	_, err = table.Replace(replace)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+	// Iteration データを順番に辿る
 	err = table.IterateAll(func(r *unkodb.Record) (breakIteration bool) {
 		f := &unkodb.Data{}
 		err := r.MoveTo(f)
@@ -279,6 +287,9 @@ func ExampleUnkoDB_withDataStruct() {
 		fmt.Printf("[ITER] id: %d, name: %s, price: %d\n", f.Key, f.Columns[0], f.Columns[1])
 		return
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Output:
 	// [FIND] ID: 2, NAME: あんぱん, PRICE: 123
@@ -290,6 +301,7 @@ func ExampleUnkoDB_withDataStruct() {
 ```
 
 ##### `unkodb`のタグをつけた構造体でデータを取り扱う
+ユーザ定義の型の各フィールドにタグ`unkodb`を振る。カラム名とカラム型を記述する必要がある。キーとなるフィールドのカラム型には`key@`プリフィクスをつける。
 ```go
 package example
 
@@ -386,6 +398,17 @@ func ExampleUnkoDB_withTaggedStruct() {
 			log.Fatal(err)
 		}
 
+		// Replace id=4 ジャムパン
+		replace := &Food{
+			Id:    4,
+			Name:  "イチゴジャムパン",
+			Price: 987,
+		}
+		_, err = table.Replace(replace)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 	}
 
 	// Find id=2 あんぱん
@@ -400,17 +423,7 @@ func ExampleUnkoDB_withTaggedStruct() {
 	}
 	fmt.Printf("[FIND] ID: %d, NAME: %s, PRICE: %d\n", food.Id, food.Name, food.Price)
 
-	// Replace id=4 ジャムパン
-	replace := &Food{
-		Id:    4,
-		Name:  "イチゴジャムパン",
-		Price: 987,
-	}
-	_, err = table.Replace(replace)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+	// Iteration データを順番に辿る
 	err = table.IterateAll(func(r *unkodb.Record) (breakIteration bool) {
 		f := &Food{}
 		err := r.MoveTo(f)
@@ -420,6 +433,9 @@ func ExampleUnkoDB_withTaggedStruct() {
 		fmt.Printf("[ITER] id: %d, name: %s, price: %d\n", f.Id, f.Name, f.Price)
 		return
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Output:
 	// [FIND] ID: 2, NAME: あんぱん, PRICE: 123
