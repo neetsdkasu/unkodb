@@ -20,8 +20,9 @@ import (
 )
 
 func ExampleUnkoDB() {
-	const FileExists = false
 
+	// Exampleのテスト用のファイルなのでテスト実行後は削除する･･･
+	const FileExists = false
 	file, err := os.CreateTemp("", "example.unkodb")
 	if err != nil {
 		log.Fatal(err)
@@ -34,7 +35,8 @@ func ExampleUnkoDB() {
 	)
 
 	if FileExists {
-		// if UnkoDB file exists
+		// file, err := os.OpenFile("example.unkodb", os.O_RDWR, 0755)
+		// defer file.Close()
 
 		db, err = unkodb.Open(file)
 		if err != nil {
@@ -47,6 +49,8 @@ func ExampleUnkoDB() {
 		}
 
 	} else {
+		// file, err := os.Create("example.unkodb")
+		// defer file.Close()
 
 		db, err = unkodb.Create(file)
 		if err != nil {
@@ -67,41 +71,58 @@ func ExampleUnkoDB() {
 			log.Fatal(err)
 		}
 
-	}
+		list := []map[string]any{
+			map[string]any{
+				"id":    unkodb.CounterType(0),
+				"name":  "クリームパン",
+				"price": int64(234),
+			},
+			map[string]any{
+				"id":    unkodb.CounterType(0),
+				"name":  "あんぱん",
+				"price": int64(123),
+			},
+			map[string]any{
+				"id":    unkodb.CounterType(0),
+				"name":  "カレーパン",
+				"price": int64(345),
+			},
+			map[string]any{
+				"id":    unkodb.CounterType(0),
+				"name":  "ジャムパン",
+				"price": int64(222),
+			},
+			map[string]any{
+				"id":    unkodb.CounterType(0),
+				"name":  "食パン",
+				"price": int64(333),
+			},
+		}
 
-	list := []map[string]any{
-		map[string]any{
-			"id":    unkodb.CounterType(0),
-			"name":  "クリームパン",
-			"price": int64(234),
-		},
-		map[string]any{
-			"id":    unkodb.CounterType(0),
-			"name":  "あんぱん",
-			"price": int64(123),
-		},
-		map[string]any{
-			"id":    unkodb.CounterType(0),
-			"name":  "カレーパン",
-			"price": int64(345),
-		},
-		map[string]any{
-			"id":    unkodb.CounterType(0),
-			"name":  "ジャムパン",
-			"price": int64(222),
-		},
-		map[string]any{
-			"id":    unkodb.CounterType(0),
-			"name":  "食パン",
-			"price": int64(333),
-		},
-	}
+		for _, item := range list {
+			_, err = table.Insert(item)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
 
-	for _, item := range list {
-		_, err = table.Insert(item)
+		// Delete id=3 カレーパン
+		err = table.Delete(unkodb.CounterType(3))
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		// Replace id=4 ジャムパン
+		replace := map[string]any{
+			"id":    unkodb.CounterType(4),
+			"name":  "イチゴジャムパン",
+			"price": int64(987),
+		}
+		_, err = table.Replace(replace)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 	}
 
 	// Find id=2 あんぱん
@@ -110,24 +131,6 @@ func ExampleUnkoDB() {
 		log.Fatal(err)
 	}
 	fmt.Printf("[FIND] ID: %d, NAME: %s, PRICE: %d\n", r.Key(), r.Column("name"), r.Column("price"))
-
-	// Delete id=3 カレーパン
-	err = table.Delete(unkodb.CounterType(3))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Replace id=4 ジャムパン
-	replace := map[string]any{
-		"id":    unkodb.CounterType(4),
-		"name":  "イチゴジャムパン",
-		"price": int64(987),
-	}
-	_, err = table.Replace(replace)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	err = table.IterateAll(func(r *unkodb.Record) (breakIteration bool) {
 		fmt.Printf("[ITER] id: %d, name: %s, price: %d\n", r.Column("id"), r.Column("name"), r.Column("price"))
 		return
@@ -156,8 +159,9 @@ import (
 )
 
 func ExampleUnkoDB_withDataStruct() {
-	const FileExists = false
 
+	// Exampleのテスト用のファイルなのでテスト実行後は削除する･･･
+	const FileExists = false
 	file, err := os.CreateTemp("", "example.unkodb")
 	if err != nil {
 		log.Fatal(err)
@@ -170,7 +174,8 @@ func ExampleUnkoDB_withDataStruct() {
 	)
 
 	if FileExists {
-		// if UnkoDB file exists
+		// file, err := os.OpenFile("example.unkodb", os.O_RDWR, 0755)
+		// defer file.Close()
 
 		db, err = unkodb.Open(file)
 		if err != nil {
@@ -183,6 +188,8 @@ func ExampleUnkoDB_withDataStruct() {
 		}
 
 	} else {
+		// file, err := os.Create("example.unkodb")
+		// defer file.Close()
 
 		db, err = unkodb.Create(file)
 		if err != nil {
@@ -203,36 +210,42 @@ func ExampleUnkoDB_withDataStruct() {
 			log.Fatal(err)
 		}
 
-	}
+		list := []*unkodb.Data{
+			&unkodb.Data{
+				Key:     unkodb.CounterType(0),
+				Columns: []any{"クリームパン", int64(234)},
+			},
+			&unkodb.Data{
+				Key:     unkodb.CounterType(0),
+				Columns: []any{"あんぱん", int64(123)},
+			},
+			&unkodb.Data{
+				Key:     unkodb.CounterType(0),
+				Columns: []any{"カレーパン", int64(345)},
+			},
+			&unkodb.Data{
+				Key:     unkodb.CounterType(0),
+				Columns: []any{"ジャムパン", int64(222)},
+			},
+			&unkodb.Data{
+				Key:     unkodb.CounterType(0),
+				Columns: []any{"食パン", int64(333)},
+			},
+		}
 
-	list := []*unkodb.Data{
-		&unkodb.Data{
-			Key:     unkodb.CounterType(0),
-			Columns: []any{"クリームパン", int64(234)},
-		},
-		&unkodb.Data{
-			Key:     unkodb.CounterType(0),
-			Columns: []any{"あんぱん", int64(123)},
-		},
-		&unkodb.Data{
-			Key:     unkodb.CounterType(0),
-			Columns: []any{"カレーパン", int64(345)},
-		},
-		&unkodb.Data{
-			Key:     unkodb.CounterType(0),
-			Columns: []any{"ジャムパン", int64(222)},
-		},
-		&unkodb.Data{
-			Key:     unkodb.CounterType(0),
-			Columns: []any{"食パン", int64(333)},
-		},
-	}
+		for _, item := range list {
+			_, err = table.Insert(item)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
 
-	for _, item := range list {
-		_, err = table.Insert(item)
+		// Delete id=3 カレーパン
+		err = table.Delete(unkodb.CounterType(3))
 		if err != nil {
 			log.Fatal(err)
 		}
+
 	}
 
 	// Find id=2 あんぱん
@@ -246,12 +259,6 @@ func ExampleUnkoDB_withDataStruct() {
 		log.Fatal(err)
 	}
 	fmt.Printf("[FIND] ID: %d, NAME: %s, PRICE: %d\n", food.Key, food.Columns[0], food.Columns[1])
-
-	// Delete id=3 カレーパン
-	err = table.Delete(unkodb.CounterType(3))
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	// Replace id=4 ジャムパン
 	replace := &unkodb.Data{
@@ -295,8 +302,9 @@ import (
 )
 
 func ExampleUnkoDB_withTaggedStruct() {
-	const FileExists = false
 
+	// Exampleのテスト用のファイルなのでテスト実行後は削除する･･･
+	const FileExists = false
 	file, err := os.CreateTemp("", "example.unkodb")
 	if err != nil {
 		log.Fatal(err)
@@ -315,7 +323,8 @@ func ExampleUnkoDB_withTaggedStruct() {
 	)
 
 	if FileExists {
-		// if UnkoDB file exists
+		// file, err := os.OpenFile("example.unkodb", os.O_RDWR, 0755)
+		// defer file.Close()
 
 		db, err = unkodb.Open(file)
 		if err != nil {
@@ -328,6 +337,8 @@ func ExampleUnkoDB_withTaggedStruct() {
 		}
 
 	} else {
+		// file, err := os.Create("example.unkodb")
+		// defer file.Close()
 
 		db, err = unkodb.Create(file)
 		if err != nil {
@@ -339,36 +350,42 @@ func ExampleUnkoDB_withTaggedStruct() {
 			log.Fatal(err)
 		}
 
-	}
+		list := []*Food{
+			&Food{
+				Name:  "クリームパン",
+				Price: 234,
+			},
+			&Food{
+				Name:  "あんぱん",
+				Price: 123,
+			},
+			&Food{
+				Name:  "カレーパン",
+				Price: 345,
+			},
+			&Food{
+				Name:  "ジャムパン",
+				Price: 222,
+			},
+			&Food{
+				Name:  "食パン",
+				Price: 333,
+			},
+		}
 
-	list := []*Food{
-		&Food{
-			Name:  "クリームパン",
-			Price: 234,
-		},
-		&Food{
-			Name:  "あんぱん",
-			Price: 123,
-		},
-		&Food{
-			Name:  "カレーパン",
-			Price: 345,
-		},
-		&Food{
-			Name:  "ジャムパン",
-			Price: 222,
-		},
-		&Food{
-			Name:  "食パン",
-			Price: 333,
-		},
-	}
+		for _, item := range list {
+			_, err = table.Insert(item)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
 
-	for _, item := range list {
-		_, err = table.Insert(item)
+		// Delete id=3 カレーパン
+		err = table.Delete(unkodb.CounterType(3))
 		if err != nil {
 			log.Fatal(err)
 		}
+
 	}
 
 	// Find id=2 あんぱん
@@ -382,12 +399,6 @@ func ExampleUnkoDB_withTaggedStruct() {
 		log.Fatal(err)
 	}
 	fmt.Printf("[FIND] ID: %d, NAME: %s, PRICE: %d\n", food.Id, food.Name, food.Price)
-
-	// Delete id=3 カレーパン
-	err = table.Delete(unkodb.CounterType(3))
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	// Replace id=4 ジャムパン
 	replace := &Food{
@@ -417,5 +428,4 @@ func ExampleUnkoDB_withTaggedStruct() {
 	// [ITER] id: 4, name: イチゴジャムパン, price: 987
 	// [ITER] id: 5, name: 食パン, price: 333
 }
-
 ```
