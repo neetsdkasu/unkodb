@@ -86,6 +86,7 @@ func ExampleUnkoDB_withDataStruct() {
 			},
 		}
 
+		// Insert
 		for _, item := range list {
 			_, err = table.Insert(item)
 			if err != nil {
