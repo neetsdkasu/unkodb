@@ -35,9 +35,9 @@ func ExampleUnkoDB() {
 			log.Fatal(err)
 		}
 
-		table, err = db.Table("food_table")
-		if err != nil {
-			log.Fatal(err)
+		table = db.Table("food_table")
+		if table == nil {
+			log.Fatal("not found food_table")
 		}
 
 	} else {
