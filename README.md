@@ -493,7 +493,7 @@ func ExampleUnkoDB_withTaggedStruct() {
 
 
 ##### タグでの表記例
-カラム名とカラム型をカンマで区切って指定する。カラム型は大文字小文字を区別するので注意。
+カラム名とカラム型をカンマで区切って指定する。カラム型は大文字小文字を区別するので注意。キーとなるフィールドのカラム型には`key@`プリフィクスをつける。
 ```go
 type Foo struct {
 	CounterValue unkodb.CounterType `unkodb:"id,key@Counter"`
