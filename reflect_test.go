@@ -82,7 +82,7 @@ func TestParseStruct(t *testing.T) {
 		LBvalue      []byte      `unkodb:"lb,LongBytes"`
 		FSLBvalue    [300]byte   `unkodb:"fslb,FixedSizeLongBytes[300]"`
 		Blob         []byte      `unkodb:"bl,Blob"`
-    }
+	}
 
 	hoge := &Hoge{}
 
