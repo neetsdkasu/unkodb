@@ -61,7 +61,7 @@ func TestParseStruct(t *testing.T) {
 	}
 
 	type Hoge struct {
-		CounterValue CounterType `unkodb:"key@Counter"`
+		CounterValue CounterType `unkodb:"id,key@Counter"`
 		Int8value    int8        `unkodb:"i8,Int8"`
 		Int16value   int16       `unkodb:"i16,Int16"`
 		Int32value   int32       `unkodb:"i32,Int32"`
@@ -82,7 +82,7 @@ func TestParseStruct(t *testing.T) {
 		LBvalue      []byte      `unkodb:"lb,LongBytes"`
 		FSLBvalue    [300]byte   `unkodb:"fslb,FixedSizeLongBytes[300]"`
 		Blob         []byte      `unkodb:"bl,Blob"`
-	}
+    }
 
 	hoge := &Hoge{}
 

@@ -15,6 +15,9 @@
  - スレッドセーフではない
  - フェイルセーフではない
  - ファイルフォーマットを確認しないため不正なファイル読み込みでパニックするかも
+ - テーブル名とカラム名は1バイト以上255バイト以下で指定する必要がある（Goのstringを[]byteにキャストした際のサイズ）
+ - テーブル名とカラム名に使える文字は今のところ制限は設けていない
+ - カラム数はテーブルごとに100個まで
  - デバッグ不十分なのでバグだらけ（死）
 
 
@@ -464,27 +467,55 @@ func ExampleUnkoDB_withTaggedStruct() {
 
 ### カラムの型
 
-| カラムの型           | キー | カラム | Goの型  | 備考              |
-|:---------------------|:----:|:------:|:--------|:------------------|
-| Counter              | ○   | －     | uint32  |                   |
-| Int8                 | ○   | ○     | int8    |                   |
-| Int16                | ○   | ○     | int16   |                   |
-| Int32                | ○   | ○     | int32   |                   | 
-| Int64                | ○   | ○     | int64   |                   | 
-| Uint8                | ○   | ○     | uint8   |                   |
-| Uint16               | ○   | ○     | uint16  |                   |
-| Uint32               | ○   | ○     | uint32  |                   |
-| Uint64               | ○   | ○     | uint64  |                   |
-| Float32              | －   | ○     | float32 |                   |
-| Float64              | －   | ○     | float64 |                   |
+| カラムの型           | キー | カラム | Goの型  | 備考                                                                                                                           |
+|:---------------------|:----:|:------:|:--------|:-------------------------------------------------------------------------------------------------------------------------------|
+| Counter              | ○   | －     | uint32  | データが挿入時に値が設定される。挿入ごとに1ずつ値が増えていく（最初は1から始まる）。`unkodb.CounterType`はuint32のエイリアス。 |
+| Int8                 | ○   | ○     | int8    |                                                                                                                                |
+| Int16                | ○   | ○     | int16   |                                                                                                                                |
+| Int32                | ○   | ○     | int32   |                                                                                                                                |
+| Int64                | ○   | ○     | int64   |                                                                                                                                |
+| Uint8                | ○   | ○     | uint8   |                                                                                                                                |
+| Uint16               | ○   | ○     | uint16  |                                                                                                                                |
+| Uint32               | ○   | ○     | uint32  |                                                                                                                                |
+| Uint64               | ○   | ○     | uint64  |                                                                                                                                |
+| Float32              | －   | ○     | float32 |                                                                                                                                |
+| Float64              | －   | ○     | float64 |                                                                                                                                |
 | ShortString          | ○   | ○     | string  | 内部的には[]byteで保存される。0～255バイトに収まる必要がある。バイト長もデータごとに保存される。キーとして使う場合は`strings.Compare`が順序に使用される。 |
 | FixedSizeShortString | ○   | ○     | string  | 内部的には[]byteで保存される。テーブル作成時に指定した固定バイトサイズ（1～255バイト）で保存される。サイズ未満の文字列の場合、指定バイトサイズになるよう半角スペースが埋められる。キーとして使う場合は`strings.Compare`が順序に使用される。 |
-| LongString           | －   | ○     | string  | 内部的には[]byteで保存される。0～65535バイトに収まる必要がある。バイト長もデータごとに保存される。 |
+| LongString           | －   | ○     | string  | 内部的には[]byteで保存される。0～65535バイトに収まる必要がある。バイト長もデータごとに保存される。                             |
 | FixedSizeLongString  | －   | ○     | string  | 内部的には[]byteで保存される。テーブル作成時に指定した固定バイトサイズ（1～65535バイト）で保存される。サイズ未満の文字列の場合、指定バイトサイズになるよう半角スペースが埋められる。 |
-| Text                 | －   | ○     | string  | 内部的には[]byteで保存される。0～1073741823バイトに収まる必要がある。バイト長もデータごとに保存される。 |
-| ShortBytes           | ○   | ○     | []byte  | 0～255バイトに収まる必要がある。バイト長もデータごとに保存される。キーとして使う場合は`binary.Compare`が順序に使用される。 |
+| Text                 | －   | ○     | string  | 内部的には[]byteで保存される。0～1073741823バイトに収まる必要がある。バイト長もデータごとに保存される。                        |
+| ShortBytes           | ○   | ○     | []byte  | 0～255バイトに収まる必要がある。バイト長もデータごとに保存される。キーとして使う場合は`binary.Compare`が順序に使用される。     |
 | FixedSizeShortBytes  | ○   | ○     | []byte  | テーブル作成時に指定した固定バイトサイズ（1～255バイト）で保存される。サイズ未満のバイトスライスの場合、指定バイトサイズになるよう`byte(0)`が埋められる。キーとして使う場合は`binary.Compare`が順序に使用される。 |
-| LongBytes            | －   | ○     | []byte  | 0～65535バイトに収まる必要がある。バイト長もデータごとに保存される。 |
+| LongBytes            | －   | ○     | []byte  | 0～65535バイトに収まる必要がある。バイト長もデータごとに保存される。                                                           |
 | FixedSizeLongBytes   | －   | ○     | []byte  | テーブル作成時に指定した固定バイトサイズ（1～65535バイト）で保存される。サイズ未満のバイトスライスの場合、指定バイトサイズになるよう`byte(0)`が埋められる。 |
-| Blob                 | －   | ○     | []byte  | 0～1073741823バイトに収まる必要がある。バイト長もデータごとに保存される。 |
+| Blob                 | －   | ○     | []byte  | 0～1073741823バイトに収まる必要がある。バイト長もデータごとに保存される。                                                      |
 
+
+##### タグでの表記例
+カラム名とカラム型をカンマで区切って指定する。カラム型は大文字小文字を区別するので注意。
+```go
+	type Foo struct {
+		CounterValue unkodb.CounterType `unkodb:"id,key@Counter"`
+		Int8value    int8               `unkodb:"i8,Int8"`
+		Int16value   int16              `unkodb:"i16,Int16"`
+		Int32value   int32              `unkodb:"i32,Int32"`
+		Int64value   int64              `unkodb:"i64,Int64"`
+		Uint8value   uint8              `unkodb:"u8,Uint8"`
+		Uint16value  uint16             `unkodb:"u16,Uint16"`
+		Uint32value  uint32             `unkodb:"u32,Uint32"`
+		Uint64value  uint64             `unkodb:"u64,Uint64"`
+		Float32value float32            `unkodb:"f32,Float32"`
+		Float64value float64            `unkodb:"f64,Float64"`
+		SSvalue      string             `unkodb:"ss,ShortString"`
+		FSSSvalue    string             `unkodb:"fsss,FixedSizeShortString[100]"`
+		LSvalue      string             `unkodb:"ls,LongString"`
+		FSLSvalue    string             `unkodb:"fsls,FixedSizeLongString[500]"`
+		Text         string             `unkodb:"tx,Text"`
+		SBvalue      []byte             `unkodb:"sb,ShortBytes"`
+		FSSBvalue    []byte             `unkodb:"fssb,FixedSizeShortBytes[20]"`
+		LBvalue      []byte             `unkodb:"lb,LongBytes"`
+		FSLBvalue    []byte             `unkodb:"fslb,FixedSizeLongBytes[300]"`
+		Blob         []byte             `unkodb:"bl,Blob"`
+	}
+```
