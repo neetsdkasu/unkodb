@@ -21,7 +21,7 @@
 
 | 型   | キー | カラム | 備考 | タグの例 |
 |:----|:----|:----|:------|:-----|
-| Int8 | ○ | ○ | | `Value int8 ``unkodb:"value,Int8"` |
+| Int8 | ○ | ○ | | `MyValue int8 `unkodb:"my_value,Int8"`` |
 
 
 ### 例
