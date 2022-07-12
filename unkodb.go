@@ -19,6 +19,11 @@ type UnkoDB struct {
 	tables     []*Table
 }
 
+// 空の新しいファイルにUnkoDBを構築する。
+//
+// 		file, _ := os.Create("my_data.unkodb")
+// 		db, _ := unkodb.Create(file)
+//
 func Create(emptyFile io.ReadWriteSeeker) (db *UnkoDB, err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -41,6 +46,11 @@ func Create(emptyFile io.ReadWriteSeeker) (db *UnkoDB, err error) {
 	return
 }
 
+// UnkoDB構築済みのファイルからUnkoDBを開く。
+//
+// 		file, _ := os.OpenFile("my_data.unkodb", os.O_RDWR, 0755)
+// 		db, _ := unkodb.Open(file)
+//
 func Open(dbFile io.ReadWriteSeeker) (db *UnkoDB, err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -63,12 +73,23 @@ func Open(dbFile io.ReadWriteSeeker) (db *UnkoDB, err error) {
 	return
 }
 
+// テーブルのリストを取得する。
 func (db *UnkoDB) Tables() []*Table {
 	list := make([]*Table, len(db.tables))
 	copy(list, db.tables)
 	return list
 }
 
+// 指定の名前のテーブルを取得する。
+// 指定した名前のテーブルが存在しない場合はnilを返す。
+//
+// 		table := db.Table("my_book_table")
+// 		if table == nil {
+// 			// my_book_table is not existed in db
+// 		} else {
+// 			// table is my_book_table
+// 		}
+//
 func (db *UnkoDB) Table(name string) *Table {
 	for _, table := range db.tables {
 		if table.Name() == name {
@@ -78,6 +99,7 @@ func (db *UnkoDB) Table(name string) *Table {
 	return nil
 }
 
+// 指定の名前のテーブルを削除する。
 func (db *UnkoDB) DeleteTable(name string) (err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -113,6 +135,17 @@ func (db *UnkoDB) DeleteTable(name string) (err error) {
 	return
 }
 
+// 指定した名前の新しいテーブルを作成するためのTableCreaetorを返す。
+// テーブル名は他のテーブル名と重複はできない。
+// TableCreatorのCreateメソッドを呼び出すまではdbにテーブルは構築されない。
+//
+// 		tc, _ := db.CreateTable("my_book_table")
+// 		tc.CounterKey("id")
+// 		tc.ShortStringColumn("title")
+// 		tc.ShortStringColumn("author")
+// 		tc.ShortStringColumn("genre")
+// 		table, _ := tc.Create()
+//
 func (db *UnkoDB) CreateTable(newTableName string) (creator *TableCreator, err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -136,6 +169,17 @@ func (db *UnkoDB) CreateTable(newTableName string) (creator *TableCreator, err e
 	return
 }
 
+// 指定した名前の新しいテーブルをunkodbタグの情報を元に構築する。
+// テーブル名は他のテーブル名と重複はできない。
+//
+// 		type Book struct {
+// 			Id     unkodb.CounterType `unkodb:"id,key@Counter"`
+// 			Title  string             `unkodb:"title,ShortString"`
+// 			Author string             `unkodb:"author,ShortString"`
+// 			Genre  string             `unkodb:"genre,ShortString"`
+// 		}
+// 		table, _ := db.CreateTableByTaggedStruct("my_book_table", (*Book)(nil))
+//
 func (db *UnkoDB) CreateTableByTaggedStruct(newTableName string, taggedStruct any) (table *Table, err error) {
 	if !debugMode {
 		defer catchError(&err)
