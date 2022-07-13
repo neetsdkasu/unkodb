@@ -24,6 +24,10 @@ func (manager *segmentManager) LoadSegment(addr int) (*segmentBuffer, error) {
 	return manager.file.ReadSegment(addr)
 }
 
+func (manager *segmentManager) LoadPartialSegment(addr int, size int) (*segmentBuffer, error) {
+	return manager.file.ReadPartialSegment(addr, size)
+}
+
 func (manager *segmentManager) EmptySegment(byteSize uint64) (*segmentBuffer, error) {
 	if byteSize > maximumSegmentByteSize {
 		return nil, TooLargeData
@@ -49,7 +53,11 @@ func (manager *segmentManager) EmptySegment(byteSize uint64) (*segmentBuffer, er
 	if !ok {
 		bug.Panicf("segmentManager.Request: not segmentBuffer %T %#v", nodes[0], nodes[0])
 	}
-	err := manager.tree.flush()
+	err := seg.LoadFullSegment()
+	if err != nil {
+		return nil, err
+	}
+	err = manager.tree.flush()
 	if err != nil {
 		return nil, err
 	}
@@ -57,8 +65,29 @@ func (manager *segmentManager) EmptySegment(byteSize uint64) (*segmentBuffer, er
 	return seg, nil
 }
 
+func (manager *segmentManager) ReleaseSegmentByAddress(segmentAddress int) error {
+	seg, err := manager.file.ReadPartialSegment(segmentAddress, idleSegmentTreeNodeDataByteSize)
+	if err != nil {
+		return err
+	}
+	key := idleSegmentTreeKey(int32(seg.Size()))
+	_, ok := avltree.Insert(manager.tree, false, key, seg)
+	if !ok {
+		bug.Panic("segmentManager.Release: cann not insert free segment")
+	}
+	err = manager.tree.flush()
+	if err != nil {
+		return err
+	}
+	manager.tree.clearCache()
+	return nil
+}
+
 func (manager *segmentManager) ReleaseSegment(seg *segmentBuffer) error {
-	key := idleSegmentTreeKey(int32(seg.BufferSize()))
+	if len(seg.Buffer()) < idleSegmentTreeNodeDataByteSize {
+		bug.Panic("segmentManager.Release: invalid segment size")
+	}
+	key := idleSegmentTreeKey(int32(seg.Size()))
 	_, ok := avltree.Insert(manager.tree, false, key, seg)
 	if !ok {
 		bug.Panic("segmentManager.Release: cann not insert free segment")

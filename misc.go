@@ -57,3 +57,9 @@ func minValue(a, b int) int {
 		return b
 	}
 }
+
+func fillBytes(b []byte, value byte) {
+	for i := range b {
+		b[i] = value
+	}
+}

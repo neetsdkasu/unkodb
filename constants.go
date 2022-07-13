@@ -56,12 +56,12 @@ const (
 	shortBytesByteSizeDataLength  = 1            // == unsafe.Sizeof(uint8(0))
 
 	longBytesMinimumDataByteSize = 0
-	longBytesMaximumDataByteSize = (1 << 16) - 1
-	longBytesByteSizeDataLength  = 2 // == unsafe.Sizeof(uint16(0))
+	longBytesMaximumDataByteSize = (1 << 16) - 1 // 65535
+	longBytesByteSizeDataLength  = 2             // == unsafe.Sizeof(uint16(0))
 
 	blobMinimumDataByteSize = 0
-	blobMaximumDataByteSize = (1 << 30) - 1
-	blobByteSizeDataLength  = 4 // == unsafe.Sizeof(uint32(0))
+	blobMaximumDataByteSize = (1 << 30) - 1 // 2147483647
+	blobByteSizeDataLength  = 4             // == unsafe.Sizeof(uint32(0))
 )
 
 const (
@@ -71,7 +71,14 @@ const (
 )
 
 const (
-	maximumSegmentByteSize = (1 << 31) - 1
+	dataSeparationDisabled dataSeparationState = 0
+	dataSeparationEnabled  dataSeparationState = 255
+
+	noSeparationMaximumDataSize = (1 << 16) - 1 // 65535
+)
+
+const (
+	maximumSegmentByteSize = (1 << 31) - 1 // 2147483647
 )
 
 const (
@@ -115,6 +122,8 @@ const (
 
 	idleSegmentTreeNodeHeightPosition = idleSegmentTreeNodeRightChildPosition + idleSegmentTreeNodeRightChildLength
 	idleSegmentTreeNodeHeightLength   = 1 // == unsafe.Sizeof(uint8(0))
+
+	idleSegmentTreeNodeDataByteSize = idleSegmentTreeNodeHeightPosition + idleSegmentTreeNodeHeightLength
 )
 
 // アホみたい
@@ -141,5 +150,8 @@ const (
 	tableSpecCounterPosition = tableSpecNodeCountPosition + tableSpecNodeCountLength
 	tableSpecCounterLength   = 4 // == unsafe.Sizeof(uint32(0))
 
-	tableSpecHeaderByteSize = tableSpecCounterPosition + tableSpecCounterLength
+	tableSpecDataSeparationPosition = tableSpecCounterPosition + tableSpecCounterLength
+	tableSpecDataSeparationLength   = 1 // value uint8(0) or uint8(255)
+
+	tableSpecHeaderByteSize = tableSpecDataSeparationPosition + tableSpecDataSeparationLength
 )

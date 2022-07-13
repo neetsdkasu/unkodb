@@ -25,13 +25,15 @@ type tableTree struct {
 }
 
 type tableTreeNode struct {
-	tree              *tableTree
-	seg               *segmentBuffer
-	key               avltree.Key
-	leftChildAddress  int
-	rightChildAddress int
-	height            int
-	updated           bool
+	tree                  *tableTree
+	seg                   *segmentBuffer
+	key                   avltree.Key
+	leftChildAddress      int
+	rightChildAddress     int
+	height                int
+	updated               bool
+	separationDataAddress int
+	separationDataSegment *segmentBuffer
 }
 
 type tableTreeValue = map[string]any
@@ -113,7 +115,14 @@ func (node *tableTreeNode) flush() (err error) {
 	if err != nil {
 		bug.Panic(err)
 	}
-	return node.seg.Flush()
+	if node.separationDataSegment != nil {
+		err = node.separationDataSegment.Flush()
+		if err != nil {
+			return
+		}
+	}
+	err = node.seg.Flush()
+	return
 }
 
 func (node *tableTreeNode) writeValue(record tableTreeValue) {
@@ -124,6 +133,49 @@ func (node *tableTreeNode) writeValue(record tableTreeValue) {
 	err := tree.table.key.write(w, keyValue)
 	if err != nil {
 		bug.Panicf("tableTreeNode.writeValue: key %#v %v", tree.table.key, err)
+	}
+	if tree.table.dataSeparation.Enabled() {
+		var segmentByteSize uint64 = 0
+		for _, col := range tree.table.columns {
+			if colValue, ok := record[col.Name()]; !ok {
+				bug.Panicf("tableTree.writeValue: not found value of %s", col.Name())
+			} else {
+				segmentByteSize += col.byteSizeHint(colValue)
+			}
+		}
+		if node.separationDataAddress == nullAddress {
+			seg, err := tree.segManager.EmptySegment(segmentByteSize)
+			if err != nil {
+				panic(err)
+			}
+			node.separationDataAddress = seg.Position()
+			node.separationDataSegment = seg
+		} else if node.separationDataSegment == nil {
+			seg, err := tree.segManager.LoadPartialSegment(node.separationDataAddress, 0)
+			if err != nil {
+				panic(err)
+			}
+			node.separationDataSegment = seg
+		}
+		if uint64(node.separationDataSegment.Size()) < segmentByteSize {
+			seg, err := tree.segManager.EmptySegment(segmentByteSize)
+			if err != nil {
+				panic(err)
+			}
+			node.separationDataAddress = seg.Position()
+			node.separationDataSegment = seg
+		} else {
+			err = node.separationDataSegment.LoadFullSegment()
+			if err != nil {
+				panic(err)
+			}
+		}
+		err = w.Uint32(uint32(node.separationDataAddress))
+		if err != nil {
+			panic(err)
+		}
+		buf := node.separationDataSegment.Buffer()
+		w = newByteEncoder(newByteSliceWriter(buf), fileByteOrder)
 	}
 	for _, col := range tree.table.columns {
 		colValue := record[col.Name()]
@@ -142,11 +194,15 @@ func (tree *tableTree) calcSegmentByteSize(record tableTreeValue) uint64 {
 	} else {
 		segmentByteSize += tree.table.key.byteSizeHint(keyValue)
 	}
-	for _, col := range tree.table.columns {
-		if colValue, ok := record[col.Name()]; !ok {
-			bug.Panicf("tableTree.calcSegmentByteSize: not found value of %s", col.Name())
-		} else {
-			segmentByteSize += col.byteSizeHint(colValue)
+	if tree.table.dataSeparation.Enabled() {
+		segmentByteSize += addressByteSize
+	} else {
+		for _, col := range tree.table.columns {
+			if colValue, ok := record[col.Name()]; !ok {
+				bug.Panicf("tableTree.calcSegmentByteSize: not found value of %s", col.Name())
+			} else {
+				segmentByteSize += col.byteSizeHint(colValue)
+			}
 		}
 	}
 	return segmentByteSize
@@ -187,39 +243,69 @@ func (tree *tableTree) loadNode(addr int) *tableTreeNode {
 	var leftChildAddress int32
 	err = r.Int32(&leftChildAddress)
 	if err != nil {
-		panic(WrongFileFormat) // 不正なファイル(segmentのサイズ情報が壊れている、など)
+		// TODO ちゃんと記述する
+		panic(WrongFileFormat{err.Error()}) // 不正なファイル(segmentのサイズ情報が壊れている、など)
 	}
 	var rightChildAddress int32
 	err = r.Int32(&rightChildAddress)
 	if err != nil {
-		panic(WrongFileFormat) // 不正なファイル(segmentのサイズ情報が壊れている、など)
+		// TODO ちゃんと記述する
+		panic(WrongFileFormat{err.Error()}) // 不正なファイル(segmentのサイズ情報が壊れている、など)
 	}
 	var height uint8
 	err = r.Uint8(&height)
 	if err != nil {
-		panic(WrongFileFormat) // 不正なファイル(segmentのサイズ情報が壊れている、など)
+		// TODO ちゃんと記述する
+		panic(WrongFileFormat{err.Error()}) // 不正なファイル(segmentのサイズ情報が壊れている、など)
 	}
 	keyValue, err := tree.table.key.read(r)
 	if err != nil {
-		panic(WrongFileFormat) // 不正なファイル(segmentのサイズ情報が壊れている、など)
+		// TODO ちゃんと記述する
+		panic(WrongFileFormat{err.Error()}) // 不正なファイル(segmentのサイズ情報が壊れている、など)
+	}
+	var separationDataAddress int32 = nullAddress
+	if tree.table.dataSeparation.Enabled() {
+		err = r.Int32(&separationDataAddress)
+		if err != nil {
+			// TODO ちゃんと記述する
+			panic(WrongFileFormat{err.Error()}) // 不正なファイル(segmentのサイズ情報が壊れている、など)
+		}
+		if separationDataAddress == nullAddress {
+			// TODO ちゃんと記述する
+			panic(WrongFileFormat{"invalid separationDataAddress"})
+		}
 	}
 	node := &tableTreeNode{
-		tree:              tree,
-		seg:               seg,
-		key:               tree.table.key.toKey(keyValue),
-		leftChildAddress:  int(leftChildAddress),
-		rightChildAddress: int(rightChildAddress),
-		height:            int(height),
-		updated:           false,
+		tree:                  tree,
+		seg:                   seg,
+		key:                   tree.table.key.toKey(keyValue),
+		leftChildAddress:      int(leftChildAddress),
+		rightChildAddress:     int(rightChildAddress),
+		height:                int(height),
+		updated:               false,
+		separationDataAddress: int(separationDataAddress),
+		separationDataSegment: nil,
 	}
 	tree.addCache(node)
 	return node
 }
 
+// 木から除去されたノードのリソース管理
 // github.com/neetsdkasu/avltree.NodeReleaser.ReleaseNode() の実装
 func (tree *tableTree) ReleaseNode(node avltree.RealNode) {
-	seg := unwrapTableTreeNode(node).seg
-	err := tree.segManager.ReleaseSegment(seg)
+	var err error
+	ttNode := unwrapTableTreeNode(node)
+	if tree.table.dataSeparation.Enabled() {
+		if ttNode.separationDataSegment == nil {
+			err = tree.segManager.ReleaseSegmentByAddress(ttNode.separationDataAddress)
+		} else {
+			err = tree.segManager.ReleaseSegment(ttNode.separationDataSegment)
+		}
+		if err != nil {
+			panic(err)
+		}
+	}
+	err = tree.segManager.ReleaseSegment(ttNode.seg)
 	if err != nil {
 		panic(err)
 	}
@@ -241,19 +327,27 @@ func (tree *tableTree) NewNode(leftChild, rightChild avltree.Node, height int, k
 	if err != nil {
 		panic(err) // ファイルIOエラー
 	}
-	if keyValue, ok := record[tree.table.key.Name()]; !ok {
-		bug.Panic("tableTree.NewNode: no key")
-	} else if key.CompareTo(tree.table.key.toKey(keyValue)) != avltree.EqualToOtherKey {
-		bug.Panicf("tableTree.NewNode: not mutch key %v %v", key, record)
+	if tree.table.dataSeparation.Enabled() {
+		// seg.Clear() // 不要ぽい
+	}
+	if debugMode {
+		// ここでのキーチェックは不要かも
+		if keyValue, ok := record[tree.table.key.Name()]; !ok {
+			bug.Panic("tableTree.NewNode: no key")
+		} else if key.CompareTo(tree.table.key.toKey(keyValue)) != avltree.EqualToOtherKey {
+			bug.Panicf("tableTree.NewNode: not mutch key %v %v", key, record)
+		}
 	}
 	node := &tableTreeNode{
-		tree:              tree,
-		seg:               seg,
-		key:               key,
-		leftChildAddress:  unwrapTableTreeNode(leftChild).position(),
-		rightChildAddress: unwrapTableTreeNode(rightChild).position(),
-		height:            height,
-		updated:           true,
+		tree:                  tree,
+		seg:                   seg,
+		key:                   key,
+		leftChildAddress:      unwrapTableTreeNode(leftChild).position(),
+		rightChildAddress:     unwrapTableTreeNode(rightChild).position(),
+		height:                height,
+		updated:               true,
+		separationDataAddress: nullAddress,
+		separationDataSegment: nil,
 	}
 	node.writeValue(record)
 	tree.addCache(node)
@@ -288,6 +382,26 @@ func (node *tableTreeNode) Value() any {
 	if err != nil {
 		panic(err)
 	}
+	if table.dataSeparation.Enabled() {
+		if node.separationDataAddress == nullAddress {
+			bug.Panic("separationDataAddress is nullAddress")
+		}
+		if node.separationDataSegment == nil {
+			seg, err := node.tree.segManager.LoadSegment(node.separationDataAddress)
+			if err != nil {
+				panic(err)
+			}
+			node.separationDataSegment = seg
+		} else {
+			// まぁないと思うけど
+			err = node.separationDataSegment.LoadFullSegment()
+			if err != nil {
+				panic(err)
+			}
+		}
+		buf := node.separationDataSegment.Buffer()
+		r = newByteDecoder(bytes.NewReader(buf), fileByteOrder)
+	}
 	for _, col := range table.columns {
 		record[col.Name()], err = col.read(r)
 		if err != nil {
@@ -313,8 +427,16 @@ func (node *tableTreeNode) SetValue(newValue any) (_ avltree.Node) {
 	if !ok {
 		bug.Panicf("tableTreeNode.SetValue: invalid value %#v", newValue)
 	}
+	if debugMode {
+		// ここでのキーチェックは不要かも
+		if keyValue, ok := record[node.tree.table.key.Name()]; !ok {
+			bug.Panic("tableTree.NewNode: no key")
+		} else if node.key.CompareTo(node.tree.table.key.toKey(keyValue)) != avltree.EqualToOtherKey {
+			bug.Panicf("tableTree.NewNode: not mutch key %v %v", node.key, record)
+		}
+	}
 	segmentByteSize := node.tree.calcSegmentByteSize(record)
-	if node.seg.BufferSize() < int(segmentByteSize) {
+	if node.seg.Size() < int(segmentByteSize) {
 		seg, err := node.tree.segManager.EmptySegment(segmentByteSize)
 		if err != nil {
 			panic(err)

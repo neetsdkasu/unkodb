@@ -197,7 +197,7 @@ func (db *UnkoDB) CreateTableByTaggedStruct(newTableName string, taggedStruct an
 	return
 }
 
-func (db *UnkoDB) newTable(name string, key keyColumn, columns []Column) (*Table, error) {
+func (db *UnkoDB) newTable(name string, key keyColumn, columns []Column, dataSeparation dataSeparationState) (*Table, error) {
 	table := &Table{
 		db:             db,
 		name:           name,
@@ -208,41 +208,52 @@ func (db *UnkoDB) newTable(name string, key keyColumn, columns []Column) (*Table
 		rootAddress:    nullAddress,
 		rootAccessor:   nil,
 		columnsSpecBuf: nil,
+		dataSeparation: dataSeparation,
 	}
 	table.rootAccessor = table
 	var b bytes.Buffer
 	w := newByteEncoder(&b, fileByteOrder)
-	err := w.Int32(int32(table.rootAddress))
-	if err != nil {
-		return nil, err
-	}
-	err = w.Int32(int32(table.nodeCount))
-	if err != nil {
-		return nil, err
-	}
-	err = w.Uint32(uint32(table.counter))
-	if err != nil {
-		return nil, err
-	}
-	err = w.WriteColumnSpec(table.key)
-	if err != nil {
-		return nil, err
-	}
-	err = w.Uint8(uint8(len(table.columns)))
-	if err != nil {
-		return nil, err
-	}
-	for _, col := range table.columns {
-		err = w.WriteColumnSpec(col)
+	// tableSpecHeader
+	{
+		err := w.Int32(int32(table.rootAddress))
 		if err != nil {
 			return nil, err
+		}
+		err = w.Int32(int32(table.nodeCount))
+		if err != nil {
+			return nil, err
+		}
+		err = w.Uint32(uint32(table.counter))
+		if err != nil {
+			return nil, err
+		}
+		err = w.Uint8(uint8(table.dataSeparation))
+		if err != nil {
+			return nil, err
+		}
+	}
+	// tableSpecKeyAndColumns
+	{
+		err := w.WriteColumnSpec(table.key)
+		if err != nil {
+			return nil, err
+		}
+		err = w.Uint8(uint8(len(table.columns)))
+		if err != nil {
+			return nil, err
+		}
+		for _, col := range table.columns {
+			err = w.WriteColumnSpec(col)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	table.columnsSpecBuf = b.Bytes()
 	data := make(map[string]any)
 	data[tableListKeyName] = table.name
 	data[tableListColumnName] = table.columnsSpecBuf
-	_, err = db.tableList.Insert(data)
+	_, err := db.tableList.Insert(data)
 	if err != nil {
 		return nil, err
 	}
@@ -257,44 +268,66 @@ func (db *UnkoDB) newTable(name string, key keyColumn, columns []Column) (*Table
 
 func (db *UnkoDB) loadTableSpec(tableName string, columnsSpecBuf []byte) (err error) {
 	r := newByteDecoder(bytes.NewReader(columnsSpecBuf), fileByteOrder)
-	var rootAddress int32
-	err = r.Int32(&rootAddress)
-	if err != nil {
-		return
+	// tableSpecHeader
+	var (
+		rootAddress    int32
+		nodeCount      int32
+		counter        uint32
+		dataSeparation uint8
+	)
+	{
+		err = r.Int32(&rootAddress)
+		if err != nil {
+			return
+		}
+		err = r.Int32(&nodeCount)
+		if err != nil {
+			return
+		}
+		err = r.Uint32(&counter)
+		if err != nil {
+			return
+		}
+		err = r.Uint8(&dataSeparation)
+		if err != nil {
+			return
+		}
+		if !dataSeparationState(dataSeparation).IsValid() {
+			err = WrongFileFormat{"invalid dataSeparation"}
+			return
+		}
 	}
-	var nodeCount int32
-	err = r.Int32(&nodeCount)
-	if err != nil {
-		return
-	}
-	var counter uint32
-	err = r.Uint32(&counter)
-	if err != nil {
-		return
-	}
-	var col Column
-	col, err = r.ReadColumnSpec()
-	if err != nil {
-		return
-	}
-	key, ok := col.(keyColumn)
-	if !ok {
-		// TODO ちゃんとしたエラー作る
-		err = fmt.Errorf("invalid key in %s", tableName)
-		return
-	}
-	var colCount uint8
-	err = r.Uint8(&colCount)
-	if err != nil {
-		return
-	}
-	columns := make([]Column, colCount)
-	for i := range columns {
+	// tableSpecKeyAndColumns
+	var (
+		key     keyColumn
+		columns []Column
+	)
+	{
+		var col Column
 		col, err = r.ReadColumnSpec()
 		if err != nil {
-			return err
+			return
 		}
-		columns[i] = col
+		var ok bool
+		key, ok = col.(keyColumn)
+		if !ok {
+			// TODO ちゃんとしたエラー作る
+			err = WrongFileFormat{fmt.Sprintf("invalid key in %s", tableName)}
+			return
+		}
+		var colCount uint8
+		err = r.Uint8(&colCount)
+		if err != nil {
+			return
+		}
+		columns = make([]Column, colCount)
+		for i := range columns {
+			col, err = r.ReadColumnSpec()
+			if err != nil {
+				return err
+			}
+			columns[i] = col
+		}
 	}
 	table := &Table{
 		db:             db,
@@ -305,6 +338,7 @@ func (db *UnkoDB) loadTableSpec(tableName string, columnsSpecBuf []byte) (err er
 		counter:        uint(counter),
 		rootAddress:    int(rootAddress),
 		columnsSpecBuf: columnsSpecBuf,
+		dataSeparation: dataSeparationState(dataSeparation),
 	}
 	table.rootAccessor = table
 	db.tables = append(db.tables, table)
@@ -322,11 +356,12 @@ func (db *UnkoDB) setRootAddress(addr int) (err error) {
 
 func (db *UnkoDB) initTableListTable() error {
 	db.tableList = &Table{
-		db:           db,
-		name:         tableListTableName,
-		key:          &shortStringColumn{name: tableListKeyName},
-		columns:      []Column{&longBytesColumn{name: tableListColumnName}},
-		rootAccessor: db,
+		db:             db,
+		name:           tableListTableName,
+		key:            &shortStringColumn{name: tableListKeyName},
+		columns:        []Column{&longBytesColumn{name: tableListColumnName}},
+		rootAccessor:   db,
+		dataSeparation: dataSeparationEnabled,
 	}
 	// TODO データが壊れててテーブル名が重複してたりカラム情報が壊れてたりの対処は？
 	err := db.tableList.IterateAll(func(rec *Record) (_ bool) {

@@ -944,7 +944,7 @@ func TestUnkoDB_DeleteTable(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if avltree.Count(db2.segManager.tree) != 4 {
+		if avltree.Count(db2.segManager.tree) != 5 {
 			t.Fatal("invalid free segments")
 		}
 
@@ -969,7 +969,7 @@ func TestUnkoDB_DeleteTable(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if avltree.Count(db3.segManager.tree) != 4 {
+		if avltree.Count(db3.segManager.tree) != 5 {
 			t.Fatal("invalid free segments")
 		}
 

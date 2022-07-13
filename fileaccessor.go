@@ -53,7 +53,7 @@ func readFile(file io.ReadWriteSeeker) (*fileAccessor, error) {
 		idleSegmentListRootAddress: nullAddress,
 	}
 	if fileSize < fileHeaderByteSize {
-		return nil, FileFormatError{"Wrong file size"}
+		return nil, WrongFileFormat{"Wrong file size"}
 	}
 	if err = newFile.readHeader(); err != nil {
 		return nil, err
@@ -110,7 +110,7 @@ func (file *fileAccessor) readHeader() error {
 			bug.Panic(err) // ここに到達する場合はバグがある
 		}
 		if !bytes.Equal(sig[:], fileSignature()) {
-			return FileFormatError{"Wrong Signature in File Header"}
+			return WrongFileFormat{"Wrong Signature in File Header"}
 		}
 	}
 	{
@@ -119,7 +119,7 @@ func (file *fileAccessor) readHeader() error {
 			bug.Panic(err) // ここに到達する場合はバグがある
 		}
 		if version != fileFormatVersion {
-			return FileFormatError{fmt.Sprintf("Unsupported FileFormatVersion (%d)", version)}
+			return WrongFileFormat{fmt.Sprintf("Unsupported FileFormatVersion (%d)", version)}
 		}
 		file.version = int(version)
 	}
@@ -129,7 +129,7 @@ func (file *fileAccessor) readHeader() error {
 			bug.Panic(err) // ここに到達する場合はバグがある
 		}
 		if nextNewSegmentAddress < firstNewSegmentAddress {
-			return FileFormatError{"Wrong NextNewSegmentAddress"}
+			return WrongFileFormat{"Wrong NextNewSegmentAddress"}
 		}
 		file.nextNewSegmentAddress = int(nextNewSegmentAddress)
 	}
@@ -139,7 +139,7 @@ func (file *fileAccessor) readHeader() error {
 			bug.Panic(err) // ここに到達する場合はバグがある
 		}
 		if reserveAreaAddress != nullAddress {
-			return FileFormatError{"Wrong ReserveAreaAddress"}
+			return WrongFileFormat{"Wrong ReserveAreaAddress"}
 		}
 	}
 	{
@@ -148,7 +148,7 @@ func (file *fileAccessor) readHeader() error {
 			bug.Panic(err) // ここに到達する場合はバグがある
 		}
 		if tableListRootAddress < 0 {
-			return FileFormatError{"Wrong TableListRootAddress"}
+			return WrongFileFormat{"Wrong TableListRootAddress"}
 		}
 		file.tableListRootAddress = int(tableListRootAddress)
 	}
@@ -158,7 +158,7 @@ func (file *fileAccessor) readHeader() error {
 			bug.Panic(err) // ここに到達する場合はバグがある
 		}
 		if idleSegmentListRootAddress < 0 {
-			return FileFormatError{"Wrong IdleSegmentTreeRootAddress"}
+			return WrongFileFormat{"Wrong IdleSegmentTreeRootAddress"}
 		}
 		file.idleSegmentListRootAddress = int(idleSegmentListRootAddress)
 	}
@@ -220,9 +220,36 @@ func (file *fileAccessor) CreateSegment(byteSize int) (*segmentBuffer, error) {
 		return nil, fmt.Errorf("Failed fileAccessor.CreateSegment (update) [%w]", err)
 	}
 	seg := &segmentBuffer{
-		file:     file,
-		position: segmentAddress,
-		buffer:   buffer,
+		file:        file,
+		position:    segmentAddress,
+		buffer:      buffer,
+		segmentSize: byteSize,
+		partial:     false,
+	}
+	return seg, nil
+}
+
+func (file *fileAccessor) ReadPartialSegment(position, extraReadByteSize int) (*segmentBuffer, error) {
+	var headerBuffer [segmentHeaderByteSize]byte
+	err := file.Read(position, headerBuffer[:])
+	if err != nil {
+		return nil, fmt.Errorf("Failed fileAccessor.ReadPartialSegment (read header) [%w]", err)
+	}
+	length := int(fileByteOrder.Uint32(headerBuffer[:]))
+	readLength := segmentHeaderByteSize + extraReadByteSize
+	if readLength > length {
+		return nil, fmt.Errorf("Failed fileAccessor.ReadPartialSegment [invalid extraReadByteSize]")
+	}
+	buffer, err := file.ReadBytes(position, readLength)
+	if err != nil {
+		return nil, fmt.Errorf("Failed fileAccessor.ReadPartialSegment (read data) [%w]", err)
+	}
+	seg := &segmentBuffer{
+		file:        file,
+		position:    position,
+		buffer:      buffer,
+		segmentSize: length,
+		partial:     length != readLength,
 	}
 	return seg, nil
 }
@@ -238,7 +265,13 @@ func (file *fileAccessor) ReadSegment(position int) (*segmentBuffer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed fileAccessor.ReadSegment (read data) [%w]", err)
 	}
-	seg := &segmentBuffer{file, position, buffer}
+	seg := &segmentBuffer{
+		file:        file,
+		position:    position,
+		buffer:      buffer,
+		segmentSize: length,
+		partial:     false,
+	}
 	return seg, nil
 }
 

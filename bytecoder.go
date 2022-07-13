@@ -189,7 +189,7 @@ func (decoder *byteDecoder) ReadColumnSpec() (col Column, err error) {
 	}
 	switch ColumnType(colType) {
 	default:
-		err = WrongFileFormat
+		err = WrongFileFormat{"Unknown ColumnType"}
 	case Counter:
 		col = &counterColumn{name: name}
 	case Int8:

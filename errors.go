@@ -10,30 +10,32 @@ var (
 )
 
 type NotFoundColumnName struct{ Column }
-type UnmatchColumnValueType struct{ Column }
-type TagError struct{ inner error }
-type FileFormatError struct{ description string }
 
 func (err NotFoundColumnName) Error() string {
 	return "NotFoundColumnName: " + err.Name()
 }
 
+type UnmatchColumnValueType struct{ Column }
+
 func (err UnmatchColumnValueType) Error() string {
 	return "UnmatchColumnValueType: " + err.Name() + " " + ColumnTypeHint(err)
 }
+
+type TagError struct{ inner error }
 
 func (err TagError) Error() string {
 	return "TagError: " + err.inner.Error()
 }
 
-func (err FileFormatError) Error() string {
-	return "FileFormatError: " + err.description
+type WrongFileFormat struct{ description string }
+
+func (err WrongFileFormat) Error() string {
+	return "WrongFileFormat: " + err.description
 }
 
 var (
 	TableNameIsTooLong = errors.New("TableNameIsTooLong")
 
-	WrongFileFormat = errors.New("WrongFileFormat")
 	TooLargeData    = errors.New("TooLargeData")
 	KeyIsNotCounter = errors.New("KeyIsNotCounter")
 

@@ -9,6 +9,16 @@ import (
 
 type IterateCallbackFunc = func(r *Record) (breakIteration bool)
 
+type dataSeparationState uint8
+
+func (dss dataSeparationState) IsValid() bool {
+	return dss == dataSeparationEnabled || dss == dataSeparationDisabled
+}
+
+func (dss dataSeparationState) Enabled() bool {
+	return dss == dataSeparationEnabled
+}
+
 type Table struct {
 	db             *UnkoDB
 	name           string
@@ -19,6 +29,7 @@ type Table struct {
 	columnsSpecBuf []byte
 	rootAddress    int
 	rootAccessor   rootAddressAccessor
+	dataSeparation dataSeparationState
 }
 
 func (table *Table) Name() string {
@@ -72,6 +83,10 @@ func (table *Table) flush() (err error) {
 		return
 	}
 	err = w.Uint32(uint32(table.counter))
+	if err != nil {
+		return
+	}
+	err = w.Uint8(uint8(table.dataSeparation))
 	if err != nil {
 		return
 	}

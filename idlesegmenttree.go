@@ -160,7 +160,7 @@ func (tree *idleSegmentTree) loadNode(address int) *idleSegmentTreeNode {
 	if cachedNode, ok := tree.getCache(address); ok {
 		return cachedNode
 	}
-	seg, err := tree.file.ReadSegment(address)
+	seg, err := tree.file.ReadPartialSegment(address, idleSegmentTreeNodeDataByteSize)
 	if err != nil {
 		panic(err) // ファイルのIOエラー
 	}
@@ -168,22 +168,25 @@ func (tree *idleSegmentTree) loadNode(address int) *idleSegmentTreeNode {
 	var leftChildAddress int32
 	err = r.Int32(&leftChildAddress)
 	if err != nil {
-		panic(WrongFileFormat) // 不正なファイル(segmentのサイズ情報が壊れている、など)
+		// TODO ちゃんと記述する
+		panic(WrongFileFormat{err.Error()}) // 不正なファイル(segmentのサイズ情報が壊れている、など)
 	}
 	var rightChildAddress int32
 	err = r.Int32(&rightChildAddress)
 	if err != nil {
-		panic(WrongFileFormat) // 不正なファイル(segmentのサイズ情報が壊れている、など)
+		// TODO ちゃんと記述する
+		panic(WrongFileFormat{err.Error()}) // 不正なファイル(segmentのサイズ情報が壊れている、など)
 	}
 	var height uint8
 	err = r.Uint8(&height)
 	if err != nil {
-		panic(WrongFileFormat) // 不正なファイル(segmentのサイズ情報が壊れている、など)
+		// TODO ちゃんと記述する
+		panic(WrongFileFormat{err.Error()}) // 不正なファイル(segmentのサイズ情報が壊れている、など)
 	}
 	node := &idleSegmentTreeNode{
 		tree:              tree,
 		segment:           seg,
-		key:               idleSegmentTreeKey(int32(seg.BufferSize())),
+		key:               idleSegmentTreeKey(int32(seg.Size())),
 		leftChildAddress:  int(leftChildAddress),
 		rightChildAddress: int(rightChildAddress),
 		height:            int(height),
@@ -228,7 +231,7 @@ func (*idleSegmentTree) AllowDuplicateKeys() bool {
 
 // github.com/neetsdkasu/avltree.RealNode.Key() の実装
 func (node *idleSegmentTreeNode) Key() avltree.Key {
-	return idleSegmentTreeKey(int32(node.segment.BufferSize()))
+	return idleSegmentTreeKey(int32(node.segment.Size()))
 }
 
 // github.com/neetsdkasu/avltree.RealNode.Value() の実装

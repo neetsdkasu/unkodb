@@ -55,7 +55,17 @@ func (tc *TableCreator) Create() (table *Table, err error) {
 		err = NeedToSetAKey
 		return
 	}
-	table, err = tc.db.newTable(tc.name, tc.key, tc.columns)
+	var dataSize uint64 = 0
+	for _, col := range tc.columns {
+		dataSize += col.MaximumDataByteSize()
+	}
+	var dataSeparation dataSeparationState
+	if dataSize <= noSeparationMaximumDataSize {
+		dataSeparation = dataSeparationDisabled
+	} else {
+		dataSeparation = dataSeparationEnabled
+	}
+	table, err = tc.db.newTable(tc.name, tc.key, tc.columns, dataSeparation)
 	if err != nil {
 		return
 	}
