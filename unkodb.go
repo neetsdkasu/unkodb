@@ -197,6 +197,30 @@ func (db *UnkoDB) CreateTableByTaggedStruct(newTableName string, taggedStruct an
 	return
 }
 
+// キーとカラムの構造が指定のテーブルと同じ構造の新しいテーブルを作成する。
+//
+// 		tc, _ := myDB.CreateTable("my_book_table")
+// 		tc.CounterKey("id")
+// 		tc.ShortStringColumn("title")
+// 		tc.ShortStringColumn("author")
+// 		tc.ShortStringColumn("genre")
+// 		myTable, _ := tc.Create()
+// 		mySecret, _ := myDB.CreateTableByOtherTable("my_secret_book_table", myTable)
+// 		yourTable, _ := yourDB.CreateTableByOtherTable("your_book_table", myTable)
+// 		yourSecret, _ := yourDB.CreateTableByOtherTable("your_secret_book_table", myTable)
+//
+func (db *UnkoDB) CreateTableByOtherTable(newTableName string, other *Table) (table *Table, err error) {
+	if !debugMode {
+		defer catchError(&err)
+	}
+	_, err = db.CreateTable(newTableName)
+	if err != nil {
+		return
+	}
+	table, err = db.newTable(newTableName, other.key, other.columns, other.dataSeparation)
+	return
+}
+
 func (db *UnkoDB) newTable(name string, key keyColumn, columns []Column, dataSeparation dataSeparationState) (*Table, error) {
 	table := &Table{
 		db:             db,

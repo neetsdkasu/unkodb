@@ -122,6 +122,121 @@ func TestUnkoDB_CreateTableByTaggedStruct(t *testing.T) {
 	t.Skip("TEST IS NOT IMPLEMENTED YET")
 }
 
+func TestUnkoDB_CreateTableByOtherTable(t *testing.T) {
+	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tempfile.Close()
+
+	db, err := Create(tempfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	type Food struct {
+		Id    CounterType `unkodb:"id,key@Counter"`
+		Name  string      `unkodb:"name,ShortString"`
+		Price int64       `unkodb:"price,Int64"`
+	}
+
+	base, err := db.CreateTableByTaggedStruct("base_foodlist", (*Food)(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	table, err := db.CreateTableByOtherTable("foodlist", base)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	list := []*Food{
+		&Food{
+			Name:  "りんご",
+			Price: 500,
+		},
+		&Food{
+			Name:  "ソフトクリーム",
+			Price: 800,
+		},
+		&Food{
+			Name:  "カレーライス",
+			Price: 1200,
+		},
+	}
+
+	for i, item := range list {
+		r, err := table.Insert(item)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var f Food
+		err = r.MoveTo(&f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if f.Id != CounterType(i+1) {
+			t.Fatalf("unmatch id %#v %#v", f, item)
+		}
+		if f.Name != item.Name {
+			t.Fatalf("unmatch name %#v %#v", f, item)
+		}
+		if f.Price != item.Price {
+			t.Fatalf("unmatch price %#v %#v", f, item)
+		}
+
+		f.Price *= 2
+
+		r, err = table.Replace(&f)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		var g Food
+		err = r.CopyTo(&g)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if g != f {
+			t.Fatalf("unmatch %#v %#v", g, f)
+		}
+	}
+
+	result := []*Food{}
+
+	err = table.IterateAll(func(r *Record) (_ bool) {
+		f := &Food{}
+		err = r.MoveTo(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		result = append(result, f)
+		return
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(result) != len(list) {
+		t.Fatal("unmatch list size")
+	}
+
+	for i, item := range list {
+		res := result[i]
+		if res.Id != CounterType(i+1) {
+			t.Fatal("unmatch id")
+		}
+		if res.Name != item.Name {
+			t.Fatal("unmatch name")
+		}
+		if res.Price != item.Price*2 {
+			t.Fatal("unmatch price")
+		}
+	}
+
+	t.Skip("TEST IS NOT IMPLEMENTED YET")
+}
+
 func TestUnkoDB(t *testing.T) {
 	tempfile, err := os.Create(filepath.Join(t.TempDir(), "test.unkodb"))
 	if err != nil {
