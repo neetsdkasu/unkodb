@@ -32,14 +32,19 @@ type Table struct {
 	dataSeparation dataSeparationState
 }
 
+// テーブル名を返す。
 func (table *Table) Name() string {
 	return table.name
 }
 
+// キーのカラム情報を返す。
 func (table *Table) Key() Column {
 	return table.key
 }
 
+// 指定したカラム名のカラム情報を返す。
+// 指定したカラム名が存在しない場合はnilを返す。
+// キー名も指定できる。
 func (table *Table) Column(name string) Column {
 	if table.key.Name() == name {
 		return table.key
@@ -52,6 +57,8 @@ func (table *Table) Column(name string) Column {
 	return nil
 }
 
+// このテーブルの全てのカラムのカラム情報をリストにして返す。
+// このリストにはキーは含まれない。
 func (table *Table) Columns() []Column {
 	columns := make([]Column, len(table.columns))
 	copy(columns, table.columns)
@@ -97,6 +104,8 @@ func (table *Table) flush() (err error) {
 	return
 }
 
+// InsertやReplaceに渡すデータにおいて各カラムのデータの型に問題にないかを確認をする。
+// 引数のdataにはmap[string]anyもしくはunkodb.Dataもしくはunkodbタグを付けた構造体のインスタンスを渡す。
 func (table *Table) CheckData(data any) (err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -128,6 +137,9 @@ func (table *Table) getKey(data map[string]any) avltree.Key {
 	return table.key.toKey(data[table.key.Name()])
 }
 
+// 指定したキーに対応するデータを取得する。
+// キーのカラム型に対応したGoの型で渡す必要がある。
+// 指定したキーに対応するデータが存在しない場合には戻り値は全てnilとなる。
 func (table *Table) Find(key any) (r *Record, err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -175,6 +187,9 @@ func (table *Table) deleteAll() (err error) {
 	return
 }
 
+// 指定したキーに対応するデータとキーを削除する。
+// キーのカラム型に対応したGoの型で渡す必要がある。
+// 指定したキーに対応するデータが存在しない場合には戻り値はNotFoundKeyとなる。
 func (table *Table) Delete(key any) (err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -208,10 +223,13 @@ func (table *Table) Delete(key any) (err error) {
 	return
 }
 
+// テーブルに存在するキーの数を返す。
 func (table *Table) Count() int {
 	return table.nodeCount
 }
 
+// キーのカラム型をCounterにしている場合に次にInsertするときに付与されるキーの値を取得できる。
+// キーのカラム型がCounterではない場合はKeyIsNotCounterのエラーが返る。
 func (table *Table) NextCounterID() (CounterType, error) {
 	if table.key.Type() != Counter {
 		return 0, KeyIsNotCounter
@@ -219,6 +237,23 @@ func (table *Table) NextCounterID() (CounterType, error) {
 	return CounterType(table.counter + 1), nil
 }
 
+// テーブルにデータを挿入する。
+// 引数のdataにはmap[string]anyもしくはunkodb.Dataもしくはunkodbタグを付けた構造体のインスタンスを渡す。
+// dataにはキーとカラムの全ての値をセットしておく必要がある。
+// キーが既にテーブルに存在する場合はKeyAlreadyExistsのエラーが返る。
+// キーのカラム型がCounterの場合はセットされたキーの値は無視される。
+// 戻り値の*Recordには挿入されたデータのコピーが入る。
+// キーのカラム型がCounterの場合は戻り値の*Recordにキーがセットされるのでキーの確認ができる。
+//
+// 		data := map[string]any{
+// 			"id":     unkodb.CounterType(0),
+// 			"title":  "プログラミング入門の本",
+// 			"author": "プログラマーのティーチャー",
+// 			"genre":  "技術書",
+// 		}
+// 		r, _ := table.Insert(data)
+// 		fmt.Println("idは", r.Key(), "になりました")
+//
 func (table *Table) Insert(data any) (r *Record, err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -252,7 +287,6 @@ func (table *Table) Insert(data any) (r *Record, err error) {
 	key := table.getKey(mdata)
 	_, ok := avltree.Insert(tree, false, key, tableTreeValue(mdata))
 	if !ok {
-
 		err = KeyAlreadyExists // duplicate key error
 		return
 	}
@@ -276,6 +310,11 @@ func (table *Table) Insert(data any) (r *Record, err error) {
 	return
 }
 
+// キーに対応するデータを置き換える。
+// 引数のdataにはmap[string]anyもしくはunkodb.Dataもしくはunkodbタグを付けた構造体のインスタンスを渡す。
+// dataにはキーとカラムの全てをセットしておく必要がある。
+// dataのキーに対応するデータを置き換えることになる。
+// 対応するキーが存在しない場合はNotFoundKeyのエラーが返る。
 func (table *Table) Replace(data any) (r *Record, err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -309,6 +348,17 @@ func (table *Table) Replace(data any) (r *Record, err error) {
 	return
 }
 
+// テーブルに存在するデータをキーの昇順でコールバック関数に渡していく。
+//
+// 		table.IterateAll(func(r *unkodb.Record) (breakIteration bool) {
+// 			if r.Column("value").(int32) == 123 {
+// 				fmt.Println("valueが123となる最初のキーは", r.Key(), "です")
+// 				// IterateAllを中断する
+// 				breakIteration = true
+// 			}
+// 			return
+// 		})
+//
 func (table *Table) IterateAll(callback IterateCallbackFunc) (err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -318,6 +368,35 @@ func (table *Table) IterateAll(callback IterateCallbackFunc) (err error) {
 		return err
 	}
 	avltree.Iterate(tree, false, func(node avltree.Node) (breakIteration bool) {
+		rec := &Record{
+			table: table,
+			data:  node.Value().(tableTreeValue),
+		}
+		return callback(rec)
+	})
+	return
+}
+
+// テーブルに存在するデータをキーの降順でコールバック関数に渡していく。
+//
+// 		table.IterateBackAll(func(r *unkodb.Record) (breakIteration bool) {
+// 			if r.Column("value").(int32) == 123 {
+// 				fmt.Println("valueが123となる最後のキーは", r.Key(), "です")
+// 				// IterateBackAllを中断する
+// 				breakIteration = true
+// 			}
+// 			return
+// 		})
+//
+func (table *Table) IterateBackAll(callback IterateCallbackFunc) (err error) {
+	if !debugMode {
+		defer catchError(&err)
+	}
+	tree, err := newTableTree(table)
+	if err != nil {
+		return err
+	}
+	avltree.Iterate(tree, true, func(node avltree.Node) (breakIteration bool) {
 		rec := &Record{
 			table: table,
 			data:  node.Value().(tableTreeValue),
@@ -353,6 +432,41 @@ func (table *Table) IterateRange(lowerKey, upperKey any, callback IterateCallbac
 		return err
 	}
 	avltree.RangeIterate(tree, false, lKey, rKey, func(node avltree.Node) (breakIteration bool) {
+		rec := &Record{
+			table: table,
+			data:  node.Value().(tableTreeValue),
+		}
+		return callback(rec)
+	})
+	return
+}
+
+func (table *Table) IterateBackRange(lowerKey, upperKey any, callback IterateCallbackFunc) (err error) {
+	if !debugMode {
+		defer catchError(&err)
+	}
+	var lKey, rKey avltree.Key
+	if lowerKey != nil {
+		if table.key.IsValidValueType(lowerKey) {
+			lKey = table.key.toKey(lowerKey)
+		} else {
+			err = UnmatchColumnValueType{table.key}
+			return
+		}
+	}
+	if upperKey != nil {
+		if table.key.IsValidValueType(upperKey) {
+			rKey = table.key.toKey(upperKey)
+		} else {
+			err = UnmatchColumnValueType{table.key}
+			return
+		}
+	}
+	tree, err := newTableTree(table)
+	if err != nil {
+		return err
+	}
+	avltree.RangeIterate(tree, true, lKey, rKey, func(node avltree.Node) (breakIteration bool) {
 		rec := &Record{
 			table: table,
 			data:  node.Value().(tableTreeValue),
