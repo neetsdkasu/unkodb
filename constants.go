@@ -78,10 +78,6 @@ const (
 )
 
 const (
-	maximumSegmentByteSize = (1 << 31) - 1 // 2147483647
-)
-
-const (
 	fileFormatVersion = 1
 
 	addressByteSize = 4 // == unsafe.Sizeof(int32(0))
@@ -124,6 +120,12 @@ const (
 	idleSegmentTreeNodeHeightLength   = 1 // == unsafe.Sizeof(uint8(0))
 
 	idleSegmentTreeNodeDataByteSize = idleSegmentTreeNodeHeightPosition + idleSegmentTreeNodeHeightLength
+)
+
+const (
+	maximumSegmentByteSize      = (1 << 31) - 1 // 2147483647
+	minimumSegmentByteSize      = idleSegmentTreeNodeDataByteSize
+	minimumSegmentTotalByteSize = segmentHeaderByteSize + idleSegmentTreeNodeDataByteSize
 )
 
 // アホみたい

@@ -29,22 +29,55 @@ func (manager *segmentManager) LoadPartialSegment(addr int, size int) (*segmentB
 }
 
 func (manager *segmentManager) EmptySegment(byteSize uint64) (*segmentBuffer, error) {
-	if byteSize > maximumSegmentByteSize {
-		return nil, TooLargeData
-	}
 	byteSize = (byteSize + 3) &^ 3
+	if byteSize < minimumSegmentByteSize {
+		bug.Panic("too small")
+	}
 	if byteSize > maximumSegmentByteSize {
 		return nil, TooLargeData
 	}
 	keyMin := idleSegmentTreeKey(int32(byteSize))
-	keyMax := idleSegmentTreeKey(int32(byteSize + 4))
+	keyMax := idleSegmentTreeKey(int32(minValue(byteSize+32, maximumSegmentByteSize)))
 	_, nodes := avltree.DeleteRangeIterate(manager.tree, false, keyMin, keyMax, func(key avltree.Key, value any) (deleteNode, breakIteration bool) {
 		deleteNode = true
 		breakIteration = true
 		return
 	})
 	if len(nodes) == 0 {
-		return manager.file.CreateSegment(int(byteSize))
+		mul2Size := byteSize*2 + segmentHeaderByteSize
+		mul3Size := byteSize*3 + segmentHeaderByteSize
+		if mul2Size > maximumSegmentByteSize {
+			return manager.file.CreateSegment(int(byteSize))
+		}
+		mul3Size = minValue(mul3Size, maximumSegmentByteSize)
+		keyMin := idleSegmentTreeKey(int32(mul2Size))
+		keyMax := idleSegmentTreeKey(int32(mul3Size))
+		_, nodes := avltree.DeleteRangeIterate(manager.tree, false, keyMin, keyMax, func(key avltree.Key, value any) (deleteNode, breakIteration bool) {
+			deleteNode = true
+			breakIteration = true
+			return
+		})
+		if len(nodes) == 0 {
+			return manager.file.CreateSegment(int(byteSize))
+		}
+		if len(nodes) != 1 {
+			bug.Panicf("segmentManager.Request: free segment too many %d", len(nodes))
+		}
+		seg, ok := nodes[0].Value().(*segmentBuffer)
+		if !ok {
+			bug.Panicf("segmentManager.Request: not segmentBuffer %T %#v", nodes[0], nodes[0])
+		}
+		other, err := seg.Split(int(byteSize))
+		if err != nil {
+			// どこからも参照のない迷子セグメントになる・・・？
+			return nil, err
+		}
+		err = manager.ReleaseSegment(other)
+		if err != nil {
+			// どこからも参照のない迷子セグメントになる・・・？
+			return nil, err
+		}
+		return seg, nil
 	}
 	if len(nodes) != 1 {
 		bug.Panicf("segmentManager.Request: free segment too many %d", len(nodes))

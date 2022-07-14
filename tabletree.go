@@ -143,6 +143,7 @@ func (node *tableTreeNode) writeValue(record tableTreeValue) {
 				segmentByteSize += col.byteSizeHint(colValue)
 			}
 		}
+		segmentByteSize = maxValue(segmentByteSize, minimumSegmentByteSize)
 		if node.separationDataAddress == nullAddress {
 			seg, err := tree.segManager.EmptySegment(segmentByteSize)
 			if err != nil {

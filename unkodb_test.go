@@ -563,6 +563,10 @@ func TestUnkoDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if c := avltree.Count(db3.segManager.tree); c != 0 {
+		t.Fatalf("wrong idle tree count %d", c)
+	}
+
 	data["id"] = CounterType(0)
 	data["name"] = "チーズインハンバーグ"
 	data["price"] = int64(1200)
@@ -571,7 +575,7 @@ func TestUnkoDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if c := avltree.Count(db3.segManager.tree); c != 1 {
+	if c := avltree.Count(db3.segManager.tree); c != 0 {
 		t.Fatalf("wrong idle tree count %d", c)
 	}
 

@@ -50,7 +50,15 @@ func catchError(err *error) {
 	}
 }
 
-func minValue(a, b int) int {
+func maxValue[T integerTypes | int](a, b T) T {
+	if a > b {
+		return a
+	} else {
+		return b
+	}
+}
+
+func minValue[T integerTypes | int](a, b T) T {
 	if a < b {
 		return a
 	} else {
