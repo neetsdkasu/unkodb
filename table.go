@@ -31,6 +31,7 @@ type Table struct {
 	rootAddress    int
 	rootAccessor   rootAddressAccessor
 	dataSeparation dataSeparationState
+	iterating      bool
 }
 
 // テーブル名を返す。
@@ -156,7 +157,7 @@ func (table *Table) Find(key any) (r *Record, err error) {
 		return
 	}
 	var tree *tableTree
-	tree, err = newTableTree(table)
+	tree, err = newTableTree(table, true)
 	if err != nil {
 		return
 	}
@@ -172,8 +173,12 @@ func (table *Table) Find(key any) (r *Record, err error) {
 }
 
 func (table *Table) deleteAll() (err error) {
+	if table.iterating {
+		err = InvalidOperation
+		return
+	}
 	var tree *tableTree
-	tree, err = newTableTree(table)
+	tree, err = newTableTree(table, false)
 	if err != nil {
 		return
 	}
@@ -192,6 +197,10 @@ func (table *Table) deleteAll() (err error) {
 // キーのカラム型に対応したGoの型で渡す必要がある。
 // 指定したキーに対応するデータが存在しない場合には戻り値はNotFoundKeyとなる。
 func (table *Table) Delete(key any) (err error) {
+	if table.iterating {
+		err = InvalidOperation
+		return
+	}
 	if !debugMode {
 		defer catchError(&err)
 	}
@@ -206,7 +215,7 @@ func (table *Table) Delete(key any) (err error) {
 		return
 	}
 	var tree *tableTree
-	tree, err = newTableTree(table)
+	tree, err = newTableTree(table, false)
 	if err != nil {
 		return
 	}
@@ -256,6 +265,10 @@ func (table *Table) NextCounterID() (CounterType, error) {
 // 		fmt.Println("idは", r.Key(), "になりました")
 //
 func (table *Table) Insert(data any) (r *Record, err error) {
+	if table.iterating {
+		err = InvalidOperation
+		return
+	}
 	if !debugMode {
 		defer catchError(&err)
 	}
@@ -281,7 +294,7 @@ func (table *Table) Insert(data any) (r *Record, err error) {
 		return
 	}
 	var tree *tableTree
-	tree, err = newTableTree(table)
+	tree, err = newTableTree(table, false)
 	if err != nil {
 		return
 	}
@@ -317,6 +330,10 @@ func (table *Table) Insert(data any) (r *Record, err error) {
 // dataのキーに対応するデータを置き換えることになる。
 // 対応するキーが存在しない場合はNotFoundKeyのエラーが返る。
 func (table *Table) Replace(data any) (r *Record, err error) {
+	if table.iterating {
+		err = InvalidOperation
+		return
+	}
 	if !debugMode {
 		defer catchError(&err)
 	}
@@ -327,7 +344,7 @@ func (table *Table) Replace(data any) (r *Record, err error) {
 		return
 	}
 	var tree *tableTree
-	tree, err = newTableTree(table)
+	tree, err = newTableTree(table, false)
 	if err != nil {
 		return
 	}
@@ -349,7 +366,16 @@ func (table *Table) Replace(data any) (r *Record, err error) {
 	return
 }
 
+func (table *Table) beginIteration() {
+	table.iterating = true
+}
+
+func (table *Table) endIteration() {
+	table.iterating = false
+}
+
 // テーブルに存在するデータのコピーをキーの昇順でコールバック関数に渡していく。
+// イテレーション中はInsert/Replace/Delete/DeleteTableなどのテーブル変更操作を行うとデータが壊れる。
 //
 // 		table.IterateAll(func(r *unkodb.Record) (breakIteration bool) {
 // 			if r.Column("value").(int32) == 123 {
@@ -364,7 +390,9 @@ func (table *Table) IterateAll(callback IterateCallbackFunc) (err error) {
 	if !debugMode {
 		defer catchError(&err)
 	}
-	tree, err := newTableTree(table)
+	table.beginIteration()
+	defer table.endIteration()
+	tree, err := newTableTree(table, true)
 	if err != nil {
 		return err
 	}
@@ -379,6 +407,7 @@ func (table *Table) IterateAll(callback IterateCallbackFunc) (err error) {
 }
 
 // テーブルに存在するデータのコピーをキーの降順でコールバック関数に渡していく。
+// イテレーション中はInsert/Replace/Delete/DeleteTableなどのテーブル変更操作を行うとデータが壊れる。
 //
 // 		table.IterateBackAll(func(r *unkodb.Record) (breakIteration bool) {
 // 			if r.Column("value").(int32) == 123 {
@@ -393,7 +422,9 @@ func (table *Table) IterateBackAll(callback IterateCallbackFunc) (err error) {
 	if !debugMode {
 		defer catchError(&err)
 	}
-	tree, err := newTableTree(table)
+	table.beginIteration()
+	defer table.endIteration()
+	tree, err := newTableTree(table, true)
 	if err != nil {
 		return err
 	}
@@ -411,6 +442,8 @@ func (table *Table) IterateRange(lowerKey, upperKey any, callback IterateCallbac
 	if !debugMode {
 		defer catchError(&err)
 	}
+	table.beginIteration()
+	defer table.endIteration()
 	var lKey, rKey avltree.Key
 	if lowerKey != nil {
 		if table.key.IsValidValueType(lowerKey) {
@@ -428,7 +461,7 @@ func (table *Table) IterateRange(lowerKey, upperKey any, callback IterateCallbac
 			return
 		}
 	}
-	tree, err := newTableTree(table)
+	tree, err := newTableTree(table, true)
 	if err != nil {
 		return err
 	}
@@ -446,6 +479,8 @@ func (table *Table) IterateBackRange(lowerKey, upperKey any, callback IterateCal
 	if !debugMode {
 		defer catchError(&err)
 	}
+	table.beginIteration()
+	defer table.endIteration()
 	var lKey, rKey avltree.Key
 	if lowerKey != nil {
 		if table.key.IsValidValueType(lowerKey) {
@@ -463,7 +498,7 @@ func (table *Table) IterateBackRange(lowerKey, upperKey any, callback IterateCal
 			return
 		}
 	}
-	tree, err := newTableTree(table)
+	tree, err := newTableTree(table, true)
 	if err != nil {
 		return err
 	}
@@ -478,6 +513,7 @@ func (table *Table) IterateBackRange(lowerKey, upperKey any, callback IterateCal
 }
 
 // テーブルに存在するキーのコピーを昇順でコールバック関数に渡していく。
+// イテレーション中はInsert/Replace/Delete/DeleteTableなどのテーブル変更操作を行うとデータが壊れる。
 //
 // 		table.IterateAllKeys(func(key any) (breakIteration bool) {
 // 			if key.(int32) > 123 {
@@ -492,7 +528,9 @@ func (table *Table) IterateAllKeys(callback IterateKeyCallbackFunc) (err error) 
 	if !debugMode {
 		defer catchError(&err)
 	}
-	tree, err := newTableTree(table)
+	table.beginIteration()
+	defer table.endIteration()
+	tree, err := newTableTree(table, true)
 	if err != nil {
 		return err
 	}
@@ -504,6 +542,7 @@ func (table *Table) IterateAllKeys(callback IterateKeyCallbackFunc) (err error) 
 }
 
 // テーブルに存在するキーのコピーを降順でコールバック関数に渡していく。
+// イテレーション中はInsert/Replace/Delete/DeleteTableなどのテーブル変更操作を行うとデータが壊れる。
 //
 // 		table.IterateBackAllKeys(func(r *unkodb.Record) (breakIteration bool) {
 // 			if key.(int32) < 123 {
@@ -518,7 +557,9 @@ func (table *Table) IterateBackAllKeys(callback IterateKeyCallbackFunc) (err err
 	if !debugMode {
 		defer catchError(&err)
 	}
-	tree, err := newTableTree(table)
+	table.beginIteration()
+	defer table.endIteration()
+	tree, err := newTableTree(table, true)
 	if err != nil {
 		return err
 	}
@@ -533,6 +574,8 @@ func (table *Table) IterateRangeKeys(lowerKey, upperKey any, callback IterateKey
 	if !debugMode {
 		defer catchError(&err)
 	}
+	table.beginIteration()
+	defer table.endIteration()
 	var lKey, rKey avltree.Key
 	if lowerKey != nil {
 		if table.key.IsValidValueType(lowerKey) {
@@ -550,7 +593,7 @@ func (table *Table) IterateRangeKeys(lowerKey, upperKey any, callback IterateKey
 			return
 		}
 	}
-	tree, err := newTableTree(table)
+	tree, err := newTableTree(table, true)
 	if err != nil {
 		return err
 	}
@@ -565,6 +608,8 @@ func (table *Table) IterateBackRangeKeys(lowerKey, upperKey any, callback Iterat
 	if !debugMode {
 		defer catchError(&err)
 	}
+	table.beginIteration()
+	defer table.endIteration()
 	var lKey, rKey avltree.Key
 	if lowerKey != nil {
 		if table.key.IsValidValueType(lowerKey) {
@@ -582,7 +627,7 @@ func (table *Table) IterateBackRangeKeys(lowerKey, upperKey any, callback Iterat
 			return
 		}
 	}
-	tree, err := newTableTree(table)
+	tree, err := newTableTree(table, true)
 	if err != nil {
 		return err
 	}

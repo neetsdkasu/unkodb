@@ -21,7 +21,12 @@ type tableTree struct {
 	segManager  *segmentManager
 	rootAddress int
 	updatedRoot bool
-	cache       tableTreeNodeCache
+
+	// ノードのキャッシュだが、必要ないかも･･･？
+	// 木の回転などで同じノードが複数回数再取得を要求されたりする？（printlnで見てみたらいっぱい呼ばれてた）
+	// 木のすべてのノードが参照されるような事態があったらヤバイ（全ノードのイテレーション操作とか）
+	useCache bool
+	cache    tableTreeNodeCache
 }
 
 type tableTreeNode struct {
@@ -38,7 +43,7 @@ type tableTreeNode struct {
 
 type tableTreeValue = map[string]any
 
-func newTableTree(table *Table) (*tableTree, error) {
+func newTableTree(table *Table, readOnly bool) (*tableTree, error) {
 	rootAddress, err := table.rootAccessor.getRootAddress()
 	if err != nil {
 		return nil, err
@@ -48,7 +53,11 @@ func newTableTree(table *Table) (*tableTree, error) {
 		segManager:  table.db.segManager,
 		rootAddress: rootAddress,
 		updatedRoot: false,
-		cache:       make(tableTreeNodeCache),
+		cache:       nil,
+		useCache:    !readOnly,
+	}
+	if tree.useCache {
+		tree.cache = make(tableTreeNodeCache)
 	}
 	return tree, nil
 }
@@ -210,6 +219,9 @@ func (tree *tableTree) calcSegmentByteSize(record tableTreeValue) uint64 {
 }
 
 func (tree *tableTree) clearCache() {
+	if !tree.useCache {
+		return
+	}
 	for _, node := range tree.cache {
 		if node.updated {
 			bug.Panic("tableTree.clearCache: not flush")
@@ -221,20 +233,26 @@ func (tree *tableTree) clearCache() {
 }
 
 func (tree *tableTree) getCache(addr int) (node *tableTreeNode, ok bool) {
-	node, ok = tree.cache[addr]
+	if tree.useCache {
+		node, ok = tree.cache[addr]
+	}
 	return
 }
 
 func (tree *tableTree) addCache(node *tableTreeNode) {
-	tree.cache[node.position()] = node
+	if tree.useCache {
+		tree.cache[node.position()] = node
+	}
 }
 
 func (tree *tableTree) loadNode(addr int) *tableTreeNode {
 	if addr == nullAddress {
 		return nil
 	}
-	if cachedNode, ok := tree.getCache(addr); ok {
-		return cachedNode
+	if tree.useCache {
+		if cachedNode, ok := tree.getCache(addr); ok {
+			return cachedNode
+		}
 	}
 	seg, err := tree.segManager.LoadSegment(addr)
 	if err != nil {
