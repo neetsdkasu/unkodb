@@ -329,6 +329,7 @@ func (table *Table) Insert(data any) (r *Record, err error) {
 // dataにはキーとカラムの全てをセットしておく必要がある。
 // dataのキーに対応するデータを置き換えることになる。
 // 対応するキーが存在しない場合はNotFoundKeyのエラーが返る。
+// 戻り値の*Recordには置換後のデータのコピーが入る。
 func (table *Table) Replace(data any) (r *Record, err error) {
 	if table.iterating {
 		err = InvalidOperation
@@ -438,6 +439,22 @@ func (table *Table) IterateBackAll(callback IterateCallbackFunc) (err error) {
 	return
 }
 
+// テーブルの指定範囲内に存在するデータのコピーをキーの昇順でコールバック関数に渡していく。
+// lowerKey以上upperKey以下のキーの範囲のデータを辿る。
+// キーの指定にはキーのカラム型に合ったGoの型で指定する必要がある。
+// イテレーション中はInsert/Replace/Delete/DeleteTableなどのテーブル変更操作を行うとデータが壊れる。
+//
+// 		lowerKey := unkodb.Counter(1000)
+// 		upperKey := unkodb.Counter(1999)
+// 		table.IterateRange(lowerKey, upperKey, func(r *unkodb.Record) (breakIteration bool) {
+// 			if r.Column("value").(int32) == 123 {
+// 				fmt.Println("valueが123となる最初のキーは", r.Key(), "です")
+// 				// IterateRangeを中断する
+// 				breakIteration = true
+// 			}
+// 			return
+// 		})
+//
 func (table *Table) IterateRange(lowerKey, upperKey any, callback IterateCallbackFunc) (err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -475,6 +492,22 @@ func (table *Table) IterateRange(lowerKey, upperKey any, callback IterateCallbac
 	return
 }
 
+// テーブルの指定範囲内に存在するデータのコピーをキーの降順でコールバック関数に渡していく。
+// lowerKey以上upperKey以下のキーの範囲のデータを辿る。
+// キーの指定にはキーのカラム型に合ったGoの型で指定する必要がある。
+// イテレーション中はInsert/Replace/Delete/DeleteTableなどのテーブル変更操作を行うとデータが壊れる。
+//
+// 		lowerKey := unkodb.Counter(1000)
+// 		upperKey := unkodb.Counter(1999)
+// 		table.IterateBackRange(lowerKey, upperKey, func(r *unkodb.Record) (breakIteration bool) {
+// 			if r.Column("value").(int32) == 123 {
+// 				fmt.Println("valueが123となる最後のキーは", r.Key(), "です")
+// 				// IterateBackRangeを中断する
+// 				breakIteration = true
+// 			}
+// 			return
+// 		})
+//
 func (table *Table) IterateBackRange(lowerKey, upperKey any, callback IterateCallbackFunc) (err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -518,7 +551,7 @@ func (table *Table) IterateBackRange(lowerKey, upperKey any, callback IterateCal
 // 		table.IterateAllKeys(func(key any) (breakIteration bool) {
 // 			if key.(int32) > 123 {
 // 				fmt.Println("123を超える最初のキーは", r.Key(), "です")
-// 				// IterateAllを中断する
+// 				// IterateAllKeysを中断する
 // 				breakIteration = true
 // 			}
 // 			return
@@ -547,7 +580,7 @@ func (table *Table) IterateAllKeys(callback IterateKeyCallbackFunc) (err error) 
 // 		table.IterateBackAllKeys(func(r *unkodb.Record) (breakIteration bool) {
 // 			if key.(int32) < 123 {
 // 				fmt.Println("123未満の最後のキーは", r.Key(), "です")
-// 				// IterateBackAllを中断する
+// 				// IterateBackAllKeysを中断する
 // 				breakIteration = true
 // 			}
 // 			return
@@ -570,6 +603,22 @@ func (table *Table) IterateBackAllKeys(callback IterateKeyCallbackFunc) (err err
 	return
 }
 
+// テーブルの指定範囲内に存在するキーのコピーを昇順でコールバック関数に渡していく。
+// lowerKey以上upperKey以下の範囲のキーを辿る。
+// キーの指定にはキーのカラム型に合ったGoの型で指定する必要がある。
+// イテレーション中はInsert/Replace/Delete/DeleteTableなどのテーブル変更操作を行うとデータが壊れる。
+//
+// 		lowerKey := int32(100)
+// 		upperKey := int32(199)
+// 		table.IterateRangeKeys(lowerKey, upperKey, func(key any) (breakIteration bool) {
+// 			if key.(int32) % 7 == 0 {
+// 				fmt.Println("7の倍数である最初のキーは", r.Key(), "です")
+// 				// IterateRangeKeysを中断する
+// 				breakIteration = true
+// 			}
+// 			return
+// 		})
+//
 func (table *Table) IterateRangeKeys(lowerKey, upperKey any, callback IterateKeyCallbackFunc) (err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -604,6 +653,22 @@ func (table *Table) IterateRangeKeys(lowerKey, upperKey any, callback IterateKey
 	return
 }
 
+// テーブルの指定範囲内に存在するキーのコピーを降順でコールバック関数に渡していく。
+// lowerKey以上upperKey以下の範囲のキーを辿る。
+// キーの指定にはキーのカラム型に合ったGoの型で指定する必要がある。
+// イテレーション中はInsert/Replace/Delete/DeleteTableなどのテーブル変更操作を行うとデータが壊れる。
+//
+// 		lowerKey := int32(100)
+// 		upperKey := int32(199)
+// 		table.IterateBackRangeKeys(lowerKey, upperKey, func(key any) (breakIteration bool) {
+// 			if key.(int32) % 7 == 0 {
+// 				fmt.Println("7の倍数である最後のキーは", r.Key(), "です")
+// 				// IterateBackRangeKeysを中断する
+// 				breakIteration = true
+// 			}
+// 			return
+// 		})
+//
 func (table *Table) IterateBackRangeKeys(lowerKey, upperKey any, callback IterateKeyCallbackFunc) (err error) {
 	if !debugMode {
 		defer catchError(&err)
