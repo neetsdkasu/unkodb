@@ -8,6 +8,7 @@ import (
 )
 
 type IterateCallbackFunc = func(r *Record) (breakIteration bool)
+type IterateKeyCallbackFunc = func(key any) (breakIteration bool)
 
 type dataSeparationState uint8
 
@@ -348,7 +349,7 @@ func (table *Table) Replace(data any) (r *Record, err error) {
 	return
 }
 
-// テーブルに存在するデータをキーの昇順でコールバック関数に渡していく。
+// テーブルに存在するデータのコピーをキーの昇順でコールバック関数に渡していく。
 //
 // 		table.IterateAll(func(r *unkodb.Record) (breakIteration bool) {
 // 			if r.Column("value").(int32) == 123 {
@@ -377,7 +378,7 @@ func (table *Table) IterateAll(callback IterateCallbackFunc) (err error) {
 	return
 }
 
-// テーブルに存在するデータをキーの降順でコールバック関数に渡していく。
+// テーブルに存在するデータのコピーをキーの降順でコールバック関数に渡していく。
 //
 // 		table.IterateBackAll(func(r *unkodb.Record) (breakIteration bool) {
 // 			if r.Column("value").(int32) == 123 {
@@ -472,6 +473,122 @@ func (table *Table) IterateBackRange(lowerKey, upperKey any, callback IterateCal
 			data:  node.Value().(tableTreeValue),
 		}
 		return callback(rec)
+	})
+	return
+}
+
+// テーブルに存在するキーのコピーを昇順でコールバック関数に渡していく。
+//
+// 		table.IterateAllKeys(func(key any) (breakIteration bool) {
+// 			if key.(int32) > 123 {
+// 				fmt.Println("123を超える最初のキーは", r.Key(), "です")
+// 				// IterateAllを中断する
+// 				breakIteration = true
+// 			}
+// 			return
+// 		})
+//
+func (table *Table) IterateAllKeys(callback IterateKeyCallbackFunc) (err error) {
+	if !debugMode {
+		defer catchError(&err)
+	}
+	tree, err := newTableTree(table)
+	if err != nil {
+		return err
+	}
+	avltree.Iterate(tree, false, func(node avltree.Node) (breakIteration bool) {
+		key := table.key.copyValue(table.key.unwrapKey(node.Key()))
+		return callback(key)
+	})
+	return
+}
+
+// テーブルに存在するキーのコピーを降順でコールバック関数に渡していく。
+//
+// 		table.IterateBackAllKeys(func(r *unkodb.Record) (breakIteration bool) {
+// 			if key.(int32) < 123 {
+// 				fmt.Println("123未満の最後のキーは", r.Key(), "です")
+// 				// IterateBackAllを中断する
+// 				breakIteration = true
+// 			}
+// 			return
+// 		})
+//
+func (table *Table) IterateBackAllKeys(callback IterateKeyCallbackFunc) (err error) {
+	if !debugMode {
+		defer catchError(&err)
+	}
+	tree, err := newTableTree(table)
+	if err != nil {
+		return err
+	}
+	avltree.Iterate(tree, true, func(node avltree.Node) (breakIteration bool) {
+		key := table.key.copyValue(table.key.unwrapKey(node.Key()))
+		return callback(key)
+	})
+	return
+}
+
+func (table *Table) IterateRangeKeys(lowerKey, upperKey any, callback IterateKeyCallbackFunc) (err error) {
+	if !debugMode {
+		defer catchError(&err)
+	}
+	var lKey, rKey avltree.Key
+	if lowerKey != nil {
+		if table.key.IsValidValueType(lowerKey) {
+			lKey = table.key.toKey(lowerKey)
+		} else {
+			err = UnmatchColumnValueType{table.key}
+			return
+		}
+	}
+	if upperKey != nil {
+		if table.key.IsValidValueType(upperKey) {
+			rKey = table.key.toKey(upperKey)
+		} else {
+			err = UnmatchColumnValueType{table.key}
+			return
+		}
+	}
+	tree, err := newTableTree(table)
+	if err != nil {
+		return err
+	}
+	avltree.RangeIterate(tree, false, lKey, rKey, func(node avltree.Node) (breakIteration bool) {
+		key := table.key.copyValue(table.key.unwrapKey(node.Key()))
+		return callback(key)
+	})
+	return
+}
+
+func (table *Table) IterateBackRangeKeys(lowerKey, upperKey any, callback IterateKeyCallbackFunc) (err error) {
+	if !debugMode {
+		defer catchError(&err)
+	}
+	var lKey, rKey avltree.Key
+	if lowerKey != nil {
+		if table.key.IsValidValueType(lowerKey) {
+			lKey = table.key.toKey(lowerKey)
+		} else {
+			err = UnmatchColumnValueType{table.key}
+			return
+		}
+	}
+	if upperKey != nil {
+		if table.key.IsValidValueType(upperKey) {
+			rKey = table.key.toKey(upperKey)
+		} else {
+			err = UnmatchColumnValueType{table.key}
+			return
+		}
+	}
+	tree, err := newTableTree(table)
+	if err != nil {
+		return err
+	}
+	avltree.RangeIterate(tree, true, lKey, rKey, func(node avltree.Node) (breakIteration bool) {
+		key := table.key.copyValue(table.key.unwrapKey(node.Key()))
+		return callback(key)
 	})
 	return
 }

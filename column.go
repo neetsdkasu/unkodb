@@ -199,6 +199,8 @@ type keyColumn interface {
 
 	// キーに変換する
 	toKey(value any) avltree.Key
+
+	unwrapKey(key avltree.Key) (value any)
 }
 
 type intColumn[T integerTypes] struct {
@@ -287,6 +289,15 @@ func (*intColumn[T]) toKey(value any) (_ avltree.Key) {
 	}
 }
 
+func (*intColumn[T]) unwrapKey(key avltree.Key) (_ any) {
+	if k, ok := key.(*geneKey[T]); ok {
+		return k.value
+	} else {
+		bug.Panic("key is not *geneKey[T]")
+		return
+	}
+}
+
 type counterColumn struct {
 	name string
 }
@@ -348,6 +359,15 @@ func (*counterColumn) toKey(value any) (_ avltree.Key) {
 		return intKey[uint32](v)
 	} else {
 		bug.Panicf("counterColumn.toKey: value type is not uint32 (value: %T %#v)", value, value)
+		return
+	}
+}
+
+func (*counterColumn) unwrapKey(key avltree.Key) (_ any) {
+	if k, ok := key.(*geneKey[uint32]); ok {
+		return k.value
+	} else {
+		bug.Panic("key is not geneKey")
 		return
 	}
 }
@@ -501,6 +521,16 @@ func (*shortStringColumn) toKey(value any) (_ avltree.Key) {
 	}
 }
 
+func (*shortStringColumn) unwrapKey(key avltree.Key) (_ any) {
+	if s, ok := key.(stringkey.StringKey); ok {
+		// サイズチェック必要？
+		return string(s)
+	} else {
+		bug.Panic("key is not stringKey.StringKey")
+		return
+	}
+}
+
 type fixedSizeShortStringColumn struct {
 	name string
 	size uint8
@@ -585,6 +615,16 @@ func (c *fixedSizeShortStringColumn) toKey(value any) (_ avltree.Key) {
 		return stringkey.StringKey(s)
 	} else {
 		bug.Panicf("fixedSizeShortStringColumn.toKey: value type is not string (value: %T %#v)", value, value)
+		return
+	}
+}
+
+func (*fixedSizeShortStringColumn) unwrapKey(key avltree.Key) (_ any) {
+	if s, ok := key.(stringkey.StringKey); ok {
+		// サイズチェック必要？
+		return string(s)
+	} else {
+		bug.Panic("key is not stringKey.StringKey")
 		return
 	}
 }
@@ -894,6 +934,16 @@ func (*shortBytesColumn) toKey(value any) (_ avltree.Key) {
 	}
 }
 
+func (*shortBytesColumn) unwrapKey(key avltree.Key) (_ any) {
+	if s, ok := key.(bytesKey); ok {
+		// サイズチェック必要？
+		return []byte(s)
+	} else {
+		bug.Panic("key is not bytesKey")
+		return
+	}
+}
+
 type fixedSizeShortBytesColumn struct {
 	name string
 	size uint8
@@ -970,6 +1020,16 @@ func (c *fixedSizeShortBytesColumn) toKey(value any) (_ avltree.Key) {
 		return bytesKey(tmp)
 	} else {
 		bug.Panicf("fixedSizeShortBytesColumn.toKey: value type is not []byte (value: %T %#v)", value, value)
+		return
+	}
+}
+
+func (*fixedSizeShortBytesColumn) unwrapKey(key avltree.Key) (_ any) {
+	if s, ok := key.(bytesKey); ok {
+		// サイズチェック必要？
+		return []byte(s)
+	} else {
+		bug.Panic("key is not bytesKey")
 		return
 	}
 }
