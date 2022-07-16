@@ -34,6 +34,8 @@ func newTableCreator(db *UnkoDB, name string) *TableCreator {
 }
 
 // 設定したキーとカラムを持つテーブルを作成する。
+// キーが設定されてないなどがある場合に対応したエラーが返る。
+// それ以外のエラー（IOエラーなど）がある場合にも戻り値エラーにはnil以外が返る。（たいていプログラムの実行に致命的なエラー）。
 //
 // 		var tc *TableCreator
 // 		tc, _ = db.CreateTable("my_book_table")
@@ -128,6 +130,7 @@ func (tc *TableCreator) addColumn(column Column) error {
 }
 
 // Int8のキーを設定する。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) Int8Key(newColumnName string) error {
 	return tc.setKey(&intColumn[int8]{
 		name: newColumnName,
@@ -135,6 +138,7 @@ func (tc *TableCreator) Int8Key(newColumnName string) error {
 }
 
 // Int8のカラムを追加する。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) Int8Column(newColumnName string) error {
 	return tc.addColumn(&intColumn[int8]{
 		name: newColumnName,
@@ -142,6 +146,7 @@ func (tc *TableCreator) Int8Column(newColumnName string) error {
 }
 
 // Uint8のキーを設定する。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) Uint8Key(newColumnName string) error {
 	return tc.setKey(&intColumn[uint8]{
 		name: newColumnName,
@@ -149,6 +154,7 @@ func (tc *TableCreator) Uint8Key(newColumnName string) error {
 }
 
 // Uint8のカラムを追加する。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) Uint8Column(newColumnName string) error {
 	return tc.addColumn(&intColumn[uint8]{
 		name: newColumnName,
@@ -156,6 +162,7 @@ func (tc *TableCreator) Uint8Column(newColumnName string) error {
 }
 
 // Int16のキーを設定する。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) Int16Key(newColumnName string) error {
 	return tc.setKey(&intColumn[int16]{
 		name: newColumnName,
@@ -163,6 +170,7 @@ func (tc *TableCreator) Int16Key(newColumnName string) error {
 }
 
 // Int16のカラムを追加する。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) Int16Column(newColumnName string) error {
 	return tc.addColumn(&intColumn[int16]{
 		name: newColumnName,
@@ -170,6 +178,7 @@ func (tc *TableCreator) Int16Column(newColumnName string) error {
 }
 
 // Uint16のキーを設定する。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) Uint16Key(newColumnName string) error {
 	return tc.setKey(&intColumn[uint16]{
 		name: newColumnName,
@@ -177,6 +186,7 @@ func (tc *TableCreator) Uint16Key(newColumnName string) error {
 }
 
 // Uint16のカラムを追加する。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) Uint16Column(newColumnName string) error {
 	return tc.addColumn(&intColumn[uint16]{
 		name: newColumnName,
@@ -184,6 +194,7 @@ func (tc *TableCreator) Uint16Column(newColumnName string) error {
 }
 
 // Int32のキーを設定する。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) Int32Key(newColumnName string) error {
 	return tc.setKey(&intColumn[int32]{
 		name: newColumnName,
@@ -191,6 +202,7 @@ func (tc *TableCreator) Int32Key(newColumnName string) error {
 }
 
 // Int32のカラムを追加する。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) Int32Column(newColumnName string) error {
 	return tc.addColumn(&intColumn[int32]{
 		name: newColumnName,
@@ -198,6 +210,7 @@ func (tc *TableCreator) Int32Column(newColumnName string) error {
 }
 
 // Uint32のキーを設定する。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) Uint32Key(newColumnName string) error {
 	return tc.setKey(&intColumn[uint32]{
 		name: newColumnName,
@@ -205,6 +218,7 @@ func (tc *TableCreator) Uint32Key(newColumnName string) error {
 }
 
 // Uint32のカラムを追加する。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) Uint32Column(newColumnName string) error {
 	return tc.addColumn(&intColumn[uint32]{
 		name: newColumnName,
@@ -212,6 +226,7 @@ func (tc *TableCreator) Uint32Column(newColumnName string) error {
 }
 
 // Int64のキーを設定する。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) Int64Key(newColumnName string) error {
 	return tc.setKey(&intColumn[int64]{
 		name: newColumnName,
@@ -219,6 +234,7 @@ func (tc *TableCreator) Int64Key(newColumnName string) error {
 }
 
 // Int64のカラムを追加する。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) Int64Column(newColumnName string) error {
 	return tc.addColumn(&intColumn[int64]{
 		name: newColumnName,
@@ -226,6 +242,7 @@ func (tc *TableCreator) Int64Column(newColumnName string) error {
 }
 
 // Uint64のキーを設定する。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) Uint64Key(newColumnName string) error {
 	return tc.setKey(&intColumn[uint64]{
 		name: newColumnName,
@@ -233,6 +250,7 @@ func (tc *TableCreator) Uint64Key(newColumnName string) error {
 }
 
 // Uint64のカラムを追加する。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) Uint64Column(newColumnName string) error {
 	return tc.addColumn(&intColumn[uint64]{
 		name: newColumnName,
@@ -242,6 +260,7 @@ func (tc *TableCreator) Uint64Column(newColumnName string) error {
 // Counterのキーを設定する。
 // 値はGoのuint32の型として扱われる。
 // データが挿入時にファイルにCounterの値が書き込まれる。データの挿入ごとに1ずつ値が増えていく（最初は1から始まる）。unkodb.CounterTypeはuint32のエイリアス。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) CounterKey(newColumnName string) error {
 	return tc.setKey(&counterColumn{
 		name: newColumnName,
@@ -249,6 +268,7 @@ func (tc *TableCreator) CounterKey(newColumnName string) error {
 }
 
 // Float32のカラムを追加する。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) Float32Column(newColumnName string) error {
 	return tc.addColumn(&floatColumn[float32]{
 		name: newColumnName,
@@ -256,6 +276,7 @@ func (tc *TableCreator) Float32Column(newColumnName string) error {
 }
 
 // Float64のカラムを追加する。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) Float64Column(newColumnName string) error {
 	return tc.addColumn(&floatColumn[float64]{
 		name: newColumnName,
@@ -265,6 +286,7 @@ func (tc *TableCreator) Float64Column(newColumnName string) error {
 // ShortStringのキーを設定する。
 // 値はGoのstringとして扱われる。
 // 内部的にはstringを[]byteキャストした形で保存される。0～255バイトに収まる必要がある。バイト長もデータごとに一緒に保存される。キーとして使う場合は`strings.Compare`が順序に使用される。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) ShortStringKey(newColumnName string) error {
 	return tc.setKey(&shortStringColumn{
 		name: newColumnName,
@@ -274,6 +296,7 @@ func (tc *TableCreator) ShortStringKey(newColumnName string) error {
 // ShortStringのカラムを追加する。
 // 値はGoのstringとして扱われる。
 // 内部的にはstringを[]byteキャストした形で保存される。0～255バイトに収まる必要がある。バイト長もデータごとに一緒に保存される。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) ShortStringColumn(newColumnName string) error {
 	return tc.addColumn(&shortStringColumn{
 		name: newColumnName,
@@ -284,6 +307,7 @@ func (tc *TableCreator) ShortStringColumn(newColumnName string) error {
 // sizeは1～255の範囲の中から指定する。
 // 値はGoのstringとして扱われる。
 // 内部的にはstringを[]byteキャストした形で保存される。テーブル作成時に指定した固定バイトサイズ（1～255バイト）で保存される。サイズ未満の文字列の場合、指定バイトサイズになるよう半角スペースが埋められる。キーとして使う場合は`strings.Compare`が順序に使用される。
+// カラム名やサイズ指定に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) FixedSizeShortStringKey(newColumnName string, size uint8) error {
 	if size == 0 {
 		return SizeMustBePositiveValue
@@ -298,6 +322,7 @@ func (tc *TableCreator) FixedSizeShortStringKey(newColumnName string, size uint8
 // sizeは1～255の範囲の中から指定する。
 // 値はGoのstringとして扱われる。
 // 内部的にはstringを[]byteキャストした形で保存される。テーブル作成時に指定した固定バイトサイズ（1～255バイト）で保存される。サイズ未満の文字列の場合、指定バイトサイズになるよう半角スペースが埋められる。
+// カラム名やサイズ指定に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) FixedSizeShortStringColumn(newColumnName string, size uint8) error {
 	if size == 0 {
 		return SizeMustBePositiveValue
@@ -311,6 +336,7 @@ func (tc *TableCreator) FixedSizeShortStringColumn(newColumnName string, size ui
 // LongStringのカラムを追加する。
 // 値はGoのstringとして扱われる。
 // 内部的にはstringを[]byteキャストした形で保存される。0～65535バイトに収まる必要がある。バイト長もデータごとに一緒に保存される。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) LongStringColumn(newColumnName string) error {
 	return tc.addColumn(&longStringColumn{
 		name: newColumnName,
@@ -321,6 +347,7 @@ func (tc *TableCreator) LongStringColumn(newColumnName string) error {
 // sizeは1～65535の範囲の中から指定する。
 // 値はGoのstringとして扱われる。
 // 内部的にはstringを[]byteキャストした形で保存される。テーブル作成時に指定した固定バイトサイズ（1～65535バイト）で保存される。サイズ未満の文字列の場合、指定バイトサイズになるよう半角スペースが埋められる。
+// カラム名やサイズ指定に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) FixedSizeLongStringColumn(newColumnName string, size uint16) error {
 	if size == 0 {
 		return SizeMustBePositiveValue
@@ -334,6 +361,7 @@ func (tc *TableCreator) FixedSizeLongStringColumn(newColumnName string, size uin
 // Textのカラムを追加する。
 // 値はGoのstringとして扱われる。
 // 内部的にはstringを[]byteキャストした形で保存される。0～1073741823バイトに収まる必要がある。バイト長もデータごとに一緒に保存される。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) TextColumn(newColumnName string) error {
 	return tc.addColumn(&textColumn{
 		name: newColumnName,
@@ -343,6 +371,7 @@ func (tc *TableCreator) TextColumn(newColumnName string) error {
 // ShortBytesのキーを設定する。
 // 値はGoの[]byteとして扱われる。
 // 0～255バイトに収まる必要がある。バイト長もデータごとに一緒に保存される。キーとして使う場合はbytes.Compareが順序に使用される。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) ShortBytesKey(newColumnName string) error {
 	return tc.setKey(&shortBytesColumn{
 		name: newColumnName,
@@ -352,6 +381,7 @@ func (tc *TableCreator) ShortBytesKey(newColumnName string) error {
 // ShortBytesのカラムを追加する。
 // 値はGoの[]byteとして扱われる。
 // 0～255バイトに収まる必要がある。バイト長もデータごとに一緒に保存される。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) ShortBytesColumn(newColumnName string) error {
 	return tc.addColumn(&shortBytesColumn{
 		name: newColumnName,
@@ -362,6 +392,7 @@ func (tc *TableCreator) ShortBytesColumn(newColumnName string) error {
 // sizeは1～255の範囲の中から指定する。
 // 値はGoの[]byteとして扱われる。
 // テーブル作成時に指定した固定バイトサイズ（1～255バイト）で保存される。サイズ未満の文字列の場合、指定バイトサイズになるよう半角スペースが埋められる。キーとして使う場合は`bytes.Compare`が順序に使用される。
+// カラム名やサイズ指定に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) FixedSizeShortBytesKey(newColumnName string, size uint8) error {
 	if size == 0 {
 		return SizeMustBePositiveValue
@@ -376,6 +407,7 @@ func (tc *TableCreator) FixedSizeShortBytesKey(newColumnName string, size uint8)
 // sizeは1～255の範囲の中から指定する。
 // 値はGoの[]byteとして扱われる。
 // テーブル作成時に指定した固定バイトサイズ（1～255バイト）で保存される。サイズ未満の文字列の場合、指定バイトサイズになるよう値0が埋められる。
+// カラム名やサイズ指定に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) FixedSizeShortBytesColumn(newColumnName string, size uint8) error {
 	if size == 0 {
 		return SizeMustBePositiveValue
@@ -389,6 +421,7 @@ func (tc *TableCreator) FixedSizeShortBytesColumn(newColumnName string, size uin
 // LongBytesのカラムを追加する。
 // 値はGoの[]byteとして扱われる。
 // 0～65535バイトに収まる必要がある。バイト長もデータごとに一緒に保存される。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) LongBytesColumn(newColumnName string) error {
 	return tc.addColumn(&longBytesColumn{
 		name: newColumnName,
@@ -399,6 +432,7 @@ func (tc *TableCreator) LongBytesColumn(newColumnName string) error {
 // sizeは1～65535の範囲の中から指定する。
 // 値はGoの[]byteとして扱われる。
 // テーブル作成時に指定した固定バイトサイズ（1～65535バイト）で保存される。サイズ未満の文字列の場合、指定バイトサイズになるよう値0が埋められる。
+// カラム名やサイズ指定に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) FixedSizeLongBytesColumn(newColumnName string, size uint16) error {
 	if size == 0 {
 		return SizeMustBePositiveValue
@@ -412,6 +446,7 @@ func (tc *TableCreator) FixedSizeLongBytesColumn(newColumnName string, size uint
 // Blobのカラムを追加する。
 // 値はGoの[]byteとして扱われる。
 // 0～1073741823バイトに収まる必要がある。バイト長もデータごとに一緒に保存される。
+// カラム名に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) BlobColumn(newColumnName string) error {
 	return tc.addColumn(&blobColumn{
 		name: newColumnName,

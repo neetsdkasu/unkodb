@@ -7,7 +7,12 @@ import (
 	"github.com/neetsdkasu/avltree"
 )
 
+// データのイテレーションに使用するコールバック関数。
+// イテレーションを中断したい場合には戻り値breakIterationにtrueを指定する。
 type IterateCallbackFunc = func(r *Record) (breakIteration bool)
+
+// キーのイテレーションに使用するコールバック関数。
+// イテレーションを中断したい場合には戻り値breakIterationにtrueを指定する。
 type IterateKeyCallbackFunc = func(key any) (breakIteration bool)
 
 type dataSeparationState uint8
@@ -108,6 +113,7 @@ func (table *Table) flush() (err error) {
 
 // InsertやReplaceに渡すデータにおいて各カラムのデータの型に問題にないかを確認をする。
 // 引数のdataにはmap[string]anyもしくはunkodb.Dataもしくはunkodbタグを付けた構造体のインスタンスを渡す。
+// データに問題がある場合は戻り値のエラーにヒント（？）的な情報が返る。
 func (table *Table) CheckData(data any) (err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -142,6 +148,8 @@ func (table *Table) getKey(data map[string]any) avltree.Key {
 // 指定したキーに対応するデータを取得する。
 // キーのカラム型に対応したGoの型で渡す必要がある。
 // 指定したキーに対応するデータが存在しない場合には戻り値は全てnilとなる。
+// キーの型が不正な場合は対応するエラーが返る。
+// それ以外のエラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
 func (table *Table) Find(key any) (r *Record, err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -195,7 +203,8 @@ func (table *Table) deleteAll() (err error) {
 
 // 指定したキーに対応するデータとキーを削除する。
 // キーのカラム型に対応したGoの型で渡す必要がある。
-// 指定したキーに対応するデータが存在しない場合には戻り値はNotFoundKeyとなる。
+// 指定したキーに対応するデータが存在しない場合には戻り値のエラーはNotFoundKeyとなる。
+// それ以外のエラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
 func (table *Table) Delete(key any) (err error) {
 	if table.iterating {
 		err = InvalidOperation
@@ -250,10 +259,12 @@ func (table *Table) NextCounterID() (CounterType, error) {
 // テーブルにデータを挿入する。
 // 引数のdataにはmap[string]anyもしくはunkodb.Dataもしくはunkodbタグを付けた構造体のインスタンスを渡す。
 // dataにはキーとカラムの全ての値をセットしておく必要がある。
-// キーが既にテーブルに存在する場合はKeyAlreadyExistsのエラーが返る。
 // キーのカラム型がCounterの場合はセットされたキーの値は無視される。
 // 戻り値の*Recordには挿入されたデータのコピーが入る。
 // キーのカラム型がCounterの場合は戻り値の*Recordにキーがセットされるのでキーの確認ができる。
+// キーが既にテーブルに存在する場合はKeyAlreadyExistsのエラーが返る。
+// 引数のdataに不正がある場合は対応したエラーが返る。
+// それ以外のエラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
 //
 // 		data := map[string]any{
 // 			"id":     unkodb.CounterType(0),
@@ -328,8 +339,16 @@ func (table *Table) Insert(data any) (r *Record, err error) {
 // 引数のdataにはmap[string]anyもしくはunkodb.Dataもしくはunkodbタグを付けた構造体のインスタンスを渡す。
 // dataにはキーとカラムの全てをセットしておく必要がある。
 // dataのキーに対応するデータを置き換えることになる。
-// 対応するキーが存在しない場合はNotFoundKeyのエラーが返る。
 // 戻り値の*Recordには置換後のデータのコピーが入る。
+// 対応するキーが存在しない場合はNotFoundKeyのエラーが返る。
+// 引数のdataに不正がある場合は対応したエラーが返る。
+// それ以外のエラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
+//
+// 		r, _ := table.Find(unkodb.CounterType(123))
+// 		m := r.Take()
+// 		m["value"] = m["value"].(int32) + 99
+// 		table.Replace(m)
+//
 func (table *Table) Replace(data any) (r *Record, err error) {
 	if table.iterating {
 		err = InvalidOperation
@@ -377,6 +396,8 @@ func (table *Table) endIteration() {
 
 // テーブルに存在するデータのコピーをキーの昇順でコールバック関数に渡していく。
 // イテレーション中はInsert/Replace/Delete/DeleteTableなどのテーブル変更操作を行うとデータが壊れる。
+// エラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
+// コールバック関数内でのpanicはエラーとして返ることがある。（その場合、スタックトレース取得などはコールバック関数内で頑張って）。
 //
 // 		table.IterateAll(func(r *unkodb.Record) (breakIteration bool) {
 // 			if r.Column("value").(int32) == 123 {
@@ -409,6 +430,8 @@ func (table *Table) IterateAll(callback IterateCallbackFunc) (err error) {
 
 // テーブルに存在するデータのコピーをキーの降順でコールバック関数に渡していく。
 // イテレーション中はInsert/Replace/Delete/DeleteTableなどのテーブル変更操作を行うとデータが壊れる。
+// エラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
+// コールバック関数内でのpanicはエラーとして返ることがある。（その場合、スタックトレース取得などはコールバック関数内で頑張って）。
 //
 // 		table.IterateBackAll(func(r *unkodb.Record) (breakIteration bool) {
 // 			if r.Column("value").(int32) == 123 {
@@ -443,6 +466,8 @@ func (table *Table) IterateBackAll(callback IterateCallbackFunc) (err error) {
 // lowerKey以上upperKey以下のキーの範囲のデータを辿る。
 // キーの指定にはキーのカラム型に合ったGoの型で指定する必要がある。
 // イテレーション中はInsert/Replace/Delete/DeleteTableなどのテーブル変更操作を行うとデータが壊れる。
+// エラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
+// コールバック関数内でのpanicはエラーとして返ることがある。（その場合、スタックトレース取得などはコールバック関数内で頑張って）。
 //
 // 		lowerKey := unkodb.Counter(1000)
 // 		upperKey := unkodb.Counter(1999)
@@ -496,6 +521,8 @@ func (table *Table) IterateRange(lowerKey, upperKey any, callback IterateCallbac
 // lowerKey以上upperKey以下のキーの範囲のデータを辿る。
 // キーの指定にはキーのカラム型に合ったGoの型で指定する必要がある。
 // イテレーション中はInsert/Replace/Delete/DeleteTableなどのテーブル変更操作を行うとデータが壊れる。
+// エラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
+// コールバック関数内でのpanicはエラーとして返ることがある。（その場合、スタックトレース取得などはコールバック関数内で頑張って）。
 //
 // 		lowerKey := unkodb.Counter(1000)
 // 		upperKey := unkodb.Counter(1999)
@@ -547,6 +574,8 @@ func (table *Table) IterateBackRange(lowerKey, upperKey any, callback IterateCal
 
 // テーブルに存在するキーのコピーを昇順でコールバック関数に渡していく。
 // イテレーション中はInsert/Replace/Delete/DeleteTableなどのテーブル変更操作を行うとデータが壊れる。
+// エラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
+// コールバック関数内でのpanicはエラーとして返ることがある。（その場合、スタックトレース取得などはコールバック関数内で頑張って）。
 //
 // 		table.IterateAllKeys(func(key any) (breakIteration bool) {
 // 			if key.(int32) > 123 {
@@ -576,6 +605,8 @@ func (table *Table) IterateAllKeys(callback IterateKeyCallbackFunc) (err error) 
 
 // テーブルに存在するキーのコピーを降順でコールバック関数に渡していく。
 // イテレーション中はInsert/Replace/Delete/DeleteTableなどのテーブル変更操作を行うとデータが壊れる。
+// エラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
+// コールバック関数内でのpanicはエラーとして返ることがある。（その場合、スタックトレース取得などはコールバック関数内で頑張って）。
 //
 // 		table.IterateBackAllKeys(func(r *unkodb.Record) (breakIteration bool) {
 // 			if key.(int32) < 123 {
@@ -607,6 +638,8 @@ func (table *Table) IterateBackAllKeys(callback IterateKeyCallbackFunc) (err err
 // lowerKey以上upperKey以下の範囲のキーを辿る。
 // キーの指定にはキーのカラム型に合ったGoの型で指定する必要がある。
 // イテレーション中はInsert/Replace/Delete/DeleteTableなどのテーブル変更操作を行うとデータが壊れる。
+// エラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
+// コールバック関数内でのpanicはエラーとして返ることがある。（その場合、スタックトレース取得などはコールバック関数内で頑張って）。
 //
 // 		lowerKey := int32(100)
 // 		upperKey := int32(199)
@@ -657,6 +690,8 @@ func (table *Table) IterateRangeKeys(lowerKey, upperKey any, callback IterateKey
 // lowerKey以上upperKey以下の範囲のキーを辿る。
 // キーの指定にはキーのカラム型に合ったGoの型で指定する必要がある。
 // イテレーション中はInsert/Replace/Delete/DeleteTableなどのテーブル変更操作を行うとデータが壊れる。
+// エラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
+// コールバック関数内でのpanicはエラーとして返ることがある。（その場合、スタックトレース取得などはコールバック関数内で頑張って）。
 //
 // 		lowerKey := int32(100)
 // 		upperKey := int32(199)

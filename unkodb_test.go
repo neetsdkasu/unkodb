@@ -303,34 +303,16 @@ func TestUnkoDB(t *testing.T) {
 		t.Fatalf("invalid id %#v", id)
 	}
 
-	if id, ok := recs[0].Get("id"); !ok {
-		t.Fatalf("invalid record %#v", recs[0])
-	} else if id != any(uint32(1)) {
-		t.Fatalf("invalid id %#v", id)
-	}
-
 	if id := recs[0].Column("id"); id == nil {
 		t.Fatalf("invalid record %#v", recs[0])
 	} else if id != any(uint32(1)) {
 		t.Fatalf("invalid id %#v", id)
 	}
 
-	if name, ok := recs[0].Get("name"); !ok {
-		t.Fatalf("invalid record %#v", recs[0])
-	} else if name != any("カツカレー") {
-		t.Fatalf("invalid name %#v", name)
-	}
-
 	if name := recs[0].Column("name"); name == nil {
 		t.Fatalf("invalid record %#v", recs[0])
 	} else if name != any("カツカレー") {
 		t.Fatalf("invalid name %#v", name)
-	}
-
-	if price, ok := recs[0].Get("price"); !ok {
-		t.Fatalf("invalid record %#v", recs[0])
-	} else if price != any(int64(800)) {
-		t.Fatalf("invalid price %#v", price)
 	}
 
 	if price := recs[0].Column("price"); price == nil {

@@ -45,7 +45,7 @@ func catchError(err *error) {
 		if e, ok := v.(error); ok {
 			*err = e
 		} else {
-			*err = fmt.Errorf("ERROR! %#v", v)
+			*err = fmt.Errorf("%#v", v)
 		}
 	}
 }

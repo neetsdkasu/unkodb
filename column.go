@@ -11,8 +11,10 @@ import (
 	"github.com/neetsdkasu/avltree/stringkey"
 )
 
+// カラム型のCounterで用いるGoの型。ただのuint32のエイリアス。
 type CounterType = uint32
 
+// カラム型の種類を表す。
 type ColumnType int
 
 func (ct ColumnType) String() string {
@@ -64,6 +66,7 @@ func (ct ColumnType) String() string {
 	}
 }
 
+// カラム型に対応するGoの型を返す。
 func (ct ColumnType) GoTypeHint() string {
 	switch ct {
 	default:
@@ -146,6 +149,7 @@ func (ct ColumnType) keyColumnType() bool {
 	}
 }
 
+// unkodbタグに書き込むカラム型名と対応するGoの型を文字列にして返す。
 func ColumnTypeHint(col Column) string {
 	ct := col.Type()
 	switch ct {
@@ -166,6 +170,7 @@ func ColumnTypeHint(col Column) string {
 	}
 }
 
+// カラム定義に関する情報を保持する。
 type Column interface {
 	// カラム名
 	Name() string
@@ -173,6 +178,7 @@ type Column interface {
 	// カラムのデータ型
 	Type() ColumnType
 
+	// 引数の値の型がカラム型として使えるかを判定
 	IsValidValueType(value any) bool
 
 	// データ領域の最小バイトサイズ

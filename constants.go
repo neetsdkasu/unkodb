@@ -7,6 +7,7 @@ const (
 	structTagKey = "unkodb"
 )
 
+// カラム型を表現する値
 const (
 	invalidColumnType ColumnType = iota
 	Counter
@@ -33,8 +34,13 @@ const (
 )
 
 const (
-	MaximumTableNameByteSize     = 255
-	MaximumColumnNameByteSize    = 255
+	// テーブル名として使える最大のバイトサイズ(stringを[]byteにキャストしたさいのサイズ)
+	MaximumTableNameByteSize = 255
+
+	// カラム名として使える最大のバイトサイズ(stringを[]byteにキャストしたさいのサイズ)
+	MaximumColumnNameByteSize = 255
+
+	// テーブルに設定できる最大のカラム数（このカラム数にキーは含めない）
 	MaximumColumnCountWithoutKey = 100
 )
 
