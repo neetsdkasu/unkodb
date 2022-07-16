@@ -3,4 +3,4 @@
 
 package unkodb
 
-const debugMode = true
+const debugMode = false
