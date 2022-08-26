@@ -13,7 +13,7 @@ type bytesKey []byte
 
 // 本当は
 // type geneKey[T integerTypes] T
-//　としたかったけど、ダメぽい
+// 　としたかったけど、ダメぽい
 type geneKey[T integerTypes] struct {
 	value T
 }
