@@ -36,7 +36,7 @@ type Table struct {
 	rootAddress    int
 	rootAccessor   rootAddressAccessor
 	dataSeparation dataSeparationState
-	iterating      bool
+	iterating      int
 }
 
 // テーブル名を返す。
@@ -181,7 +181,7 @@ func (table *Table) Find(key any) (r *Record, err error) {
 }
 
 func (table *Table) deleteAll() (err error) {
-	if table.iterating {
+	if table.isIterating() {
 		err = InvalidOperation
 		return
 	}
@@ -206,7 +206,7 @@ func (table *Table) deleteAll() (err error) {
 // 指定したキーに対応するデータが存在しない場合には戻り値のエラーはNotFoundKeyとなる。
 // それ以外のエラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
 func (table *Table) Delete(key any) (err error) {
-	if table.iterating {
+	if table.isIterating() {
 		err = InvalidOperation
 		return
 	}
@@ -266,17 +266,16 @@ func (table *Table) NextCounterID() (CounterType, error) {
 // 引数のdataに不正がある場合は対応したエラーが返る。
 // それ以外のエラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
 //
-// 		data := map[string]any{
-// 			"id":     unkodb.CounterType(0),
-// 			"title":  "プログラミング入門の本",
-// 			"author": "プログラマーのティーチャー",
-// 			"genre":  "技術書",
-// 		}
-// 		r, _ := table.Insert(data)
-// 		fmt.Println("idは", r.Key(), "になりました")
-//
+//	data := map[string]any{
+//		"id":     unkodb.CounterType(0),
+//		"title":  "プログラミング入門の本",
+//		"author": "プログラマーのティーチャー",
+//		"genre":  "技術書",
+//	}
+//	r, _ := table.Insert(data)
+//	fmt.Println("idは", r.Key(), "になりました")
 func (table *Table) Insert(data any) (r *Record, err error) {
-	if table.iterating {
+	if table.isIterating() {
 		err = InvalidOperation
 		return
 	}
@@ -344,13 +343,12 @@ func (table *Table) Insert(data any) (r *Record, err error) {
 // 引数のdataに不正がある場合は対応したエラーが返る。
 // それ以外のエラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
 //
-// 		r, _ := table.Find(unkodb.CounterType(123))
-// 		m := r.Take()
-// 		m["value"] = m["value"].(int32) + 99
-// 		table.Replace(m)
-//
+//	r, _ := table.Find(unkodb.CounterType(123))
+//	m := r.Take()
+//	m["value"] = m["value"].(int32) + 99
+//	table.Replace(m)
 func (table *Table) Replace(data any) (r *Record, err error) {
-	if table.iterating {
+	if table.isIterating() {
 		err = InvalidOperation
 		return
 	}
@@ -386,12 +384,16 @@ func (table *Table) Replace(data any) (r *Record, err error) {
 	return
 }
 
+func (table *Table) isIterating() bool {
+	return table.iterating > 0
+}
+
 func (table *Table) beginIteration() {
-	table.iterating = true
+	table.iterating++
 }
 
 func (table *Table) endIteration() {
-	table.iterating = false
+	table.iterating--
 }
 
 // テーブルに存在するデータのコピーをキーの昇順でコールバック関数に渡していく。
@@ -399,15 +401,14 @@ func (table *Table) endIteration() {
 // エラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
 // コールバック関数内でのpanicはエラーとして返ることがある。（その場合、スタックトレース取得などはコールバック関数内で頑張って）。
 //
-// 		table.IterateAll(func(r *unkodb.Record) (breakIteration bool) {
-// 			if r.Column("value").(int32) == 123 {
-// 				fmt.Println("valueが123となる最初のキーは", r.Key(), "です")
-// 				// IterateAllを中断する
-// 				breakIteration = true
-// 			}
-// 			return
-// 		})
-//
+//	table.IterateAll(func(r *unkodb.Record) (breakIteration bool) {
+//		if r.Column("value").(int32) == 123 {
+//			fmt.Println("valueが123となる最初のキーは", r.Key(), "です")
+//			// IterateAllを中断する
+//			breakIteration = true
+//		}
+//		return
+//	})
 func (table *Table) IterateAll(callback IterateCallbackFunc) (err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -433,15 +434,14 @@ func (table *Table) IterateAll(callback IterateCallbackFunc) (err error) {
 // エラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
 // コールバック関数内でのpanicはエラーとして返ることがある。（その場合、スタックトレース取得などはコールバック関数内で頑張って）。
 //
-// 		table.IterateBackAll(func(r *unkodb.Record) (breakIteration bool) {
-// 			if r.Column("value").(int32) == 123 {
-// 				fmt.Println("valueが123となる最後のキーは", r.Key(), "です")
-// 				// IterateBackAllを中断する
-// 				breakIteration = true
-// 			}
-// 			return
-// 		})
-//
+//	table.IterateBackAll(func(r *unkodb.Record) (breakIteration bool) {
+//		if r.Column("value").(int32) == 123 {
+//			fmt.Println("valueが123となる最後のキーは", r.Key(), "です")
+//			// IterateBackAllを中断する
+//			breakIteration = true
+//		}
+//		return
+//	})
 func (table *Table) IterateBackAll(callback IterateCallbackFunc) (err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -469,17 +469,16 @@ func (table *Table) IterateBackAll(callback IterateCallbackFunc) (err error) {
 // エラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
 // コールバック関数内でのpanicはエラーとして返ることがある。（その場合、スタックトレース取得などはコールバック関数内で頑張って）。
 //
-// 		lowerKey := unkodb.Counter(1000)
-// 		upperKey := unkodb.Counter(1999)
-// 		table.IterateRange(lowerKey, upperKey, func(r *unkodb.Record) (breakIteration bool) {
-// 			if r.Column("value").(int32) == 123 {
-// 				fmt.Println("valueが123となる最初のキーは", r.Key(), "です")
-// 				// IterateRangeを中断する
-// 				breakIteration = true
-// 			}
-// 			return
-// 		})
-//
+//	lowerKey := unkodb.Counter(1000)
+//	upperKey := unkodb.Counter(1999)
+//	table.IterateRange(lowerKey, upperKey, func(r *unkodb.Record) (breakIteration bool) {
+//		if r.Column("value").(int32) == 123 {
+//			fmt.Println("valueが123となる最初のキーは", r.Key(), "です")
+//			// IterateRangeを中断する
+//			breakIteration = true
+//		}
+//		return
+//	})
 func (table *Table) IterateRange(lowerKey, upperKey any, callback IterateCallbackFunc) (err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -524,17 +523,16 @@ func (table *Table) IterateRange(lowerKey, upperKey any, callback IterateCallbac
 // エラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
 // コールバック関数内でのpanicはエラーとして返ることがある。（その場合、スタックトレース取得などはコールバック関数内で頑張って）。
 //
-// 		lowerKey := unkodb.Counter(1000)
-// 		upperKey := unkodb.Counter(1999)
-// 		table.IterateBackRange(lowerKey, upperKey, func(r *unkodb.Record) (breakIteration bool) {
-// 			if r.Column("value").(int32) == 123 {
-// 				fmt.Println("valueが123となる最後のキーは", r.Key(), "です")
-// 				// IterateBackRangeを中断する
-// 				breakIteration = true
-// 			}
-// 			return
-// 		})
-//
+//	lowerKey := unkodb.Counter(1000)
+//	upperKey := unkodb.Counter(1999)
+//	table.IterateBackRange(lowerKey, upperKey, func(r *unkodb.Record) (breakIteration bool) {
+//		if r.Column("value").(int32) == 123 {
+//			fmt.Println("valueが123となる最後のキーは", r.Key(), "です")
+//			// IterateBackRangeを中断する
+//			breakIteration = true
+//		}
+//		return
+//	})
 func (table *Table) IterateBackRange(lowerKey, upperKey any, callback IterateCallbackFunc) (err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -577,15 +575,14 @@ func (table *Table) IterateBackRange(lowerKey, upperKey any, callback IterateCal
 // エラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
 // コールバック関数内でのpanicはエラーとして返ることがある。（その場合、スタックトレース取得などはコールバック関数内で頑張って）。
 //
-// 		table.IterateAllKeys(func(key any) (breakIteration bool) {
-// 			if key.(int32) > 123 {
-// 				fmt.Println("123を超える最初のキーは", r.Key(), "です")
-// 				// IterateAllKeysを中断する
-// 				breakIteration = true
-// 			}
-// 			return
-// 		})
-//
+//	table.IterateAllKeys(func(key any) (breakIteration bool) {
+//		if key.(int32) > 123 {
+//			fmt.Println("123を超える最初のキーは", r.Key(), "です")
+//			// IterateAllKeysを中断する
+//			breakIteration = true
+//		}
+//		return
+//	})
 func (table *Table) IterateAllKeys(callback IterateKeyCallbackFunc) (err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -608,15 +605,14 @@ func (table *Table) IterateAllKeys(callback IterateKeyCallbackFunc) (err error) 
 // エラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
 // コールバック関数内でのpanicはエラーとして返ることがある。（その場合、スタックトレース取得などはコールバック関数内で頑張って）。
 //
-// 		table.IterateBackAllKeys(func(r *unkodb.Record) (breakIteration bool) {
-// 			if key.(int32) < 123 {
-// 				fmt.Println("123未満の最後のキーは", r.Key(), "です")
-// 				// IterateBackAllKeysを中断する
-// 				breakIteration = true
-// 			}
-// 			return
-// 		})
-//
+//	table.IterateBackAllKeys(func(r *unkodb.Record) (breakIteration bool) {
+//		if key.(int32) < 123 {
+//			fmt.Println("123未満の最後のキーは", r.Key(), "です")
+//			// IterateBackAllKeysを中断する
+//			breakIteration = true
+//		}
+//		return
+//	})
 func (table *Table) IterateBackAllKeys(callback IterateKeyCallbackFunc) (err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -641,17 +637,16 @@ func (table *Table) IterateBackAllKeys(callback IterateKeyCallbackFunc) (err err
 // エラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
 // コールバック関数内でのpanicはエラーとして返ることがある。（その場合、スタックトレース取得などはコールバック関数内で頑張って）。
 //
-// 		lowerKey := int32(100)
-// 		upperKey := int32(199)
-// 		table.IterateRangeKeys(lowerKey, upperKey, func(key any) (breakIteration bool) {
-// 			if key.(int32) % 7 == 0 {
-// 				fmt.Println("7の倍数である最初のキーは", r.Key(), "です")
-// 				// IterateRangeKeysを中断する
-// 				breakIteration = true
-// 			}
-// 			return
-// 		})
-//
+//	lowerKey := int32(100)
+//	upperKey := int32(199)
+//	table.IterateRangeKeys(lowerKey, upperKey, func(key any) (breakIteration bool) {
+//		if key.(int32) % 7 == 0 {
+//			fmt.Println("7の倍数である最初のキーは", r.Key(), "です")
+//			// IterateRangeKeysを中断する
+//			breakIteration = true
+//		}
+//		return
+//	})
 func (table *Table) IterateRangeKeys(lowerKey, upperKey any, callback IterateKeyCallbackFunc) (err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -693,17 +688,16 @@ func (table *Table) IterateRangeKeys(lowerKey, upperKey any, callback IterateKey
 // エラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
 // コールバック関数内でのpanicはエラーとして返ることがある。（その場合、スタックトレース取得などはコールバック関数内で頑張って）。
 //
-// 		lowerKey := int32(100)
-// 		upperKey := int32(199)
-// 		table.IterateBackRangeKeys(lowerKey, upperKey, func(key any) (breakIteration bool) {
-// 			if key.(int32) % 7 == 0 {
-// 				fmt.Println("7の倍数である最後のキーは", r.Key(), "です")
-// 				// IterateBackRangeKeysを中断する
-// 				breakIteration = true
-// 			}
-// 			return
-// 		})
-//
+//	lowerKey := int32(100)
+//	upperKey := int32(199)
+//	table.IterateBackRangeKeys(lowerKey, upperKey, func(key any) (breakIteration bool) {
+//		if key.(int32) % 7 == 0 {
+//			fmt.Println("7の倍数である最後のキーは", r.Key(), "です")
+//			// IterateBackRangeKeysを中断する
+//			breakIteration = true
+//		}
+//		return
+//	})
 func (table *Table) IterateBackRangeKeys(lowerKey, upperKey any, callback IterateKeyCallbackFunc) (err error) {
 	if !debugMode {
 		defer catchError(&err)

@@ -3,13 +3,9 @@
 
 // # unkodb
 //
-//
 // データを単一ファイルに読み書きする感じ？
 //
 // ＤＢではないです。
-//
-//
-//
 //
 // - ファイルサイズは2GB以下までしか扱えない。
 //
@@ -36,135 +32,132 @@
 // - カラム数はテーブルごとに100個まで。
 //
 // - 内部的にはAVL木で管理されている（AVL木の実装が正しければよいが･･･）。
-///
+// /
 // - 各テーブルにキーを１つ指定する。
 //
 // - データの検索はキーでのみ行える（キーの重複は許されてない）。
 //
 // - デバッグ不十分なのでバグだらけなのでバグでデータが破壊される可能性が高いです（死）。
 //
-//
-//
-// 		package example
-// 		import (
-// 			"fmt"
-// 			"log"
-// 			"os"
-// 			"github.com/neetsdkasu/unkodb"
-// 		)
-// 		func ExampleUnkoDB() {
-// 			// Exampleのテスト用のファイルなのでテスト実行後は削除する･･･
-// 			const FileExists = false
-// 			file, err := os.CreateTemp("", "example.unkodb")
-// 			if err != nil {
-// 				log.Fatal(err)
-// 			}
-// 			defer os.Remove(file.Name())
-// 			var (
-// 				db    *unkodb.UnkoDB
-// 				table *unkodb.Table
-// 			)
-// 			if FileExists {
-// 				// file, err := os.OpenFile("example.unkodb", os.O_RDWR, 0755)
-// 				// defer file.Close()
-// 				db, err = unkodb.Open(file)
-// 				if err != nil {
-// 					log.Fatal(err)
-// 				}
-// 				table = db.Table("food_table")
-// 				if table == nil {
-// 					log.Fatal("not found food_table")
-// 				}
-// 			} else {
-// 				// file, err := os.Create("example.unkodb")
-// 				// defer file.Close()
-// 				db, err = unkodb.Create(file)
-// 				if err != nil {
-// 					log.Fatal(err)
-// 				}
-// 				tc, err := db.CreateTable("food_table")
-// 				if err != nil {
-// 					log.Fatal(err)
-// 				}
-// 				tc.CounterKey("id")
-// 				tc.ShortStringColumn("name")
-// 				tc.Int64Column("price")
-// 				table, err = tc.Create()
-// 				if err != nil {
-// 					log.Fatal(err)
-// 				}
-// 				list := []map[string]any{
-// 					map[string]any{
-// 						"id":    unkodb.CounterType(0),
-// 						"name":  "クリームパン",
-// 						"price": int64(234),
-// 					},
-// 					map[string]any{
-// 						"id":    unkodb.CounterType(0),
-// 						"name":  "あんぱん",
-// 						"price": int64(123),
-// 					},
-// 					map[string]any{
-// 						"id":    unkodb.CounterType(0),
-// 						"name":  "カレーパン",
-// 						"price": int64(345),
-// 					},
-// 					map[string]any{
-// 						"id":    unkodb.CounterType(0),
-// 						"name":  "ジャムパン",
-// 						"price": int64(222),
-// 					},
-// 					map[string]any{
-// 						"id":    unkodb.CounterType(0),
-// 						"name":  "食パン",
-// 						"price": int64(333),
-// 					},
-// 				}
-// 				// Insert
-// 				for _, item := range list {
-// 					_, err = table.Insert(item)
-// 					if err != nil {
-// 						log.Fatal(err)
-// 					}
-// 				}
-// 				// Delete id=3 カレーパン
-// 				err = table.Delete(unkodb.CounterType(3))
-// 				if err != nil {
-// 					log.Fatal(err)
-// 				}
-// 				// Replace id=4 ジャムパン
-// 				replace := map[string]any{
-// 					"id":    unkodb.CounterType(4),
-// 					"name":  "イチゴジャムパン",
-// 					"price": int64(987),
-// 				}
-// 				_, err = table.Replace(replace)
-// 				if err != nil {
-// 					log.Fatal(err)
-// 				}
-// 			}
-// 			// Find id=2 あんぱん
-// 			r, err := table.Find(unkodb.CounterType(2))
-// 			if err != nil {
-// 				log.Fatal(err)
-// 			}
-// 			fmt.Printf("[FIND] ID: %d, NAME: %s, PRICE: %d\n", r.Key(), r.Column("name"), r.Column("price"))
-// 			// Iteration データを順番に辿る
-// 			err = table.IterateAll(func(r *unkodb.Record) (breakIteration bool) {
-// 				fmt.Printf("[ITER] id: %d, name: %s, price: %d\n", r.Column("id"), r.Column("name"), r.Column("price"))
-// 				return
-// 			})
-// 			if err != nil {
-// 				log.Fatal(err)
-// 			}
-// 			// Output:
-// 			// [FIND] ID: 2, NAME: あんぱん, PRICE: 123
-// 			// [ITER] id: 1, name: クリームパン, price: 234
-// 			// [ITER] id: 2, name: あんぱん, price: 123
-// 			// [ITER] id: 4, name: イチゴジャムパン, price: 987
-// 			// [ITER] id: 5, name: 食パン, price: 333
-// 		}
-//
+//	package example
+//	import (
+//		"fmt"
+//		"log"
+//		"os"
+//		"github.com/neetsdkasu/unkodb"
+//	)
+//	func ExampleUnkoDB() {
+//		// Exampleのテスト用のファイルなのでテスト実行後は削除する･･･
+//		const FileExists = false
+//		file, err := os.CreateTemp("", "example.unkodb")
+//		if err != nil {
+//			log.Fatal(err)
+//		}
+//		defer os.Remove(file.Name())
+//		var (
+//			db    *unkodb.UnkoDB
+//			table *unkodb.Table
+//		)
+//		if FileExists {
+//			// file, err := os.OpenFile("example.unkodb", os.O_RDWR, 0755)
+//			// defer file.Close()
+//			db, err = unkodb.Open(file)
+//			if err != nil {
+//				log.Fatal(err)
+//			}
+//			table = db.Table("food_table")
+//			if table == nil {
+//				log.Fatal("not found food_table")
+//			}
+//		} else {
+//			// file, err := os.Create("example.unkodb")
+//			// defer file.Close()
+//			db, err = unkodb.Create(file)
+//			if err != nil {
+//				log.Fatal(err)
+//			}
+//			tc, err := db.CreateTable("food_table")
+//			if err != nil {
+//				log.Fatal(err)
+//			}
+//			tc.CounterKey("id")
+//			tc.ShortStringColumn("name")
+//			tc.Int64Column("price")
+//			table, err = tc.Create()
+//			if err != nil {
+//				log.Fatal(err)
+//			}
+//			list := []map[string]any{
+//				map[string]any{
+//					"id":    unkodb.CounterType(0),
+//					"name":  "クリームパン",
+//					"price": int64(234),
+//				},
+//				map[string]any{
+//					"id":    unkodb.CounterType(0),
+//					"name":  "あんぱん",
+//					"price": int64(123),
+//				},
+//				map[string]any{
+//					"id":    unkodb.CounterType(0),
+//					"name":  "カレーパン",
+//					"price": int64(345),
+//				},
+//				map[string]any{
+//					"id":    unkodb.CounterType(0),
+//					"name":  "ジャムパン",
+//					"price": int64(222),
+//				},
+//				map[string]any{
+//					"id":    unkodb.CounterType(0),
+//					"name":  "食パン",
+//					"price": int64(333),
+//				},
+//			}
+//			// Insert
+//			for _, item := range list {
+//				_, err = table.Insert(item)
+//				if err != nil {
+//					log.Fatal(err)
+//				}
+//			}
+//			// Delete id=3 カレーパン
+//			err = table.Delete(unkodb.CounterType(3))
+//			if err != nil {
+//				log.Fatal(err)
+//			}
+//			// Replace id=4 ジャムパン
+//			replace := map[string]any{
+//				"id":    unkodb.CounterType(4),
+//				"name":  "イチゴジャムパン",
+//				"price": int64(987),
+//			}
+//			_, err = table.Replace(replace)
+//			if err != nil {
+//				log.Fatal(err)
+//			}
+//		}
+//		// Find id=2 あんぱん
+//		r, err := table.Find(unkodb.CounterType(2))
+//		if err != nil {
+//			log.Fatal(err)
+//		}
+//		fmt.Printf("[FIND] ID: %d, NAME: %s, PRICE: %d\n", r.Key(), r.Column("name"), r.Column("price"))
+//		// Iteration データを順番に辿る
+//		err = table.IterateAll(func(r *unkodb.Record) (breakIteration bool) {
+//			fmt.Printf("[ITER] id: %d, name: %s, price: %d\n", r.Column("id"), r.Column("name"), r.Column("price"))
+//			return
+//		})
+//		if err != nil {
+//			log.Fatal(err)
+//		}
+//		// Output:
+//		// [FIND] ID: 2, NAME: あんぱん, PRICE: 123
+//		// [ITER] id: 1, name: クリームパン, price: 234
+//		// [ITER] id: 2, name: あんぱん, price: 123
+//		// [ITER] id: 4, name: イチゴジャムパン, price: 987
+//		// [ITER] id: 5, name: 食パン, price: 333
+//	}
 package unkodb
 
 import (
@@ -186,9 +179,8 @@ type UnkoDB struct {
 // 空の新しいファイルにUnkoDBを構築する。
 // IOエラーなどがある場合に戻り値のエラーにはnil以外が返る。(たいていプログラムの実行にとって致命的エラー)。
 //
-// 		file, _ := os.Create("my_data.unkodb")
-// 		db, _ := unkodb.Create(file)
-//
+//	file, _ := os.Create("my_data.unkodb")
+//	db, _ := unkodb.Create(file)
 func Create(emptyFile io.ReadWriteSeeker) (db *UnkoDB, err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -214,9 +206,8 @@ func Create(emptyFile io.ReadWriteSeeker) (db *UnkoDB, err error) {
 // UnkoDB構築済みのファイルからUnkoDBを開く。
 // IOエラーや不正なファイルのときのエラーなどがある場合に戻り値のエラーにはnil以外が返る。(たいていプログラムの実行にとって致命的エラー)。
 //
-// 		file, _ := os.OpenFile("my_data.unkodb", os.O_RDWR, 0755)
-// 		db, _ := unkodb.Open(file)
-//
+//	file, _ := os.OpenFile("my_data.unkodb", os.O_RDWR, 0755)
+//	db, _ := unkodb.Open(file)
 func Open(dbFile io.ReadWriteSeeker) (db *UnkoDB, err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -249,13 +240,12 @@ func (db *UnkoDB) Tables() []*Table {
 // 指定の名前のテーブルを取得する。
 // 指定した名前のテーブルが存在しない場合はnilを返す。
 //
-// 		table := db.Table("my_book_table")
-// 		if table == nil {
-// 			// my_book_table is not existed in db
-// 		} else {
-// 			// table is my_book_table
-// 		}
-//
+//	table := db.Table("my_book_table")
+//	if table == nil {
+//		// my_book_table is not existed in db
+//	} else {
+//		// table is my_book_table
+//	}
 func (db *UnkoDB) Table(name string) *Table {
 	for _, table := range db.tables {
 		if table.Name() == name {
@@ -308,13 +298,12 @@ func (db *UnkoDB) DeleteTable(name string) (err error) {
 // TableCreatorのCreateメソッドを呼び出すまではdbにテーブルは構築されない。
 // テーブル名に不正がある場合には対応したエラーが返る。
 //
-// 		tc, _ := db.CreateTable("my_book_table")
-// 		tc.CounterKey("id")
-// 		tc.ShortStringColumn("title")
-// 		tc.ShortStringColumn("author")
-// 		tc.ShortStringColumn("genre")
-// 		table, _ := tc.Create()
-//
+//	tc, _ := db.CreateTable("my_book_table")
+//	tc.CounterKey("id")
+//	tc.ShortStringColumn("title")
+//	tc.ShortStringColumn("author")
+//	tc.ShortStringColumn("genre")
+//	table, _ := tc.Create()
 func (db *UnkoDB) CreateTable(newTableName string) (creator *TableCreator, err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -339,14 +328,13 @@ func (db *UnkoDB) CreateTable(newTableName string) (creator *TableCreator, err e
 // テーブル名やカラム名やキーやカラムの設定の仕方に不正がある場合には対応したエラーが返る。
 // それ以外のエラー（IOエラーなど）がある場合にも戻り値エラーはnil以外が返る。(たいていプログラムの実行にとって致命的エラー)。
 //
-// 		type Book struct {
-// 			Id     unkodb.CounterType `unkodb:"id,key@Counter"`
-// 			Title  string             `unkodb:"title,ShortString"`
-// 			Author string             `unkodb:"author,ShortString"`
-// 			Genre  string             `unkodb:"genre,ShortString"`
-// 		}
-// 		table, _ := db.CreateTableByTaggedStruct("my_book_table", (*Book)(nil))
-//
+//	type Book struct {
+//		Id     unkodb.CounterType `unkodb:"id,key@Counter"`
+//		Title  string             `unkodb:"title,ShortString"`
+//		Author string             `unkodb:"author,ShortString"`
+//		Genre  string             `unkodb:"genre,ShortString"`
+//	}
+//	table, _ := db.CreateTableByTaggedStruct("my_book_table", (*Book)(nil))
 func (db *UnkoDB) CreateTableByTaggedStruct(newTableName string, taggedStruct any) (table *Table, err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -368,16 +356,15 @@ func (db *UnkoDB) CreateTableByTaggedStruct(newTableName string, taggedStruct an
 // テーブル名に不正がある場合には対応したエラーが返る。
 // それ以外のエラー（IOエラーなど）がある場合にも戻り値エラーはnil以外が返る。(たいていプログラムの実行にとって致命的エラー)。
 //
-// 		tc, _ := myDB.CreateTable("my_book_table")
-// 		tc.CounterKey("id")
-// 		tc.ShortStringColumn("title")
-// 		tc.ShortStringColumn("author")
-// 		tc.ShortStringColumn("genre")
-// 		myTable, _ := tc.Create()
-// 		mySecret, _ := myDB.CreateTableByOtherTable("my_secret_book_table", myTable)
-// 		yourTable, _ := yourDB.CreateTableByOtherTable("your_book_table", myTable)
-// 		yourSecret, _ := yourDB.CreateTableByOtherTable("your_secret_book_table", myTable)
-//
+//	tc, _ := myDB.CreateTable("my_book_table")
+//	tc.CounterKey("id")
+//	tc.ShortStringColumn("title")
+//	tc.ShortStringColumn("author")
+//	tc.ShortStringColumn("genre")
+//	myTable, _ := tc.Create()
+//	mySecret, _ := myDB.CreateTableByOtherTable("my_secret_book_table", myTable)
+//	yourTable, _ := yourDB.CreateTableByOtherTable("your_book_table", myTable)
+//	yourSecret, _ := yourDB.CreateTableByOtherTable("your_secret_book_table", myTable)
 func (db *UnkoDB) CreateTableByOtherTable(newTableName string, other *Table) (table *Table, err error) {
 	if !debugMode {
 		defer catchError(&err)

@@ -62,9 +62,11 @@ func (seg *segmentBuffer) LoadFullSegment() error {
 // 分割位置posはseg.Buffer()内の位置
 // buffer[:pos]とbuffer[pos:]に分割する
 // その際
-//    len(buffer[:pos])>minimumSegmentByteSize
-//   かつ
-//    len(buffer[pos:])>minimumSegmentTotalByteSize
+//
+//	 len(buffer[:pos])>minimumSegmentByteSize
+//	かつ
+//	 len(buffer[pos:])>minimumSegmentTotalByteSize
+//
 // を満たすべき
 func (seg *segmentBuffer) CanSplit(pos int) bool {
 	return pos > minimumSegmentByteSize &&

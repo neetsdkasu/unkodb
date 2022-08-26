@@ -14,21 +14,20 @@ import (
 // キーやカラムのカラム型に対応したGoの型で値を設定する必要がある。
 // Columnsの値はテーブルのColumnsと同じ順番で設定する必要がある。
 //
-// 		tc, _ := db.CreateTable("my_book_table")
-// 		tc.CounterKey("id")
-// 		tc.ShortStringColumn("title")
-// 		tc.ShortStringColumn("author")
-// 		tc.Int64Column("price")
-// 		table, _ := tc.Create()
-// 		table.Insert(unkodb.Data{
-// 			Key: unkodb.CounterType(0),
-// 			Columns: []any{
-// 				"プログラミング入門",
-// 				"いにしえのプログラマー",
-// 				int64(4800),
-// 			},
-// 		})
-//
+//	tc, _ := db.CreateTable("my_book_table")
+//	tc.CounterKey("id")
+//	tc.ShortStringColumn("title")
+//	tc.ShortStringColumn("author")
+//	tc.Int64Column("price")
+//	table, _ := tc.Create()
+//	table.Insert(unkodb.Data{
+//		Key: unkodb.CounterType(0),
+//		Columns: []any{
+//			"プログラミング入門",
+//			"いにしえのプログラマー",
+//			int64(4800),
+//		},
+//	})
 type Data struct {
 	Key     any
 	Columns []any

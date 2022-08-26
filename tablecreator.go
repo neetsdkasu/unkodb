@@ -5,14 +5,13 @@ package unkodb
 
 // 新しいテーブルの作成に使用される。
 //
-// 		var tc *TableCreator
-// 		tc, _ = db.CreateTable("my_book_table")
-// 		tc.CounterKey("id")
-// 		tc.ShortStringColumn("title")
-// 		tc.ShortStringColumn("author")
-// 		tc.ShortStringColumn("genre")
-// 		table, _ := tc.Create()
-//
+//	var tc *TableCreator
+//	tc, _ = db.CreateTable("my_book_table")
+//	tc.CounterKey("id")
+//	tc.ShortStringColumn("title")
+//	tc.ShortStringColumn("author")
+//	tc.ShortStringColumn("genre")
+//	table, _ := tc.Create()
 type TableCreator struct {
 	db            *UnkoDB
 	name          string
@@ -37,14 +36,13 @@ func newTableCreator(db *UnkoDB, name string) *TableCreator {
 // キーが設定されてないなどがある場合に対応したエラーが返る。
 // それ以外のエラー（IOエラーなど）がある場合にも戻り値エラーにはnil以外が返る。（たいていプログラムの実行に致命的なエラー）。
 //
-// 		var tc *TableCreator
-// 		tc, _ = db.CreateTable("my_book_table")
-// 		tc.CounterKey("id")
-// 		tc.ShortStringColumn("title")
-// 		tc.ShortStringColumn("author")
-// 		tc.ShortStringColumn("genre")
-// 		table, _ := tc.Create()
-//
+//	var tc *TableCreator
+//	tc, _ = db.CreateTable("my_book_table")
+//	tc.CounterKey("id")
+//	tc.ShortStringColumn("title")
+//	tc.ShortStringColumn("author")
+//	tc.ShortStringColumn("genre")
+//	table, _ := tc.Create()
 func (tc *TableCreator) Create() (table *Table, err error) {
 	if !debugMode {
 		defer catchError(&err)
