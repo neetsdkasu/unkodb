@@ -677,13 +677,13 @@ func makeColumn(tc *TableCreator, mKey string, isKey bool, ct ColumnType, size u
 		}
 	case Int64:
 		if isKey {
-			bug.Panic("UNREACHABLE")
+			err = tc.Int64Key(mKey)
 		} else {
 			err = tc.Int64Column(mKey)
 		}
 	case Uint64:
 		if isKey {
-			bug.Panic("UNREACHABLE")
+			err = tc.Uint64Key(mKey)
 		} else {
 			err = tc.Uint64Column(mKey)
 		}
