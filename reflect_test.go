@@ -210,6 +210,75 @@ func TestCreateTableByTag(t *testing.T) {
 		}
 	}
 
+	tableSpecList := []struct {
+		Name string
+		Spec any
+	}{
+		{"TestTable1", (*struct {
+			Id    int8 `unkodb:"id,key@Int8"`
+			Value int8 `unkodb:"value,Int8"`
+		})(nil)},
+		{"TestTable2", (*struct {
+			Id    uint8 `unkodb:"id,key@Uint8"`
+			Value uint8 `unkodb:"value,Uint8"`
+		})(nil)},
+		{"TestTable3", (*struct {
+			Id    int16 `unkodb:"id,key@Int16"`
+			Value int16 `unkodb:"value,Int16"`
+		})(nil)},
+		{"TestTable4", (*struct {
+			Id    uint16 `unkodb:"id,key@Uint16"`
+			Value uint16 `unkodb:"value,Uint16"`
+		})(nil)},
+		{"TestTable5", (*struct {
+			Id    int32 `unkodb:"id,key@Int32"`
+			Value int32 `unkodb:"value,Int32"`
+		})(nil)},
+		{"TestTable6", (*struct {
+			Id    uint32 `unkodb:"id,key@Uint32"`
+			Value uint32 `unkodb:"value,Uint32"`
+		})(nil)},
+		{"TestTable7", (*struct {
+			Id    int64 `unkodb:"id,key@Int64"`
+			Value int64 `unkodb:"value,Int64"`
+		})(nil)},
+		{"TestTable8", (*struct {
+			Id    uint64 `unkodb:"id,key@Uint64"`
+			Value uint64 `unkodb:"value,Uint64"`
+		})(nil)},
+		{"TestTable9", (*struct {
+			Id    string `unkodb:"id,key@ShortString"`
+			Value string `unkodb:"value,ShortString"`
+		})(nil)},
+		{"TestTable10", (*struct {
+			Id    string `unkodb:"id,key@FixedSizeShortString[5]"`
+			Value string `unkodb:"value,FixedSizeShortString[5]"`
+		})(nil)},
+		{"TestTable11", (*struct {
+			Id    []byte `unkodb:"id,key@ShortBytes"`
+			Value []byte `unkodb:"value,ShortBytes"`
+		})(nil)},
+		{"TestTable12", (*struct {
+			Id    []byte `unkodb:"id,key@FixedSizeShortBytes[5]"`
+			Value []byte `unkodb:"value,FixedSizeShortBytes[5]"`
+		})(nil)},
+	}
+
+	for _, tableSpec := range tableSpecList {
+		tc, err = db.CreateTable(tableSpec.Name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = createTableByTaggedStruct(tc, tableSpec.Spec)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = tc.Create()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
 	t.Skip("TEST IS NOT IMPLEMENTED YET")
 }
 
