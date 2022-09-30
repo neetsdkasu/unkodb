@@ -16,9 +16,8 @@ func (r *Record) Table() *Table {
 
 // データのキーを参照する。
 //
-// 		r, _ := table.Find(unkodb.CounterType(123))
-// 		fmt.Println("key=", r.Key(), "value=", r.Column("value"))
-//
+//	r, _ := table.Find(unkodb.CounterType(123))
+//	fmt.Println("key=", r.Key(), "value=", r.Column("value"))
 func (r *Record) Key() (value any) {
 	value = r.data[r.table.key.Name()]
 	return
@@ -28,9 +27,8 @@ func (r *Record) Key() (value any) {
 // テーブルに存在しないカラム名の場合はnilが返る。
 // キー名も指定できる。
 //
-// 		r, _ := table.Find(unkodb.CounterType(123))
-// 		fmt.Println("id=", r.Column("id"), "name=", r.Column("name"))
-//
+//	r, _ := table.Find(unkodb.CounterType(123))
+//	fmt.Println("id=", r.Column("id"), "name=", r.Column("name"))
 func (r *Record) Column(name string) any {
 	if value, ok := r.data[name]; ok {
 		return value
@@ -54,10 +52,9 @@ func (r *Record) Columns() []any {
 // データ移動後はこの*Recordは使用不可になる。
 // 引数のdstに対応できない型などが渡された場合はエラーが返る。
 //
-// 		r, _ := table.Find(unkodb.CounterType(123))
-// 		var dst unkodb.Data
-// 		r.MoveTo(&dst)
-//
+//	r, _ := table.Find(unkodb.CounterType(123))
+//	var dst unkodb.Data
+//	r.MoveTo(&dst)
 func (r *Record) MoveTo(dst any) (err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -72,11 +69,10 @@ func (r *Record) MoveTo(dst any) (err error) {
 // dstにはunkodb.Dataかunkodbタグ付きの構造体のインスタンスを指定する。
 // 引数のdstに対応できない型などが渡された場合はエラーが返る。
 //
-// 		r, _ := table.Find(unkodb.CounterType(123))
-// 		var dst1, dst2 unkodb.Data
-// 		r.CopyTo(&dst1)
-// 		r.CopyTo(&dst2)
-//
+//	r, _ := table.Find(unkodb.CounterType(123))
+//	var dst1, dst2 unkodb.Data
+//	r.CopyTo(&dst1)
+//	r.CopyTo(&dst2)
 func (r *Record) CopyTo(dst any) (err error) {
 	if !debugMode {
 		defer catchError(&err)
@@ -88,11 +84,10 @@ func (r *Record) CopyTo(dst any) (err error) {
 // 内部で保持してるデータを取り出す。
 // このメソッドの実行後はこの*Recordは使用不可になる。
 //
-// 		r, _ := table.Find(unkodb.CounterType(123))
-// 		fmt.Println("id=", r.Column("id"), "name=", r.Column("name"))
-// 		data := r.Take()
-// 		fmt.Println("id=", data["id"], "name=", data["name"])
-//
+//	r, _ := table.Find(unkodb.CounterType(123))
+//	fmt.Println("id=", r.Column("id"), "name=", r.Column("name"))
+//	data := r.Take()
+//	fmt.Println("id=", data["id"], "name=", data["name"])
 func (r *Record) Take() (data map[string]any) {
 	data = r.data
 	r.table = nil
