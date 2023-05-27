@@ -179,6 +179,7 @@ type Column interface {
 	Type() ColumnType
 
 	// 引数の値の型がカラム型として使えるかを判定
+	// 文字列やバイト列の場合は許容サイズかどうかも判定される
 	IsValidValueType(value any) bool
 
 	// データ領域の最小バイトサイズ

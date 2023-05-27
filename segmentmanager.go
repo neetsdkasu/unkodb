@@ -34,7 +34,7 @@ func (manager *segmentManager) EmptySegment(byteSize uint64) (*segmentBuffer, er
 		bug.Panic("too small")
 	}
 	if byteSize > maximumSegmentByteSize {
-		return nil, TooLargeData
+		return nil, ErrTooLargeData
 	}
 	keyMin := idleSegmentTreeKey(int32(byteSize))
 	keyMax := idleSegmentTreeKey(int32(minValue(byteSize+32, maximumSegmentByteSize)))

@@ -272,7 +272,7 @@ func (db *UnkoDB) DeleteTable(name string) (err error) {
 		}
 	}
 	if table == nil {
-		err = NotFoundTable
+		err = ErrNotFoundTable
 		return
 	}
 	err = table.deleteAll()
@@ -310,12 +310,12 @@ func (db *UnkoDB) CreateTable(newTableName string) (creator *TableCreator, err e
 	}
 	// TODO テーブル名の文字構成ルールチェック（文字列長のチェックくらい？）
 	if len([]byte(newTableName)) > MaximumTableNameByteSize {
-		err = TableNameIsTooLong
+		err = ErrTableNameIsTooLong
 		return
 	}
 	for _, t := range db.tables {
 		if t.name == newTableName {
-			err = TableNameAlreadyExists
+			err = ErrTableNameAlreadyExists
 			return
 		}
 	}
@@ -473,7 +473,7 @@ func (db *UnkoDB) loadTableSpec(tableName string, columnsSpecBuf []byte) (err er
 			return
 		}
 		if !dataSeparationState(dataSeparation).IsValid() {
-			err = WrongFileFormat{"invalid dataSeparation"}
+			err = ErrWrongFileFormat{"invalid dataSeparation"}
 			return
 		}
 	}
@@ -492,7 +492,7 @@ func (db *UnkoDB) loadTableSpec(tableName string, columnsSpecBuf []byte) (err er
 		key, ok = col.(keyColumn)
 		if !ok {
 			// TODO ちゃんとしたエラー作る
-			err = WrongFileFormat{fmt.Sprintf("invalid key in %s", tableName)}
+			err = ErrWrongFileFormat{fmt.Sprintf("invalid key in %s", tableName)}
 			return
 		}
 		var colCount uint8

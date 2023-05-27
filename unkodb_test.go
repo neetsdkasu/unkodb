@@ -369,7 +369,7 @@ func TestUnkoDB(t *testing.T) {
 		t.Fatalf("wrong record count %d", table.Count())
 	}
 
-	if id, err := table.NextCounterID(); err != KeyIsNotCounter || id != 0 {
+	if id, err := table.NextCounterID(); err != ErrKeyIsNotCounter || id != 0 {
 		t.Fatalf("wrong next id %v %v", err, id)
 	}
 
@@ -507,7 +507,7 @@ func TestUnkoDB(t *testing.T) {
 		t.Fatalf("wrong record count %d", table.Count())
 	}
 
-	if id, err := table2.NextCounterID(); err != KeyIsNotCounter || id != 0 {
+	if id, err := table2.NextCounterID(); err != ErrKeyIsNotCounter || id != 0 {
 		t.Fatalf("wrong next id %v %v", err, id)
 	}
 
@@ -566,8 +566,8 @@ func TestUnkoDB(t *testing.T) {
 	data["name"] = "おにぎり"
 	data["price"] = int64(100)
 	_, err = table2.Replace(data)
-	if err != NotFoundKey {
-		t.Fatal("not NotFoundKey", err)
+	if err != ErrNotFoundKey {
+		t.Fatal("not ErrNotFoundKey", err)
 	}
 
 	rec, err = table2.Find(CounterType(2))
@@ -607,7 +607,7 @@ func TestUnkoDB(t *testing.T) {
 	}
 
 	err = table2.Delete(CounterType(3))
-	if err != NotFoundKey {
+	if err != ErrNotFoundKey {
 		t.Fatalf("wrong delete %v", err)
 	}
 
