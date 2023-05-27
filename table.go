@@ -119,7 +119,7 @@ func (table *Table) CheckData(data any) (err error) {
 		defer catchError(&err)
 	}
 	if data == nil {
-		return NotFoundData
+		return ErrNotFoundData
 	}
 	var mdata tableTreeValue
 	mdata, err = parseData(table, data)

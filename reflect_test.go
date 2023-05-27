@@ -40,7 +40,7 @@ func TestParseStruct(t *testing.T) {
 	}
 
 	_, err = parseData(nil, (*Food)(nil))
-	if err != NotFoundData {
+	if err != ErrNotFoundData {
 		t.Fatal(err)
 	}
 

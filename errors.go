@@ -51,7 +51,7 @@ var (
 	ErrNotFoundKey = errors.New("ErrNotFoundKey")
 
 	// InsertやReplaceなどで引数に受け付けない型を受け取ったときのエラー
-	NotFoundData = errors.New("NotFoundData")
+	ErrNotFoundData = errors.New("ErrNotFoundData")
 
 	// 存在しないテーブル名を指定されたときのエラー
 	NotFoundTable = errors.New("NotFoundTable")

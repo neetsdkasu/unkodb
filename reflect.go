@@ -63,13 +63,13 @@ func init() {
 func moveData(r *Record, dst any) (err error) {
 	if dst == nil {
 		// TODO 適切なエラーに直す
-		err = NotFoundData
+		err = ErrNotFoundData
 		return
 	}
 	if m, ok := dst.(tableTreeValue); ok {
 		if m == nil {
 			// TODO 適切なエラーに直す
-			err = NotFoundData
+			err = ErrNotFoundData
 		} else {
 			for name, value := range r.data {
 				m[name] = value
@@ -80,7 +80,7 @@ func moveData(r *Record, dst any) (err error) {
 	if ap, ok := dst.(*any); ok {
 		if ap == nil {
 			// TODO 適切なエラーに直す
-			err = NotFoundData
+			err = ErrNotFoundData
 		} else if *ap == nil {
 			*ap = r.data
 		} else {
@@ -98,7 +98,7 @@ func moveData(r *Record, dst any) (err error) {
 	if v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			// TODO 適切なエラーに直す
-			err = NotFoundData
+			err = ErrNotFoundData
 		} else {
 			err = moveData(r, v.Elem().Interface())
 		}
@@ -106,19 +106,19 @@ func moveData(r *Record, dst any) (err error) {
 	}
 	if v.Kind() != reflect.Map || v.IsNil() || !v.CanSet() {
 		// TODO 適切なエラーに直す
-		err = NotFoundData
+		err = ErrNotFoundData
 		return
 	}
 	if v.Type().Key() != reflect.TypeOf("") {
 		// TODO 適切なエラーに直す
-		err = NotFoundData
+		err = ErrNotFoundData
 		return
 	}
 	et := v.Type().Elem()
 	for _, value := range r.data {
 		if !reflect.ValueOf(value).CanConvert(et) {
 			// TODO 適切なエラーに直す
-			err = NotFoundData
+			err = ErrNotFoundData
 			return
 		}
 	}
@@ -133,13 +133,13 @@ func moveData(r *Record, dst any) (err error) {
 func fillData(r *Record, dst any) (err error) {
 	if dst == nil {
 		// TODO 適切なエラーに直す
-		err = NotFoundData
+		err = ErrNotFoundData
 		return
 	}
 	if m, ok := dst.(tableTreeValue); ok {
 		if m == nil {
 			// TODO 適切なエラーに直す
-			err = NotFoundData
+			err = ErrNotFoundData
 		} else {
 			m[r.table.key.Name()] = r.table.key.copyValue(r.Key())
 			for _, col := range r.table.columns {
@@ -151,7 +151,7 @@ func fillData(r *Record, dst any) (err error) {
 	if ap, ok := dst.(*any); ok {
 		if ap == nil {
 			// TODO 適切なエラーに直す
-			err = NotFoundData
+			err = ErrNotFoundData
 		} else {
 			if *ap == nil {
 				*ap = make(tableTreeValue)
@@ -170,7 +170,7 @@ func fillData(r *Record, dst any) (err error) {
 	if v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			// TODO 適切なエラーに直す
-			err = NotFoundData
+			err = ErrNotFoundData
 		} else {
 			err = fillData(r, v.Elem().Interface())
 		}
@@ -178,19 +178,19 @@ func fillData(r *Record, dst any) (err error) {
 	}
 	if v.Kind() != reflect.Map || v.IsNil() || !v.CanSet() {
 		// TODO 適切なエラーに直す
-		err = NotFoundData
+		err = ErrNotFoundData
 		return
 	}
 	if v.Type().Key() != reflect.TypeOf("") {
 		// TODO 適切なエラーに直す
-		err = NotFoundData
+		err = ErrNotFoundData
 		return
 	}
 	et := v.Type().Elem()
 	for _, value := range r.data {
 		if !reflect.ValueOf(value).CanConvert(et) {
 			// TODO 適切なエラーに直す
-			err = NotFoundData
+			err = ErrNotFoundData
 			return
 		}
 	}
@@ -909,7 +909,7 @@ func canConvertToColumnType(t reflect.Type, ct ColumnType, size uint64) (_ bool)
 
 func parseData(table *Table, data any) (tableTreeValue, error) {
 	if data == nil {
-		return nil, NotFoundData
+		return nil, ErrNotFoundData
 	}
 	if m, ok := data.(tableTreeValue); ok {
 		return m, nil
@@ -923,17 +923,17 @@ func parseData(table *Table, data any) (tableTreeValue, error) {
 	v := reflect.ValueOf(data)
 	for v.Kind() == reflect.Pointer {
 		if v.IsNil() {
-			return nil, NotFoundData
+			return nil, ErrNotFoundData
 		}
 		v = v.Elem()
 	}
 	if v.Kind() != reflect.Map || v.IsNil() {
-		return nil, NotFoundData
+		return nil, ErrNotFoundData
 	}
 	keyType := v.Type().Key()
 	stringerType := reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
 	if keyType.Kind() != reflect.String && !keyType.Implements(stringerType) {
-		return nil, NotFoundData
+		return nil, ErrNotFoundData
 	}
 	r := make(tableTreeValue)
 	iter := v.MapRange()
@@ -1156,7 +1156,7 @@ func parseTaggedStruct(st any) (tableTreeValue, error) {
 	for v.Kind() == reflect.Pointer {
 		// forじゃなくifがいいのだろうか・・・・？
 		if v.IsNil() {
-			return nil, NotFoundData
+			return nil, ErrNotFoundData
 		}
 		v = v.Elem()
 	}
@@ -1173,7 +1173,7 @@ func parseTaggedStruct(st any) (tableTreeValue, error) {
 		value := v.FieldByIndex(f.Index)
 		for value.Kind() == reflect.Pointer {
 			if value.IsNil() {
-				return nil, NotFoundData
+				return nil, ErrNotFoundData
 			}
 			value = value.Elem()
 		}
