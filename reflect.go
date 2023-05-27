@@ -474,12 +474,12 @@ func fillDataToTaggedStruct(r *Record, st any) error {
 func tryMoveDataValue(fv reflect.Value, rv any, col Column) error {
 	for fv.Kind() == reflect.Pointer {
 		if fv.IsNil() {
-			return CannotAssignValueToField
+			return ErrCannotAssignValueToField
 		}
 		fv = fv.Elem()
 	}
 	if !fv.CanSet() {
-		return CannotAssignValueToField
+		return ErrCannotAssignValueToField
 	}
 	switch col.Type() {
 	default:
@@ -491,13 +491,13 @@ func tryMoveDataValue(fv reflect.Value, rv any, col Column) error {
 		} else if value.CanConvert(fv.Type()) {
 			fv.Set(value.Convert(fv.Type()))
 		} else {
-			return CannotAssignValueToField
+			return ErrCannotAssignValueToField
 		}
 	case ShortString, FixedSizeShortString, LongString, FixedSizeLongString, Text:
 		if fv.Kind() == reflect.String {
 			fv.Set(reflect.ValueOf(rv))
 		} else {
-			return CannotAssignValueToField
+			return ErrCannotAssignValueToField
 		}
 	case ShortBytes, FixedSizeShortBytes, LongBytes, FixedSizeLongBytes, Blob:
 		if fv.Kind() == reflect.Slice && fv.Type().Elem().Kind() == reflect.Uint8 {
@@ -507,10 +507,10 @@ func tryMoveDataValue(fv reflect.Value, rv any, col Column) error {
 				// 固定長配列へのコピーを許容するのはアリなの？
 				copy(fv.Slice(0, fv.Len()).Bytes(), rv.([]byte))
 			} else {
-				return CannotAssignValueToField
+				return ErrCannotAssignValueToField
 			}
 		} else {
-			return CannotAssignValueToField
+			return ErrCannotAssignValueToField
 		}
 	}
 	return nil
@@ -519,12 +519,12 @@ func tryMoveDataValue(fv reflect.Value, rv any, col Column) error {
 func tryFillDataValue(fv reflect.Value, rv any, col Column) error {
 	for fv.Kind() == reflect.Pointer {
 		if fv.IsNil() {
-			return CannotAssignValueToField
+			return ErrCannotAssignValueToField
 		}
 		fv = fv.Elem()
 	}
 	if !fv.CanSet() {
-		return CannotAssignValueToField
+		return ErrCannotAssignValueToField
 	}
 	switch col.Type() {
 	default:
@@ -536,13 +536,13 @@ func tryFillDataValue(fv reflect.Value, rv any, col Column) error {
 		} else if value.CanConvert(fv.Type()) {
 			fv.Set(value.Convert(fv.Type()))
 		} else {
-			return CannotAssignValueToField
+			return ErrCannotAssignValueToField
 		}
 	case ShortString, FixedSizeShortString, LongString, FixedSizeLongString, Text:
 		if fv.Kind() == reflect.String {
 			fv.Set(reflect.ValueOf(rv))
 		} else {
-			return CannotAssignValueToField
+			return ErrCannotAssignValueToField
 		}
 	case ShortBytes, FixedSizeShortBytes, LongBytes, FixedSizeLongBytes, Blob:
 		if fv.Kind() == reflect.Slice && fv.Type().Elem().Kind() == reflect.Uint8 {
@@ -554,10 +554,10 @@ func tryFillDataValue(fv reflect.Value, rv any, col Column) error {
 				// 固定長配列へのコピーを許容するのはアリなの？
 				copy(fv.Slice(0, fv.Len()).Bytes(), rv.([]byte))
 			} else {
-				return CannotAssignValueToField
+				return ErrCannotAssignValueToField
 			}
 		} else {
-			return CannotAssignValueToField
+			return ErrCannotAssignValueToField
 		}
 	}
 	return nil

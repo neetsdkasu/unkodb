@@ -57,7 +57,7 @@ var (
 	ErrNotFoundTable = errors.New("ErrNotFoundTable")
 
 	// unkodbタグをつけたフィールドのGoの型が指定のカラム型に対応しないときのエラー
-	CannotAssignValueToField = errors.New("CannotAssignValueToField")
+	ErrCannotAssignValueToField = errors.New("ErrCannotAssignValueToField")
 
 	// 既に存在するテーブル名で新しくテーブルを作ろうとしたときのエラー
 	TableNameAlreadyExists = errors.New("TableNameAlreadyExists")
