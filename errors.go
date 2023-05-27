@@ -6,7 +6,7 @@ package unkodb
 import "errors"
 
 var (
-	notStruct = errors.New("notStruct")
+	errNotStruct = errors.New("errNotStruct")
 )
 
 // InsertやReplaceなどでテーブルのデータに必要なカラムが不足しているときのエラー

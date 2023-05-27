@@ -88,10 +88,10 @@ func moveData(r *Record, dst any) (err error) {
 		}
 		return
 	}
-	if err = moveDataToDataStruct(r, dst); err != notStruct {
+	if err = moveDataToDataStruct(r, dst); err != errNotStruct {
 		return
 	}
-	if err = moveDataToTaggedStruct(r, dst); err != notStruct {
+	if err = moveDataToTaggedStruct(r, dst); err != errNotStruct {
 		return
 	}
 	v := reflect.ValueOf(dst)
@@ -160,10 +160,10 @@ func fillData(r *Record, dst any) (err error) {
 		}
 		return
 	}
-	if err = fillDataToDataStruct(r, dst); err != notStruct {
+	if err = fillDataToDataStruct(r, dst); err != errNotStruct {
 		return
 	}
-	if err = fillDataToTaggedStruct(r, dst); err != notStruct {
+	if err = fillDataToTaggedStruct(r, dst); err != errNotStruct {
 		return
 	}
 	v := reflect.ValueOf(dst)
@@ -205,11 +205,11 @@ func fillData(r *Record, dst any) (err error) {
 
 func moveDataToDataStruct(r *Record, st any) error {
 	if st == nil {
-		return notStruct
+		return errNotStruct
 	}
 	v := reflect.ValueOf(st)
 	if v.Kind() != reflect.Pointer {
-		return notStruct
+		return errNotStruct
 	}
 	dt := reflect.TypeOf((*Data)(nil))
 	for v.Kind() == reflect.Pointer {
@@ -217,16 +217,16 @@ func moveDataToDataStruct(r *Record, st any) error {
 			break
 		}
 		if v.IsNil() {
-			return notStruct
+			return errNotStruct
 		}
 		v = v.Elem()
 	}
 	if v.Kind() != reflect.Pointer {
-		return notStruct
+		return errNotStruct
 	}
 	if v.IsNil() {
 		if !v.CanSet() {
-			return notStruct
+			return errNotStruct
 		}
 		v.Set(reflect.ValueOf(new(Data)))
 	}
@@ -250,11 +250,11 @@ func moveDataToDataStruct(r *Record, st any) error {
 
 func fillDataToDataStruct(r *Record, st any) error {
 	if st == nil {
-		return notStruct
+		return errNotStruct
 	}
 	v := reflect.ValueOf(st)
 	if v.Kind() != reflect.Pointer {
-		return notStruct
+		return errNotStruct
 	}
 	dt := reflect.TypeOf((*Data)(nil))
 	for v.Kind() == reflect.Pointer {
@@ -262,16 +262,16 @@ func fillDataToDataStruct(r *Record, st any) error {
 			break
 		}
 		if v.IsNil() {
-			return notStruct
+			return errNotStruct
 		}
 		v = v.Elem()
 	}
 	if v.Kind() != reflect.Pointer {
-		return notStruct
+		return errNotStruct
 	}
 	if v.IsNil() {
 		if !v.CanSet() {
-			return notStruct
+			return errNotStruct
 		}
 		v.Set(reflect.ValueOf(new(Data)))
 	}
@@ -314,13 +314,13 @@ func moveDataToTaggedStruct(r *Record, st any) error {
 			if isTaggedStruct(v.Type().Elem()) && v.CanSet() {
 				v.Set(reflect.New(v.Type().Elem()))
 			} else {
-				return notStruct
+				return errNotStruct
 			}
 		}
 		v = v.Elem()
 	}
 	if v.Kind() != reflect.Struct {
-		return notStruct
+		return errNotStruct
 	}
 	for _, f := range reflect.VisibleFields(v.Type()) {
 		tv, ok := f.Tag.Lookup(structTagKey)
@@ -396,13 +396,13 @@ func fillDataToTaggedStruct(r *Record, st any) error {
 			if isTaggedStruct(v.Type().Elem()) && v.CanSet() {
 				v.Set(reflect.New(v.Type().Elem()))
 			} else {
-				return notStruct
+				return errNotStruct
 			}
 		}
 		v = v.Elem()
 	}
 	if v.Kind() != reflect.Struct {
-		return notStruct
+		return errNotStruct
 	}
 	for _, f := range reflect.VisibleFields(v.Type()) {
 		tv, ok := f.Tag.Lookup(structTagKey)
@@ -569,7 +569,7 @@ func createTableByTaggedStruct(tc *TableCreator, st any) error {
 		t = t.Elem()
 	}
 	if t.Kind() != reflect.Struct {
-		return notStruct
+		return errNotStruct
 	}
 	hasKey := false
 	m := make(map[string]bool)
@@ -917,7 +917,7 @@ func parseData(table *Table, data any) (tableTreeValue, error) {
 	if m := parseDataStruct(table, data); m != nil {
 		return m, nil
 	}
-	if m, err := parseTaggedStruct(data); err != notStruct {
+	if m, err := parseTaggedStruct(data); err != errNotStruct {
 		return m, err
 	}
 	v := reflect.ValueOf(data)
@@ -1161,7 +1161,7 @@ func parseTaggedStruct(st any) (tableTreeValue, error) {
 		v = v.Elem()
 	}
 	if v.Kind() != reflect.Struct {
-		return nil, notStruct
+		return nil, errNotStruct
 	}
 	hasKey := false
 	m := make(tableTreeValue)
