@@ -42,7 +42,7 @@ var (
 	ErrTableNameIsTooLong = errors.New("ErrTableNameIsTooLong")
 
 	// String系やBytes系のカラム型に収まらないサイズのデータが渡されたときのエラー
-	TooLargeData = errors.New("TooLargeData")
+	ErrTooLargeData = errors.New("ErrTooLargeData")
 
 	// キーのカラム型がCounterのときに対応しないGoの型でデータが渡されたときのエラー
 	KeyIsNotCounter = errors.New("KeyIsNotCounter")
