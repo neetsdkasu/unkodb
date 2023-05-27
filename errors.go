@@ -39,7 +39,7 @@ func (err ErrWrongFileFormat) Error() string {
 
 var (
 	// テーブル名が長すぎるときのエラー
-	TableNameIsTooLong = errors.New("TableNameIsTooLong")
+	ErrTableNameIsTooLong = errors.New("ErrTableNameIsTooLong")
 
 	// String系やBytes系のカラム型に収まらないサイズのデータが渡されたときのエラー
 	TooLargeData = errors.New("TooLargeData")

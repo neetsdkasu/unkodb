@@ -310,7 +310,7 @@ func (db *UnkoDB) CreateTable(newTableName string) (creator *TableCreator, err e
 	}
 	// TODO テーブル名の文字構成ルールチェック（文字列長のチェックくらい？）
 	if len([]byte(newTableName)) > MaximumTableNameByteSize {
-		err = TableNameIsTooLong
+		err = ErrTableNameIsTooLong
 		return
 	}
 	for _, t := range db.tables {
