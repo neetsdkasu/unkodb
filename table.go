@@ -111,9 +111,9 @@ func (table *Table) flush() (err error) {
 	return
 }
 
-// InsertやReplaceに渡すデータにおいて各カラムのデータの型に問題にないかを確認をする。
+// InsertやReplaceに渡すデータにおいて各カラムのデータの型に問題にないかを確認をする(カラム情報のIsValidValueTypeメソッドで確認する)。
 // 引数のdataにはmap[string]anyもしくはunkodb.Dataもしくはunkodbタグを付けた構造体のインスタンスを渡す。
-// データに問題がある場合は戻り値のエラーにヒント（？）的な情報が返る。
+// データ型に問題がある場合はErrUnmatchColumnValueTypeが返る。それ以外の問題がある場合はErrWrongTagなどのエラーが返る。
 func (table *Table) CheckData(data any) (err error) {
 	if !debugMode {
 		defer catchError(&err)
