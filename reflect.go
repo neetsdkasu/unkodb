@@ -624,7 +624,7 @@ func createTableByTaggedStruct(tc *TableCreator, st any) error {
 		}
 	}
 	if !hasKey {
-		return NotFoundKey
+		return ErrNotFoundKey
 	}
 	return nil
 }

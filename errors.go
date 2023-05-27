@@ -48,7 +48,7 @@ var (
 	ErrKeyIsNotCounter = errors.New("ErrKeyIsNotCounter")
 
 	// FindやDeleteなどで存在しないキーが指定されたときのエラー
-	NotFoundKey = errors.New("NotFoundKey")
+	ErrNotFoundKey = errors.New("ErrNotFoundKey")
 
 	// InsertやReplaceなどで引数に受け付けない型を受け取ったときのエラー
 	NotFoundData = errors.New("NotFoundData")

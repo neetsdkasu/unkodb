@@ -203,7 +203,7 @@ func (table *Table) deleteAll() (err error) {
 
 // 指定したキーに対応するデータとキーを削除する。
 // キーのカラム型に対応したGoの型で渡す必要がある。
-// 指定したキーに対応するデータが存在しない場合には戻り値のエラーはNotFoundKeyとなる。
+// 指定したキーに対応するデータが存在しない場合には戻り値のエラーはErrNotFoundKeyとなる。
 // それ以外のエラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
 func (table *Table) Delete(key any) (err error) {
 	if table.isIterating() {
@@ -230,7 +230,7 @@ func (table *Table) Delete(key any) (err error) {
 	}
 	_, node := avltree.Delete(tree, table.key.toKey(key))
 	if node == nil {
-		err = NotFoundKey
+		err = ErrNotFoundKey
 		return
 	}
 	err = tree.flush()
@@ -339,7 +339,7 @@ func (table *Table) Insert(data any) (r *Record, err error) {
 // dataにはキーとカラムの全てをセットしておく必要がある。
 // dataのキーに対応するデータを置き換えることになる。
 // 戻り値の*Recordには置換後のデータのコピーが入る。
-// 対応するキーが存在しない場合はNotFoundKeyのエラーが返る。
+// 対応するキーが存在しない場合はErrNotFoundKeyのエラーが返る。
 // 引数のdataに不正がある場合は対応したエラーが返る。
 // それ以外のエラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
 //
@@ -369,7 +369,7 @@ func (table *Table) Replace(data any) (r *Record, err error) {
 	key := table.getKey(mdata)
 	_, ok := avltree.Replace(tree, key, mdata)
 	if !ok {
-		err = NotFoundKey
+		err = ErrNotFoundKey
 		return
 	}
 	err = tree.flush()
