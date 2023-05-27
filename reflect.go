@@ -341,16 +341,16 @@ func moveDataToTaggedStruct(r *Record, st any) error {
 		if index < 0 {
 			_, _, err = inferColumnType(ft)
 			if err != nil {
-				return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+				return ErrWrongTag{fmt.Errorf("%w (field: %s)", err, f.Name)}
 			}
 		} else {
 			mKey = tv[:index]
 			_, ct, size, err = parseTagColumnType(tv[index+1:])
 			if err != nil {
-				return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+				return ErrWrongTag{fmt.Errorf("%w (field: %s)", err, f.Name)}
 			}
 			if !canConvertToColumnType(ft, ct, size) {
-				return TagError{fmt.Errorf("cannot convert type %s to %s (field: %s)", ft, ct.GoTypeHint(), f.Name)}
+				return ErrWrongTag{fmt.Errorf("cannot convert type %s to %s (field: %s)", ft, ct.GoTypeHint(), f.Name)}
 			}
 		}
 		if len(mKey) == 0 {
@@ -358,7 +358,7 @@ func moveDataToTaggedStruct(r *Record, st any) error {
 		}
 		rv := r.Column(mKey)
 		if rv == nil {
-			return TagError{fmt.Errorf(`not found column "%s" (field: %s)`, mKey, f.Name)}
+			return ErrWrongTag{fmt.Errorf(`not found column "%s" (field: %s)`, mKey, f.Name)}
 		}
 		var col Column
 		if r.table.key.Name() == mKey {
@@ -374,16 +374,16 @@ func moveDataToTaggedStruct(r *Record, st any) error {
 		}
 		if ct != invalidColumnType {
 			if col.Type() != ct {
-				return TagError{fmt.Errorf("umatch column type (field: %s)", f.Name)}
+				return ErrWrongTag{fmt.Errorf("umatch column type (field: %s)", f.Name)}
 			}
 			if size > 0 && size != col.MaximumDataByteSize() {
-				return TagError{fmt.Errorf("umatch column type (field: %s)", f.Name)}
+				return ErrWrongTag{fmt.Errorf("umatch column type (field: %s)", f.Name)}
 			}
 		}
 		fv := v.FieldByIndex(f.Index)
 		err = tryMoveDataValue(fv, rv, col)
 		if err != nil {
-			return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+			return ErrWrongTag{fmt.Errorf("%w (field: %s)", err, f.Name)}
 		}
 	}
 	return nil
@@ -423,16 +423,16 @@ func fillDataToTaggedStruct(r *Record, st any) error {
 		if index < 0 {
 			_, _, err = inferColumnType(ft)
 			if err != nil {
-				return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+				return ErrWrongTag{fmt.Errorf("%w (field: %s)", err, f.Name)}
 			}
 		} else {
 			mKey = tv[:index]
 			_, ct, size, err = parseTagColumnType(tv[index+1:])
 			if err != nil {
-				return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+				return ErrWrongTag{fmt.Errorf("%w (field: %s)", err, f.Name)}
 			}
 			if !canConvertToColumnType(ft, ct, size) {
-				return TagError{fmt.Errorf("cannot convert type %s to %s (field: %s)", ft, ct.GoTypeHint(), f.Name)}
+				return ErrWrongTag{fmt.Errorf("cannot convert type %s to %s (field: %s)", ft, ct.GoTypeHint(), f.Name)}
 			}
 		}
 		if len(mKey) == 0 {
@@ -440,7 +440,7 @@ func fillDataToTaggedStruct(r *Record, st any) error {
 		}
 		rv := r.Column(mKey)
 		if rv == nil {
-			return TagError{fmt.Errorf(`not found column "%s" (field: %s)`, mKey, f.Name)}
+			return ErrWrongTag{fmt.Errorf(`not found column "%s" (field: %s)`, mKey, f.Name)}
 		}
 		var col Column
 		if r.table.key.Name() == mKey {
@@ -456,16 +456,16 @@ func fillDataToTaggedStruct(r *Record, st any) error {
 		}
 		if ct != invalidColumnType {
 			if col.Type() != ct {
-				return TagError{fmt.Errorf("umatch column type (field: %s)", f.Name)}
+				return ErrWrongTag{fmt.Errorf("umatch column type (field: %s)", f.Name)}
 			}
 			if size > 0 && size != col.MaximumDataByteSize() {
-				return TagError{fmt.Errorf("umatch column type (field: %s)", f.Name)}
+				return ErrWrongTag{fmt.Errorf("umatch column type (field: %s)", f.Name)}
 			}
 		}
 		fv := v.FieldByIndex(f.Index)
 		err = tryFillDataValue(fv, rv, col)
 		if err != nil {
-			return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+			return ErrWrongTag{fmt.Errorf("%w (field: %s)", err, f.Name)}
 		}
 	}
 	return nil
@@ -593,29 +593,29 @@ func createTableByTaggedStruct(tc *TableCreator, st any) error {
 		if index < 0 {
 			ct, size, err = inferColumnType(ft)
 			if err != nil {
-				return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+				return ErrWrongTag{fmt.Errorf("%w (field: %s)", err, f.Name)}
 			}
 		} else {
 			mKey = tv[:index]
 			isKey, ct, size, err = parseTagColumnType(tv[index+1:])
 			if err != nil {
-				return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+				return ErrWrongTag{fmt.Errorf("%w (field: %s)", err, f.Name)}
 			}
 			if isKey {
 				if hasKey {
-					return TagError{fmt.Errorf("duplicate key (field: %s)", f.Name)}
+					return ErrWrongTag{fmt.Errorf("duplicate key (field: %s)", f.Name)}
 				}
 				hasKey = true
 			}
 			if !canConvertToColumnType(ft, ct, size) {
-				return TagError{fmt.Errorf("cannot convert type %s to %s (field: %s)", ft, ct.GoTypeHint(), f.Name)}
+				return ErrWrongTag{fmt.Errorf("cannot convert type %s to %s (field: %s)", ft, ct.GoTypeHint(), f.Name)}
 			}
 		}
 		if len(mKey) == 0 {
 			mKey = f.Name
 		}
 		if _, ok = m[mKey]; ok {
-			return TagError{fmt.Errorf(`duplicate name "%s" (field: %s)`, mKey, f.Name)}
+			return ErrWrongTag{fmt.Errorf(`duplicate name "%s" (field: %s)`, mKey, f.Name)}
 		}
 		m[mKey] = true
 		err = makeColumn(tc, mKey, isKey, ct, size)
@@ -1187,11 +1187,11 @@ func parseTaggedStruct(st any) (tableTreeValue, error) {
 		} else {
 			isKey, ct, size, e := parseTagColumnType(tv[index+1:])
 			if e != nil {
-				return nil, TagError{fmt.Errorf("%w (field: %s)", e, f.Name)}
+				return nil, ErrWrongTag{fmt.Errorf("%w (field: %s)", e, f.Name)}
 			}
 			if isKey {
 				if hasKey {
-					return nil, TagError{fmt.Errorf("duplicate key (field: %s)", f.Name)}
+					return nil, ErrWrongTag{fmt.Errorf("duplicate key (field: %s)", f.Name)}
 				}
 				hasKey = true
 			}
@@ -1202,14 +1202,14 @@ func parseTaggedStruct(st any) (tableTreeValue, error) {
 				for ft.Kind() == reflect.Pointer {
 					ft = ft.Elem()
 				}
-				return nil, TagError{fmt.Errorf("cannot convert type %s to %s (field: %s)", ft, ct.GoTypeHint(), f.Name)}
+				return nil, ErrWrongTag{fmt.Errorf("cannot convert type %s to %s (field: %s)", ft, ct.GoTypeHint(), f.Name)}
 			}
 		}
 		if len(mKey) == 0 {
 			mKey = f.Name
 		}
 		if _, ok = m[mKey]; ok {
-			return nil, TagError{fmt.Errorf(`duplicate name "%s" (field: %s)`, mKey, f.Name)}
+			return nil, ErrWrongTag{fmt.Errorf(`duplicate name "%s" (field: %s)`, mKey, f.Name)}
 		}
 		m[mKey] = value.Interface()
 	}

@@ -24,10 +24,10 @@ func (err ErrUnmatchColumnValueType) Error() string {
 }
 
 // unkodbタグにおけるタグの記述に関するエラー
-type TagError struct{ inner error }
+type ErrWrongTag struct{ inner error }
 
-func (err TagError) Error() string {
-	return "TagError: " + err.inner.Error()
+func (err ErrWrongTag) Error() string {
+	return "ErrWrongTag: " + err.inner.Error()
 }
 
 // 壊れているunkodbファイルあるいは無関係なファイルを読み込んだときのエラー
