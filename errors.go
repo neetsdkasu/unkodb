@@ -45,7 +45,7 @@ var (
 	ErrTooLargeData = errors.New("ErrTooLargeData")
 
 	// キーのカラム型がCounterのときに対応しないGoの型でデータが渡されたときのエラー
-	KeyIsNotCounter = errors.New("KeyIsNotCounter")
+	ErrKeyIsNotCounter = errors.New("ErrKeyIsNotCounter")
 
 	// FindやDeleteなどで存在しないキーが指定されたときのエラー
 	NotFoundKey = errors.New("NotFoundKey")

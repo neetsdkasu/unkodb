@@ -369,7 +369,7 @@ func TestUnkoDB(t *testing.T) {
 		t.Fatalf("wrong record count %d", table.Count())
 	}
 
-	if id, err := table.NextCounterID(); err != KeyIsNotCounter || id != 0 {
+	if id, err := table.NextCounterID(); err != ErrKeyIsNotCounter || id != 0 {
 		t.Fatalf("wrong next id %v %v", err, id)
 	}
 
@@ -507,7 +507,7 @@ func TestUnkoDB(t *testing.T) {
 		t.Fatalf("wrong record count %d", table.Count())
 	}
 
-	if id, err := table2.NextCounterID(); err != KeyIsNotCounter || id != 0 {
+	if id, err := table2.NextCounterID(); err != ErrKeyIsNotCounter || id != 0 {
 		t.Fatalf("wrong next id %v %v", err, id)
 	}
 

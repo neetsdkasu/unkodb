@@ -248,10 +248,10 @@ func (table *Table) Count() int {
 }
 
 // キーのカラム型をCounterにしている場合に次にInsertするときに付与されるキーの値を取得できる。
-// キーのカラム型がCounterではない場合はKeyIsNotCounterのエラーが返る。
+// キーのカラム型がCounterではない場合はErrKeyIsNotCounterのエラーが返る。
 func (table *Table) NextCounterID() (CounterType, error) {
 	if table.key.Type() != Counter {
-		return 0, KeyIsNotCounter
+		return 0, ErrKeyIsNotCounter
 	}
 	return CounterType(table.counter + 1), nil
 }
