@@ -54,7 +54,7 @@ var (
 	ErrNotFoundData = errors.New("ErrNotFoundData")
 
 	// 存在しないテーブル名を指定されたときのエラー
-	NotFoundTable = errors.New("NotFoundTable")
+	ErrNotFoundTable = errors.New("ErrNotFoundTable")
 
 	// unkodbタグをつけたフィールドのGoの型が指定のカラム型に対応しないときのエラー
 	CannotAssignValueToField = errors.New("CannotAssignValueToField")

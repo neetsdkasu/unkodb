@@ -272,7 +272,7 @@ func (db *UnkoDB) DeleteTable(name string) (err error) {
 		}
 	}
 	if table == nil {
-		err = NotFoundTable
+		err = ErrNotFoundTable
 		return
 	}
 	err = table.deleteAll()
