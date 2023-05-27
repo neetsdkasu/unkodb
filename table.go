@@ -111,15 +111,15 @@ func (table *Table) flush() (err error) {
 	return
 }
 
-// InsertやReplaceに渡すデータにおいて各カラムのデータの型に問題にないかを確認をする。
+// InsertやReplaceに渡すデータにおいて各カラムのデータの型に問題にないかを確認をする(カラム情報のIsValidValueTypeメソッドで確認する)。
 // 引数のdataにはmap[string]anyもしくはunkodb.Dataもしくはunkodbタグを付けた構造体のインスタンスを渡す。
-// データに問題がある場合は戻り値のエラーにヒント（？）的な情報が返る。
+// データ型に問題がある場合はErrUnmatchColumnValueTypeが返る。それ以外の問題がある場合はErrWrongTagなどのエラーが返る。
 func (table *Table) CheckData(data any) (err error) {
 	if !debugMode {
 		defer catchError(&err)
 	}
 	if data == nil {
-		return NotFoundData
+		return ErrNotFoundData
 	}
 	var mdata tableTreeValue
 	mdata, err = parseData(table, data)
@@ -127,15 +127,15 @@ func (table *Table) CheckData(data any) (err error) {
 		return
 	}
 	if keyValue, ok := mdata[table.key.Name()]; !ok {
-		return NotFoundColumnName{table.key}
+		return ErrNotFoundColumnName{table.key}
 	} else if !table.key.IsValidValueType(keyValue) {
-		return UnmatchColumnValueType{table.key}
+		return ErrUnmatchColumnValueType{table.key}
 	}
 	for _, col := range table.columns {
 		if colValue, ok := mdata[col.Name()]; !ok {
-			return NotFoundColumnName{col}
+			return ErrNotFoundColumnName{col}
 		} else if !col.IsValidValueType(colValue) {
-			return UnmatchColumnValueType{col}
+			return ErrUnmatchColumnValueType{col}
 		}
 	}
 	return nil
@@ -161,7 +161,7 @@ func (table *Table) Find(key any) (r *Record, err error) {
 		}
 	}
 	if !table.key.IsValidValueType(key) {
-		err = UnmatchColumnValueType{table.key}
+		err = ErrUnmatchColumnValueType{table.key}
 		return
 	}
 	var tree *tableTree
@@ -182,7 +182,7 @@ func (table *Table) Find(key any) (r *Record, err error) {
 
 func (table *Table) deleteAll() (err error) {
 	if table.isIterating() {
-		err = InvalidOperation
+		err = ErrInvalidOperation
 		return
 	}
 	var tree *tableTree
@@ -203,11 +203,11 @@ func (table *Table) deleteAll() (err error) {
 
 // 指定したキーに対応するデータとキーを削除する。
 // キーのカラム型に対応したGoの型で渡す必要がある。
-// 指定したキーに対応するデータが存在しない場合には戻り値のエラーはNotFoundKeyとなる。
+// 指定したキーに対応するデータが存在しない場合には戻り値のエラーはErrNotFoundKeyとなる。
 // それ以外のエラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
 func (table *Table) Delete(key any) (err error) {
 	if table.isIterating() {
-		err = InvalidOperation
+		err = ErrInvalidOperation
 		return
 	}
 	if !debugMode {
@@ -220,7 +220,7 @@ func (table *Table) Delete(key any) (err error) {
 		}
 	}
 	if !table.key.IsValidValueType(key) {
-		err = UnmatchColumnValueType{table.key}
+		err = ErrUnmatchColumnValueType{table.key}
 		return
 	}
 	var tree *tableTree
@@ -230,7 +230,7 @@ func (table *Table) Delete(key any) (err error) {
 	}
 	_, node := avltree.Delete(tree, table.key.toKey(key))
 	if node == nil {
-		err = NotFoundKey
+		err = ErrNotFoundKey
 		return
 	}
 	err = tree.flush()
@@ -248,10 +248,10 @@ func (table *Table) Count() int {
 }
 
 // キーのカラム型をCounterにしている場合に次にInsertするときに付与されるキーの値を取得できる。
-// キーのカラム型がCounterではない場合はKeyIsNotCounterのエラーが返る。
+// キーのカラム型がCounterではない場合はErrKeyIsNotCounterのエラーが返る。
 func (table *Table) NextCounterID() (CounterType, error) {
 	if table.key.Type() != Counter {
-		return 0, KeyIsNotCounter
+		return 0, ErrKeyIsNotCounter
 	}
 	return CounterType(table.counter + 1), nil
 }
@@ -276,7 +276,7 @@ func (table *Table) NextCounterID() (CounterType, error) {
 //	fmt.Println("idは", r.Key(), "になりました")
 func (table *Table) Insert(data any) (r *Record, err error) {
 	if table.isIterating() {
-		err = InvalidOperation
+		err = ErrInvalidOperation
 		return
 	}
 	if !debugMode {
@@ -311,7 +311,7 @@ func (table *Table) Insert(data any) (r *Record, err error) {
 	key := table.getKey(mdata)
 	_, ok := avltree.Insert(tree, false, key, tableTreeValue(mdata))
 	if !ok {
-		err = KeyAlreadyExists // duplicate key error
+		err = ErrKeyAlreadyExists // duplicate key error
 		return
 	}
 	err = tree.flush()
@@ -339,7 +339,7 @@ func (table *Table) Insert(data any) (r *Record, err error) {
 // dataにはキーとカラムの全てをセットしておく必要がある。
 // dataのキーに対応するデータを置き換えることになる。
 // 戻り値の*Recordには置換後のデータのコピーが入る。
-// 対応するキーが存在しない場合はNotFoundKeyのエラーが返る。
+// 対応するキーが存在しない場合はErrNotFoundKeyのエラーが返る。
 // 引数のdataに不正がある場合は対応したエラーが返る。
 // それ以外のエラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
 //
@@ -349,7 +349,7 @@ func (table *Table) Insert(data any) (r *Record, err error) {
 //	table.Replace(m)
 func (table *Table) Replace(data any) (r *Record, err error) {
 	if table.isIterating() {
-		err = InvalidOperation
+		err = ErrInvalidOperation
 		return
 	}
 	if !debugMode {
@@ -369,7 +369,7 @@ func (table *Table) Replace(data any) (r *Record, err error) {
 	key := table.getKey(mdata)
 	_, ok := avltree.Replace(tree, key, mdata)
 	if !ok {
-		err = NotFoundKey
+		err = ErrNotFoundKey
 		return
 	}
 	err = tree.flush()
@@ -490,7 +490,7 @@ func (table *Table) IterateRange(lowerKey, upperKey any, callback IterateCallbac
 		if table.key.IsValidValueType(lowerKey) {
 			lKey = table.key.toKey(lowerKey)
 		} else {
-			err = UnmatchColumnValueType{table.key}
+			err = ErrUnmatchColumnValueType{table.key}
 			return
 		}
 	}
@@ -498,7 +498,7 @@ func (table *Table) IterateRange(lowerKey, upperKey any, callback IterateCallbac
 		if table.key.IsValidValueType(upperKey) {
 			rKey = table.key.toKey(upperKey)
 		} else {
-			err = UnmatchColumnValueType{table.key}
+			err = ErrUnmatchColumnValueType{table.key}
 			return
 		}
 	}
@@ -544,7 +544,7 @@ func (table *Table) IterateBackRange(lowerKey, upperKey any, callback IterateCal
 		if table.key.IsValidValueType(lowerKey) {
 			lKey = table.key.toKey(lowerKey)
 		} else {
-			err = UnmatchColumnValueType{table.key}
+			err = ErrUnmatchColumnValueType{table.key}
 			return
 		}
 	}
@@ -552,7 +552,7 @@ func (table *Table) IterateBackRange(lowerKey, upperKey any, callback IterateCal
 		if table.key.IsValidValueType(upperKey) {
 			rKey = table.key.toKey(upperKey)
 		} else {
-			err = UnmatchColumnValueType{table.key}
+			err = ErrUnmatchColumnValueType{table.key}
 			return
 		}
 	}
@@ -658,7 +658,7 @@ func (table *Table) IterateRangeKeys(lowerKey, upperKey any, callback IterateKey
 		if table.key.IsValidValueType(lowerKey) {
 			lKey = table.key.toKey(lowerKey)
 		} else {
-			err = UnmatchColumnValueType{table.key}
+			err = ErrUnmatchColumnValueType{table.key}
 			return
 		}
 	}
@@ -666,7 +666,7 @@ func (table *Table) IterateRangeKeys(lowerKey, upperKey any, callback IterateKey
 		if table.key.IsValidValueType(upperKey) {
 			rKey = table.key.toKey(upperKey)
 		} else {
-			err = UnmatchColumnValueType{table.key}
+			err = ErrUnmatchColumnValueType{table.key}
 			return
 		}
 	}
@@ -709,7 +709,7 @@ func (table *Table) IterateBackRangeKeys(lowerKey, upperKey any, callback Iterat
 		if table.key.IsValidValueType(lowerKey) {
 			lKey = table.key.toKey(lowerKey)
 		} else {
-			err = UnmatchColumnValueType{table.key}
+			err = ErrUnmatchColumnValueType{table.key}
 			return
 		}
 	}
@@ -717,7 +717,7 @@ func (table *Table) IterateBackRangeKeys(lowerKey, upperKey any, callback Iterat
 		if table.key.IsValidValueType(upperKey) {
 			rKey = table.key.toKey(upperKey)
 		} else {
-			err = UnmatchColumnValueType{table.key}
+			err = ErrUnmatchColumnValueType{table.key}
 			return
 		}
 	}

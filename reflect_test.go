@@ -40,7 +40,7 @@ func TestParseStruct(t *testing.T) {
 	}
 
 	_, err = parseData(nil, (*Food)(nil))
-	if err != NotFoundData {
+	if err != ErrNotFoundData {
 		t.Fatal(err)
 	}
 
@@ -559,8 +559,8 @@ func TestMoveDataToDataStruct(t *testing.T) {
 
 	var z ***Data
 	err = moveDataToDataStruct(r, &z)
-	if err != notStruct {
-		t.Fatal("not notStruct")
+	if err != errNotStruct {
+		t.Fatal("not errNotStruct")
 	}
 
 	t.Skip("TEST IS NOT IMPLEMENTED YET")
@@ -647,8 +647,8 @@ func TestFillDataToDataStruct(t *testing.T) {
 
 	var z ***Data
 	err = fillDataToDataStruct(r, &z)
-	if err != notStruct {
-		t.Fatal("not notStruct")
+	if err != errNotStruct {
+		t.Fatal("not errNotStruct")
 	}
 
 	t.Skip("TEST IS NOT IMPLEMENTED YET")
@@ -729,8 +729,8 @@ func TestFillDataToTaggedStruct(t *testing.T) {
 
 	var z ***Food
 	err = fillDataToTaggedStruct(r, &z)
-	if err != notStruct {
-		t.Fatal("not notStruct")
+	if err != errNotStruct {
+		t.Fatal("not errNotStruct")
 	}
 
 	t.Skip("TEST IS NOT IMPLEMENTED YET")

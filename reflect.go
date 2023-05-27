@@ -63,13 +63,13 @@ func init() {
 func moveData(r *Record, dst any) (err error) {
 	if dst == nil {
 		// TODO 適切なエラーに直す
-		err = NotFoundData
+		err = ErrNotFoundData
 		return
 	}
 	if m, ok := dst.(tableTreeValue); ok {
 		if m == nil {
 			// TODO 適切なエラーに直す
-			err = NotFoundData
+			err = ErrNotFoundData
 		} else {
 			for name, value := range r.data {
 				m[name] = value
@@ -80,7 +80,7 @@ func moveData(r *Record, dst any) (err error) {
 	if ap, ok := dst.(*any); ok {
 		if ap == nil {
 			// TODO 適切なエラーに直す
-			err = NotFoundData
+			err = ErrNotFoundData
 		} else if *ap == nil {
 			*ap = r.data
 		} else {
@@ -88,17 +88,17 @@ func moveData(r *Record, dst any) (err error) {
 		}
 		return
 	}
-	if err = moveDataToDataStruct(r, dst); err != notStruct {
+	if err = moveDataToDataStruct(r, dst); err != errNotStruct {
 		return
 	}
-	if err = moveDataToTaggedStruct(r, dst); err != notStruct {
+	if err = moveDataToTaggedStruct(r, dst); err != errNotStruct {
 		return
 	}
 	v := reflect.ValueOf(dst)
 	if v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			// TODO 適切なエラーに直す
-			err = NotFoundData
+			err = ErrNotFoundData
 		} else {
 			err = moveData(r, v.Elem().Interface())
 		}
@@ -106,19 +106,19 @@ func moveData(r *Record, dst any) (err error) {
 	}
 	if v.Kind() != reflect.Map || v.IsNil() || !v.CanSet() {
 		// TODO 適切なエラーに直す
-		err = NotFoundData
+		err = ErrNotFoundData
 		return
 	}
 	if v.Type().Key() != reflect.TypeOf("") {
 		// TODO 適切なエラーに直す
-		err = NotFoundData
+		err = ErrNotFoundData
 		return
 	}
 	et := v.Type().Elem()
 	for _, value := range r.data {
 		if !reflect.ValueOf(value).CanConvert(et) {
 			// TODO 適切なエラーに直す
-			err = NotFoundData
+			err = ErrNotFoundData
 			return
 		}
 	}
@@ -133,13 +133,13 @@ func moveData(r *Record, dst any) (err error) {
 func fillData(r *Record, dst any) (err error) {
 	if dst == nil {
 		// TODO 適切なエラーに直す
-		err = NotFoundData
+		err = ErrNotFoundData
 		return
 	}
 	if m, ok := dst.(tableTreeValue); ok {
 		if m == nil {
 			// TODO 適切なエラーに直す
-			err = NotFoundData
+			err = ErrNotFoundData
 		} else {
 			m[r.table.key.Name()] = r.table.key.copyValue(r.Key())
 			for _, col := range r.table.columns {
@@ -151,7 +151,7 @@ func fillData(r *Record, dst any) (err error) {
 	if ap, ok := dst.(*any); ok {
 		if ap == nil {
 			// TODO 適切なエラーに直す
-			err = NotFoundData
+			err = ErrNotFoundData
 		} else {
 			if *ap == nil {
 				*ap = make(tableTreeValue)
@@ -160,17 +160,17 @@ func fillData(r *Record, dst any) (err error) {
 		}
 		return
 	}
-	if err = fillDataToDataStruct(r, dst); err != notStruct {
+	if err = fillDataToDataStruct(r, dst); err != errNotStruct {
 		return
 	}
-	if err = fillDataToTaggedStruct(r, dst); err != notStruct {
+	if err = fillDataToTaggedStruct(r, dst); err != errNotStruct {
 		return
 	}
 	v := reflect.ValueOf(dst)
 	if v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			// TODO 適切なエラーに直す
-			err = NotFoundData
+			err = ErrNotFoundData
 		} else {
 			err = fillData(r, v.Elem().Interface())
 		}
@@ -178,19 +178,19 @@ func fillData(r *Record, dst any) (err error) {
 	}
 	if v.Kind() != reflect.Map || v.IsNil() || !v.CanSet() {
 		// TODO 適切なエラーに直す
-		err = NotFoundData
+		err = ErrNotFoundData
 		return
 	}
 	if v.Type().Key() != reflect.TypeOf("") {
 		// TODO 適切なエラーに直す
-		err = NotFoundData
+		err = ErrNotFoundData
 		return
 	}
 	et := v.Type().Elem()
 	for _, value := range r.data {
 		if !reflect.ValueOf(value).CanConvert(et) {
 			// TODO 適切なエラーに直す
-			err = NotFoundData
+			err = ErrNotFoundData
 			return
 		}
 	}
@@ -205,11 +205,11 @@ func fillData(r *Record, dst any) (err error) {
 
 func moveDataToDataStruct(r *Record, st any) error {
 	if st == nil {
-		return notStruct
+		return errNotStruct
 	}
 	v := reflect.ValueOf(st)
 	if v.Kind() != reflect.Pointer {
-		return notStruct
+		return errNotStruct
 	}
 	dt := reflect.TypeOf((*Data)(nil))
 	for v.Kind() == reflect.Pointer {
@@ -217,16 +217,16 @@ func moveDataToDataStruct(r *Record, st any) error {
 			break
 		}
 		if v.IsNil() {
-			return notStruct
+			return errNotStruct
 		}
 		v = v.Elem()
 	}
 	if v.Kind() != reflect.Pointer {
-		return notStruct
+		return errNotStruct
 	}
 	if v.IsNil() {
 		if !v.CanSet() {
-			return notStruct
+			return errNotStruct
 		}
 		v.Set(reflect.ValueOf(new(Data)))
 	}
@@ -250,11 +250,11 @@ func moveDataToDataStruct(r *Record, st any) error {
 
 func fillDataToDataStruct(r *Record, st any) error {
 	if st == nil {
-		return notStruct
+		return errNotStruct
 	}
 	v := reflect.ValueOf(st)
 	if v.Kind() != reflect.Pointer {
-		return notStruct
+		return errNotStruct
 	}
 	dt := reflect.TypeOf((*Data)(nil))
 	for v.Kind() == reflect.Pointer {
@@ -262,16 +262,16 @@ func fillDataToDataStruct(r *Record, st any) error {
 			break
 		}
 		if v.IsNil() {
-			return notStruct
+			return errNotStruct
 		}
 		v = v.Elem()
 	}
 	if v.Kind() != reflect.Pointer {
-		return notStruct
+		return errNotStruct
 	}
 	if v.IsNil() {
 		if !v.CanSet() {
-			return notStruct
+			return errNotStruct
 		}
 		v.Set(reflect.ValueOf(new(Data)))
 	}
@@ -314,13 +314,13 @@ func moveDataToTaggedStruct(r *Record, st any) error {
 			if isTaggedStruct(v.Type().Elem()) && v.CanSet() {
 				v.Set(reflect.New(v.Type().Elem()))
 			} else {
-				return notStruct
+				return errNotStruct
 			}
 		}
 		v = v.Elem()
 	}
 	if v.Kind() != reflect.Struct {
-		return notStruct
+		return errNotStruct
 	}
 	for _, f := range reflect.VisibleFields(v.Type()) {
 		tv, ok := f.Tag.Lookup(structTagKey)
@@ -341,16 +341,16 @@ func moveDataToTaggedStruct(r *Record, st any) error {
 		if index < 0 {
 			_, _, err = inferColumnType(ft)
 			if err != nil {
-				return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+				return ErrWrongTag{fmt.Errorf("%w (field: %s)", err, f.Name)}
 			}
 		} else {
 			mKey = tv[:index]
 			_, ct, size, err = parseTagColumnType(tv[index+1:])
 			if err != nil {
-				return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+				return ErrWrongTag{fmt.Errorf("%w (field: %s)", err, f.Name)}
 			}
 			if !canConvertToColumnType(ft, ct, size) {
-				return TagError{fmt.Errorf("cannot convert type %s to %s (field: %s)", ft, ct.GoTypeHint(), f.Name)}
+				return ErrWrongTag{fmt.Errorf("cannot convert type %s to %s (field: %s)", ft, ct.GoTypeHint(), f.Name)}
 			}
 		}
 		if len(mKey) == 0 {
@@ -358,7 +358,7 @@ func moveDataToTaggedStruct(r *Record, st any) error {
 		}
 		rv := r.Column(mKey)
 		if rv == nil {
-			return TagError{fmt.Errorf(`not found column "%s" (field: %s)`, mKey, f.Name)}
+			return ErrWrongTag{fmt.Errorf(`not found column "%s" (field: %s)`, mKey, f.Name)}
 		}
 		var col Column
 		if r.table.key.Name() == mKey {
@@ -374,16 +374,16 @@ func moveDataToTaggedStruct(r *Record, st any) error {
 		}
 		if ct != invalidColumnType {
 			if col.Type() != ct {
-				return TagError{fmt.Errorf("umatch column type (field: %s)", f.Name)}
+				return ErrWrongTag{fmt.Errorf("umatch column type (field: %s)", f.Name)}
 			}
 			if size > 0 && size != col.MaximumDataByteSize() {
-				return TagError{fmt.Errorf("umatch column type (field: %s)", f.Name)}
+				return ErrWrongTag{fmt.Errorf("umatch column type (field: %s)", f.Name)}
 			}
 		}
 		fv := v.FieldByIndex(f.Index)
 		err = tryMoveDataValue(fv, rv, col)
 		if err != nil {
-			return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+			return ErrWrongTag{fmt.Errorf("%w (field: %s)", err, f.Name)}
 		}
 	}
 	return nil
@@ -396,13 +396,13 @@ func fillDataToTaggedStruct(r *Record, st any) error {
 			if isTaggedStruct(v.Type().Elem()) && v.CanSet() {
 				v.Set(reflect.New(v.Type().Elem()))
 			} else {
-				return notStruct
+				return errNotStruct
 			}
 		}
 		v = v.Elem()
 	}
 	if v.Kind() != reflect.Struct {
-		return notStruct
+		return errNotStruct
 	}
 	for _, f := range reflect.VisibleFields(v.Type()) {
 		tv, ok := f.Tag.Lookup(structTagKey)
@@ -423,16 +423,16 @@ func fillDataToTaggedStruct(r *Record, st any) error {
 		if index < 0 {
 			_, _, err = inferColumnType(ft)
 			if err != nil {
-				return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+				return ErrWrongTag{fmt.Errorf("%w (field: %s)", err, f.Name)}
 			}
 		} else {
 			mKey = tv[:index]
 			_, ct, size, err = parseTagColumnType(tv[index+1:])
 			if err != nil {
-				return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+				return ErrWrongTag{fmt.Errorf("%w (field: %s)", err, f.Name)}
 			}
 			if !canConvertToColumnType(ft, ct, size) {
-				return TagError{fmt.Errorf("cannot convert type %s to %s (field: %s)", ft, ct.GoTypeHint(), f.Name)}
+				return ErrWrongTag{fmt.Errorf("cannot convert type %s to %s (field: %s)", ft, ct.GoTypeHint(), f.Name)}
 			}
 		}
 		if len(mKey) == 0 {
@@ -440,7 +440,7 @@ func fillDataToTaggedStruct(r *Record, st any) error {
 		}
 		rv := r.Column(mKey)
 		if rv == nil {
-			return TagError{fmt.Errorf(`not found column "%s" (field: %s)`, mKey, f.Name)}
+			return ErrWrongTag{fmt.Errorf(`not found column "%s" (field: %s)`, mKey, f.Name)}
 		}
 		var col Column
 		if r.table.key.Name() == mKey {
@@ -456,16 +456,16 @@ func fillDataToTaggedStruct(r *Record, st any) error {
 		}
 		if ct != invalidColumnType {
 			if col.Type() != ct {
-				return TagError{fmt.Errorf("umatch column type (field: %s)", f.Name)}
+				return ErrWrongTag{fmt.Errorf("umatch column type (field: %s)", f.Name)}
 			}
 			if size > 0 && size != col.MaximumDataByteSize() {
-				return TagError{fmt.Errorf("umatch column type (field: %s)", f.Name)}
+				return ErrWrongTag{fmt.Errorf("umatch column type (field: %s)", f.Name)}
 			}
 		}
 		fv := v.FieldByIndex(f.Index)
 		err = tryFillDataValue(fv, rv, col)
 		if err != nil {
-			return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+			return ErrWrongTag{fmt.Errorf("%w (field: %s)", err, f.Name)}
 		}
 	}
 	return nil
@@ -474,12 +474,12 @@ func fillDataToTaggedStruct(r *Record, st any) error {
 func tryMoveDataValue(fv reflect.Value, rv any, col Column) error {
 	for fv.Kind() == reflect.Pointer {
 		if fv.IsNil() {
-			return CannotAssignValueToField
+			return ErrCannotAssignValueToField
 		}
 		fv = fv.Elem()
 	}
 	if !fv.CanSet() {
-		return CannotAssignValueToField
+		return ErrCannotAssignValueToField
 	}
 	switch col.Type() {
 	default:
@@ -491,13 +491,13 @@ func tryMoveDataValue(fv reflect.Value, rv any, col Column) error {
 		} else if value.CanConvert(fv.Type()) {
 			fv.Set(value.Convert(fv.Type()))
 		} else {
-			return CannotAssignValueToField
+			return ErrCannotAssignValueToField
 		}
 	case ShortString, FixedSizeShortString, LongString, FixedSizeLongString, Text:
 		if fv.Kind() == reflect.String {
 			fv.Set(reflect.ValueOf(rv))
 		} else {
-			return CannotAssignValueToField
+			return ErrCannotAssignValueToField
 		}
 	case ShortBytes, FixedSizeShortBytes, LongBytes, FixedSizeLongBytes, Blob:
 		if fv.Kind() == reflect.Slice && fv.Type().Elem().Kind() == reflect.Uint8 {
@@ -507,10 +507,10 @@ func tryMoveDataValue(fv reflect.Value, rv any, col Column) error {
 				// 固定長配列へのコピーを許容するのはアリなの？
 				copy(fv.Slice(0, fv.Len()).Bytes(), rv.([]byte))
 			} else {
-				return CannotAssignValueToField
+				return ErrCannotAssignValueToField
 			}
 		} else {
-			return CannotAssignValueToField
+			return ErrCannotAssignValueToField
 		}
 	}
 	return nil
@@ -519,12 +519,12 @@ func tryMoveDataValue(fv reflect.Value, rv any, col Column) error {
 func tryFillDataValue(fv reflect.Value, rv any, col Column) error {
 	for fv.Kind() == reflect.Pointer {
 		if fv.IsNil() {
-			return CannotAssignValueToField
+			return ErrCannotAssignValueToField
 		}
 		fv = fv.Elem()
 	}
 	if !fv.CanSet() {
-		return CannotAssignValueToField
+		return ErrCannotAssignValueToField
 	}
 	switch col.Type() {
 	default:
@@ -536,13 +536,13 @@ func tryFillDataValue(fv reflect.Value, rv any, col Column) error {
 		} else if value.CanConvert(fv.Type()) {
 			fv.Set(value.Convert(fv.Type()))
 		} else {
-			return CannotAssignValueToField
+			return ErrCannotAssignValueToField
 		}
 	case ShortString, FixedSizeShortString, LongString, FixedSizeLongString, Text:
 		if fv.Kind() == reflect.String {
 			fv.Set(reflect.ValueOf(rv))
 		} else {
-			return CannotAssignValueToField
+			return ErrCannotAssignValueToField
 		}
 	case ShortBytes, FixedSizeShortBytes, LongBytes, FixedSizeLongBytes, Blob:
 		if fv.Kind() == reflect.Slice && fv.Type().Elem().Kind() == reflect.Uint8 {
@@ -554,10 +554,10 @@ func tryFillDataValue(fv reflect.Value, rv any, col Column) error {
 				// 固定長配列へのコピーを許容するのはアリなの？
 				copy(fv.Slice(0, fv.Len()).Bytes(), rv.([]byte))
 			} else {
-				return CannotAssignValueToField
+				return ErrCannotAssignValueToField
 			}
 		} else {
-			return CannotAssignValueToField
+			return ErrCannotAssignValueToField
 		}
 	}
 	return nil
@@ -569,7 +569,7 @@ func createTableByTaggedStruct(tc *TableCreator, st any) error {
 		t = t.Elem()
 	}
 	if t.Kind() != reflect.Struct {
-		return notStruct
+		return errNotStruct
 	}
 	hasKey := false
 	m := make(map[string]bool)
@@ -593,29 +593,29 @@ func createTableByTaggedStruct(tc *TableCreator, st any) error {
 		if index < 0 {
 			ct, size, err = inferColumnType(ft)
 			if err != nil {
-				return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+				return ErrWrongTag{fmt.Errorf("%w (field: %s)", err, f.Name)}
 			}
 		} else {
 			mKey = tv[:index]
 			isKey, ct, size, err = parseTagColumnType(tv[index+1:])
 			if err != nil {
-				return TagError{fmt.Errorf("%w (field: %s)", err, f.Name)}
+				return ErrWrongTag{fmt.Errorf("%w (field: %s)", err, f.Name)}
 			}
 			if isKey {
 				if hasKey {
-					return TagError{fmt.Errorf("duplicate key (field: %s)", f.Name)}
+					return ErrWrongTag{fmt.Errorf("duplicate key (field: %s)", f.Name)}
 				}
 				hasKey = true
 			}
 			if !canConvertToColumnType(ft, ct, size) {
-				return TagError{fmt.Errorf("cannot convert type %s to %s (field: %s)", ft, ct.GoTypeHint(), f.Name)}
+				return ErrWrongTag{fmt.Errorf("cannot convert type %s to %s (field: %s)", ft, ct.GoTypeHint(), f.Name)}
 			}
 		}
 		if len(mKey) == 0 {
 			mKey = f.Name
 		}
 		if _, ok = m[mKey]; ok {
-			return TagError{fmt.Errorf(`duplicate name "%s" (field: %s)`, mKey, f.Name)}
+			return ErrWrongTag{fmt.Errorf(`duplicate name "%s" (field: %s)`, mKey, f.Name)}
 		}
 		m[mKey] = true
 		err = makeColumn(tc, mKey, isKey, ct, size)
@@ -624,7 +624,7 @@ func createTableByTaggedStruct(tc *TableCreator, st any) error {
 		}
 	}
 	if !hasKey {
-		return NotFoundKey
+		return ErrNotFoundKey
 	}
 	return nil
 }
@@ -909,7 +909,7 @@ func canConvertToColumnType(t reflect.Type, ct ColumnType, size uint64) (_ bool)
 
 func parseData(table *Table, data any) (tableTreeValue, error) {
 	if data == nil {
-		return nil, NotFoundData
+		return nil, ErrNotFoundData
 	}
 	if m, ok := data.(tableTreeValue); ok {
 		return m, nil
@@ -917,23 +917,23 @@ func parseData(table *Table, data any) (tableTreeValue, error) {
 	if m := parseDataStruct(table, data); m != nil {
 		return m, nil
 	}
-	if m, err := parseTaggedStruct(data); err != notStruct {
+	if m, err := parseTaggedStruct(data); err != errNotStruct {
 		return m, err
 	}
 	v := reflect.ValueOf(data)
 	for v.Kind() == reflect.Pointer {
 		if v.IsNil() {
-			return nil, NotFoundData
+			return nil, ErrNotFoundData
 		}
 		v = v.Elem()
 	}
 	if v.Kind() != reflect.Map || v.IsNil() {
-		return nil, NotFoundData
+		return nil, ErrNotFoundData
 	}
 	keyType := v.Type().Key()
 	stringerType := reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
 	if keyType.Kind() != reflect.String && !keyType.Implements(stringerType) {
-		return nil, NotFoundData
+		return nil, ErrNotFoundData
 	}
 	r := make(tableTreeValue)
 	iter := v.MapRange()
@@ -1156,12 +1156,12 @@ func parseTaggedStruct(st any) (tableTreeValue, error) {
 	for v.Kind() == reflect.Pointer {
 		// forじゃなくifがいいのだろうか・・・・？
 		if v.IsNil() {
-			return nil, NotFoundData
+			return nil, ErrNotFoundData
 		}
 		v = v.Elem()
 	}
 	if v.Kind() != reflect.Struct {
-		return nil, notStruct
+		return nil, errNotStruct
 	}
 	hasKey := false
 	m := make(tableTreeValue)
@@ -1173,7 +1173,7 @@ func parseTaggedStruct(st any) (tableTreeValue, error) {
 		value := v.FieldByIndex(f.Index)
 		for value.Kind() == reflect.Pointer {
 			if value.IsNil() {
-				return nil, NotFoundData
+				return nil, ErrNotFoundData
 			}
 			value = value.Elem()
 		}
@@ -1187,11 +1187,11 @@ func parseTaggedStruct(st any) (tableTreeValue, error) {
 		} else {
 			isKey, ct, size, e := parseTagColumnType(tv[index+1:])
 			if e != nil {
-				return nil, TagError{fmt.Errorf("%w (field: %s)", e, f.Name)}
+				return nil, ErrWrongTag{fmt.Errorf("%w (field: %s)", e, f.Name)}
 			}
 			if isKey {
 				if hasKey {
-					return nil, TagError{fmt.Errorf("duplicate key (field: %s)", f.Name)}
+					return nil, ErrWrongTag{fmt.Errorf("duplicate key (field: %s)", f.Name)}
 				}
 				hasKey = true
 			}
@@ -1202,14 +1202,14 @@ func parseTaggedStruct(st any) (tableTreeValue, error) {
 				for ft.Kind() == reflect.Pointer {
 					ft = ft.Elem()
 				}
-				return nil, TagError{fmt.Errorf("cannot convert type %s to %s (field: %s)", ft, ct.GoTypeHint(), f.Name)}
+				return nil, ErrWrongTag{fmt.Errorf("cannot convert type %s to %s (field: %s)", ft, ct.GoTypeHint(), f.Name)}
 			}
 		}
 		if len(mKey) == 0 {
 			mKey = f.Name
 		}
 		if _, ok = m[mKey]; ok {
-			return nil, TagError{fmt.Errorf(`duplicate name "%s" (field: %s)`, mKey, f.Name)}
+			return nil, ErrWrongTag{fmt.Errorf(`duplicate name "%s" (field: %s)`, mKey, f.Name)}
 		}
 		m[mKey] = value.Interface()
 	}
