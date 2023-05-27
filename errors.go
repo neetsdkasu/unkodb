@@ -84,7 +84,7 @@ var (
 	ErrNeedToSetAKey = errors.New("ErrNeedToSetAKey")
 
 	// テーブル作成時に固定長タイプのカラム型でサイズに0が指定されたときのエラー
-	SizeMustBePositiveValue = errors.New("SizeMustBePositiveValue")
+	ErrSizeMustBePositiveValue = errors.New("ErrSizeMustBePositiveValue")
 
 	// テーブル作成時にテーブルに設定できる最大カラム数を超えてカラムを作ろうとしたときのエラー
 	ColumnCountIsFull = errors.New("ColumnCountIsFull")

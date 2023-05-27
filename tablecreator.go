@@ -308,7 +308,7 @@ func (tc *TableCreator) ShortStringColumn(newColumnName string) error {
 // カラム名やサイズ指定に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) FixedSizeShortStringKey(newColumnName string, size uint8) error {
 	if size == 0 {
-		return SizeMustBePositiveValue
+		return ErrSizeMustBePositiveValue
 	}
 	return tc.setKey(&fixedSizeShortStringColumn{
 		name: newColumnName,
@@ -323,7 +323,7 @@ func (tc *TableCreator) FixedSizeShortStringKey(newColumnName string, size uint8
 // カラム名やサイズ指定に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) FixedSizeShortStringColumn(newColumnName string, size uint8) error {
 	if size == 0 {
-		return SizeMustBePositiveValue
+		return ErrSizeMustBePositiveValue
 	}
 	return tc.addColumn(&fixedSizeShortStringColumn{
 		name: newColumnName,
@@ -348,7 +348,7 @@ func (tc *TableCreator) LongStringColumn(newColumnName string) error {
 // カラム名やサイズ指定に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) FixedSizeLongStringColumn(newColumnName string, size uint16) error {
 	if size == 0 {
-		return SizeMustBePositiveValue
+		return ErrSizeMustBePositiveValue
 	}
 	return tc.addColumn(&fixedSizeLongStringColumn{
 		name: newColumnName,
@@ -393,7 +393,7 @@ func (tc *TableCreator) ShortBytesColumn(newColumnName string) error {
 // カラム名やサイズ指定に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) FixedSizeShortBytesKey(newColumnName string, size uint8) error {
 	if size == 0 {
-		return SizeMustBePositiveValue
+		return ErrSizeMustBePositiveValue
 	}
 	return tc.setKey(&fixedSizeShortBytesColumn{
 		name: newColumnName,
@@ -408,7 +408,7 @@ func (tc *TableCreator) FixedSizeShortBytesKey(newColumnName string, size uint8)
 // カラム名やサイズ指定に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) FixedSizeShortBytesColumn(newColumnName string, size uint8) error {
 	if size == 0 {
-		return SizeMustBePositiveValue
+		return ErrSizeMustBePositiveValue
 	}
 	return tc.addColumn(&fixedSizeShortBytesColumn{
 		name: newColumnName,
@@ -433,7 +433,7 @@ func (tc *TableCreator) LongBytesColumn(newColumnName string) error {
 // カラム名やサイズ指定に不正がある場合に対応したエラーが返る。
 func (tc *TableCreator) FixedSizeLongBytesColumn(newColumnName string, size uint16) error {
 	if size == 0 {
-		return SizeMustBePositiveValue
+		return ErrSizeMustBePositiveValue
 	}
 	return tc.addColumn(&fixedSizeLongBytesColumn{
 		name: newColumnName,
