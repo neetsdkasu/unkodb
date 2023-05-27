@@ -110,7 +110,7 @@ func (tc *TableCreator) addColumn(column Column) error {
 		return ErrInvalidOperation
 	}
 	if len(tc.columns) >= MaximumColumnCountWithoutKey {
-		return ColumnCountIsFull
+		return ErrColumnCountIsFull
 	}
 	// TODO カラム名の文字構成チェックいる？？
 	if len([]byte(column.Name())) == 0 {

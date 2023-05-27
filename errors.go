@@ -87,5 +87,5 @@ var (
 	ErrSizeMustBePositiveValue = errors.New("ErrSizeMustBePositiveValue")
 
 	// テーブル作成時にテーブルに設定できる最大カラム数を超えてカラムを作ろうとしたときのエラー
-	ColumnCountIsFull = errors.New("ColumnCountIsFull")
+	ErrColumnCountIsFull = errors.New("ErrColumnCountIsFull")
 )
