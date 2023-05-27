@@ -74,7 +74,7 @@ var (
 	ErrColumnNameIsTooLong = errors.New("ErrColumnNameIsTooLong")
 
 	// テーブル作成時に空のカラム名を設定しようとしたときのエラー
-	NeedColumnName = errors.New("NeedColumnName")
+	ErrNeedColumnName = errors.New("ErrNeedColumnName")
 
 	// 不正にメソッドを呼び出しされたときのエラー
 	// 例えば、イテレーション中にテーブルを変更するメソッドを呼び出したときなど

@@ -92,7 +92,7 @@ func (tc *TableCreator) setKey(column keyColumn) error {
 	}
 	// TODO カラム名の文字構成チェックいる？？
 	if len([]byte(column.Name())) == 0 {
-		return NeedColumnName
+		return ErrNeedColumnName
 	}
 	if len([]byte(column.Name())) > MaximumColumnNameByteSize {
 		return ErrColumnNameIsTooLong
@@ -114,7 +114,7 @@ func (tc *TableCreator) addColumn(column Column) error {
 	}
 	// TODO カラム名の文字構成チェックいる？？
 	if len([]byte(column.Name())) == 0 {
-		return NeedColumnName
+		return ErrNeedColumnName
 	}
 	if len([]byte(column.Name())) > MaximumColumnNameByteSize {
 		return ErrColumnNameIsTooLong
