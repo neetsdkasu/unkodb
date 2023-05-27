@@ -98,7 +98,7 @@ func (tc *TableCreator) setKey(column keyColumn) error {
 		return ColumnNameIsTooLong
 	}
 	if tc.has(column.Name()) {
-		return ColumnNameAlreadyExists
+		return ErrColumnNameAlreadyExists
 	}
 	tc.key = column
 	tc.columnNameMap[column.Name()] = true
@@ -120,7 +120,7 @@ func (tc *TableCreator) addColumn(column Column) error {
 		return ColumnNameIsTooLong
 	}
 	if tc.has(column.Name()) {
-		return ColumnNameAlreadyExists
+		return ErrColumnNameAlreadyExists
 	}
 	tc.columns = append(tc.columns, column)
 	tc.columnNameMap[column.Name()] = true

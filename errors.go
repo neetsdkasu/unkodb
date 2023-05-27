@@ -68,7 +68,7 @@ var (
 	ErrKeyAlreadyExists = errors.New("ErrKeyAlreadyExists")
 
 	// テーブルの作成時に同じカラム名のカラムを追加しようとしたときのエラー
-	ColumnNameAlreadyExists = errors.New("ColumnNameAlreadyExists")
+	ErrColumnNameAlreadyExists = errors.New("ErrColumnNameAlreadyExists")
 
 	// テーブルの作成時にカラム名が長すぎるときのエラー
 	ColumnNameIsTooLong = errors.New("ColumnNameIsTooLong")
