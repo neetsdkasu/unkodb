@@ -127,13 +127,13 @@ func (table *Table) CheckData(data any) (err error) {
 		return
 	}
 	if keyValue, ok := mdata[table.key.Name()]; !ok {
-		return NotFoundColumnName{table.key}
+		return ErrNotFoundColumnName{table.key}
 	} else if !table.key.IsValidValueType(keyValue) {
 		return UnmatchColumnValueType{table.key}
 	}
 	for _, col := range table.columns {
 		if colValue, ok := mdata[col.Name()]; !ok {
-			return NotFoundColumnName{col}
+			return ErrNotFoundColumnName{col}
 		} else if !col.IsValidValueType(colValue) {
 			return UnmatchColumnValueType{col}
 		}

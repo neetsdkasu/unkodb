@@ -10,10 +10,10 @@ var (
 )
 
 // InsertやReplaceなどでテーブルのデータに必要なカラムが不足しているときのエラー
-type NotFoundColumnName struct{ Column }
+type ErrNotFoundColumnName struct{ Column }
 
-func (err NotFoundColumnName) Error() string {
-	return "NotFoundColumnName: " + err.Name()
+func (err ErrNotFoundColumnName) Error() string {
+	return "ErrNotFoundColumnName: " + err.Name()
 }
 
 // テーブルに定義されたカラム型に対応しないGoの型で値を受け取ったときのエラー
