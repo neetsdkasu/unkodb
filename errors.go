@@ -65,7 +65,7 @@ var (
 	// テーブルでのInsertにおいて既に存在するキーでデータを追加しようとしたときのエラー
 	// あるいは
 	// テーブル作成時に２つめのキーを作成しようとしたときのエラー
-	KeyAlreadyExists = errors.New("KeyAlreadyExists")
+	ErrKeyAlreadyExists = errors.New("ErrKeyAlreadyExists")
 
 	// テーブルの作成時に同じカラム名のカラムを追加しようとしたときのエラー
 	ColumnNameAlreadyExists = errors.New("ColumnNameAlreadyExists")

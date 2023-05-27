@@ -311,7 +311,7 @@ func (table *Table) Insert(data any) (r *Record, err error) {
 	key := table.getKey(mdata)
 	_, ok := avltree.Insert(tree, false, key, tableTreeValue(mdata))
 	if !ok {
-		err = KeyAlreadyExists // duplicate key error
+		err = ErrKeyAlreadyExists // duplicate key error
 		return
 	}
 	err = tree.flush()

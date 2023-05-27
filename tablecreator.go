@@ -88,7 +88,7 @@ func (tc *TableCreator) setKey(column keyColumn) error {
 		return InvalidOperation
 	}
 	if tc.key != nil {
-		return KeyAlreadyExists
+		return ErrKeyAlreadyExists
 	}
 	// TODO カラム名の文字構成チェックいる？？
 	if len([]byte(column.Name())) == 0 {
