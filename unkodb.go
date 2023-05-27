@@ -315,7 +315,7 @@ func (db *UnkoDB) CreateTable(newTableName string) (creator *TableCreator, err e
 	}
 	for _, t := range db.tables {
 		if t.name == newTableName {
-			err = TableNameAlreadyExists
+			err = ErrTableNameAlreadyExists
 			return
 		}
 	}

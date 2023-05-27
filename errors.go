@@ -60,7 +60,7 @@ var (
 	ErrCannotAssignValueToField = errors.New("ErrCannotAssignValueToField")
 
 	// 既に存在するテーブル名で新しくテーブルを作ろうとしたときのエラー
-	TableNameAlreadyExists = errors.New("TableNameAlreadyExists")
+	ErrTableNameAlreadyExists = errors.New("ErrTableNameAlreadyExists")
 
 	// テーブルでのInsertにおいて既に存在するキーでデータを追加しようとしたときのエラー
 	// あるいは
