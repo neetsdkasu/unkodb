@@ -31,10 +31,10 @@ func (err TagError) Error() string {
 }
 
 // 壊れているunkodbファイルあるいは無関係なファイルを読み込んだときのエラー
-type WrongFileFormat struct{ description string }
+type ErrWrongFileFormat struct{ description string }
 
-func (err WrongFileFormat) Error() string {
-	return "WrongFileFormat: " + err.description
+func (err ErrWrongFileFormat) Error() string {
+	return "ErrWrongFileFormat: " + err.description
 }
 
 var (
