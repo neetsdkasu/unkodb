@@ -129,13 +129,13 @@ func (table *Table) CheckData(data any) (err error) {
 	if keyValue, ok := mdata[table.key.Name()]; !ok {
 		return ErrNotFoundColumnName{table.key}
 	} else if !table.key.IsValidValueType(keyValue) {
-		return UnmatchColumnValueType{table.key}
+		return ErrUnmatchColumnValueType{table.key}
 	}
 	for _, col := range table.columns {
 		if colValue, ok := mdata[col.Name()]; !ok {
 			return ErrNotFoundColumnName{col}
 		} else if !col.IsValidValueType(colValue) {
-			return UnmatchColumnValueType{col}
+			return ErrUnmatchColumnValueType{col}
 		}
 	}
 	return nil
@@ -161,7 +161,7 @@ func (table *Table) Find(key any) (r *Record, err error) {
 		}
 	}
 	if !table.key.IsValidValueType(key) {
-		err = UnmatchColumnValueType{table.key}
+		err = ErrUnmatchColumnValueType{table.key}
 		return
 	}
 	var tree *tableTree
@@ -220,7 +220,7 @@ func (table *Table) Delete(key any) (err error) {
 		}
 	}
 	if !table.key.IsValidValueType(key) {
-		err = UnmatchColumnValueType{table.key}
+		err = ErrUnmatchColumnValueType{table.key}
 		return
 	}
 	var tree *tableTree
@@ -490,7 +490,7 @@ func (table *Table) IterateRange(lowerKey, upperKey any, callback IterateCallbac
 		if table.key.IsValidValueType(lowerKey) {
 			lKey = table.key.toKey(lowerKey)
 		} else {
-			err = UnmatchColumnValueType{table.key}
+			err = ErrUnmatchColumnValueType{table.key}
 			return
 		}
 	}
@@ -498,7 +498,7 @@ func (table *Table) IterateRange(lowerKey, upperKey any, callback IterateCallbac
 		if table.key.IsValidValueType(upperKey) {
 			rKey = table.key.toKey(upperKey)
 		} else {
-			err = UnmatchColumnValueType{table.key}
+			err = ErrUnmatchColumnValueType{table.key}
 			return
 		}
 	}
@@ -544,7 +544,7 @@ func (table *Table) IterateBackRange(lowerKey, upperKey any, callback IterateCal
 		if table.key.IsValidValueType(lowerKey) {
 			lKey = table.key.toKey(lowerKey)
 		} else {
-			err = UnmatchColumnValueType{table.key}
+			err = ErrUnmatchColumnValueType{table.key}
 			return
 		}
 	}
@@ -552,7 +552,7 @@ func (table *Table) IterateBackRange(lowerKey, upperKey any, callback IterateCal
 		if table.key.IsValidValueType(upperKey) {
 			rKey = table.key.toKey(upperKey)
 		} else {
-			err = UnmatchColumnValueType{table.key}
+			err = ErrUnmatchColumnValueType{table.key}
 			return
 		}
 	}
@@ -658,7 +658,7 @@ func (table *Table) IterateRangeKeys(lowerKey, upperKey any, callback IterateKey
 		if table.key.IsValidValueType(lowerKey) {
 			lKey = table.key.toKey(lowerKey)
 		} else {
-			err = UnmatchColumnValueType{table.key}
+			err = ErrUnmatchColumnValueType{table.key}
 			return
 		}
 	}
@@ -666,7 +666,7 @@ func (table *Table) IterateRangeKeys(lowerKey, upperKey any, callback IterateKey
 		if table.key.IsValidValueType(upperKey) {
 			rKey = table.key.toKey(upperKey)
 		} else {
-			err = UnmatchColumnValueType{table.key}
+			err = ErrUnmatchColumnValueType{table.key}
 			return
 		}
 	}
@@ -709,7 +709,7 @@ func (table *Table) IterateBackRangeKeys(lowerKey, upperKey any, callback Iterat
 		if table.key.IsValidValueType(lowerKey) {
 			lKey = table.key.toKey(lowerKey)
 		} else {
-			err = UnmatchColumnValueType{table.key}
+			err = ErrUnmatchColumnValueType{table.key}
 			return
 		}
 	}
@@ -717,7 +717,7 @@ func (table *Table) IterateBackRangeKeys(lowerKey, upperKey any, callback Iterat
 		if table.key.IsValidValueType(upperKey) {
 			rKey = table.key.toKey(upperKey)
 		} else {
-			err = UnmatchColumnValueType{table.key}
+			err = ErrUnmatchColumnValueType{table.key}
 			return
 		}
 	}

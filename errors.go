@@ -17,10 +17,10 @@ func (err ErrNotFoundColumnName) Error() string {
 }
 
 // テーブルに定義されたカラム型に対応しないGoの型で値を受け取ったときのエラー
-type UnmatchColumnValueType struct{ Column }
+type ErrUnmatchColumnValueType struct{ Column }
 
-func (err UnmatchColumnValueType) Error() string {
-	return "UnmatchColumnValueType: " + err.Name() + " " + ColumnTypeHint(err)
+func (err ErrUnmatchColumnValueType) Error() string {
+	return "ErrUnmatchColumnValueType: " + err.Name() + " " + ColumnTypeHint(err)
 }
 
 // unkodbタグにおけるタグの記述に関するエラー
