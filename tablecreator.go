@@ -95,7 +95,7 @@ func (tc *TableCreator) setKey(column keyColumn) error {
 		return NeedColumnName
 	}
 	if len([]byte(column.Name())) > MaximumColumnNameByteSize {
-		return ColumnNameIsTooLong
+		return ErrColumnNameIsTooLong
 	}
 	if tc.has(column.Name()) {
 		return ErrColumnNameAlreadyExists
@@ -117,7 +117,7 @@ func (tc *TableCreator) addColumn(column Column) error {
 		return NeedColumnName
 	}
 	if len([]byte(column.Name())) > MaximumColumnNameByteSize {
-		return ColumnNameIsTooLong
+		return ErrColumnNameIsTooLong
 	}
 	if tc.has(column.Name()) {
 		return ErrColumnNameAlreadyExists

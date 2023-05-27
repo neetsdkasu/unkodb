@@ -71,7 +71,7 @@ var (
 	ErrColumnNameAlreadyExists = errors.New("ErrColumnNameAlreadyExists")
 
 	// テーブルの作成時にカラム名が長すぎるときのエラー
-	ColumnNameIsTooLong = errors.New("ColumnNameIsTooLong")
+	ErrColumnNameIsTooLong = errors.New("ErrColumnNameIsTooLong")
 
 	// テーブル作成時に空のカラム名を設定しようとしたときのエラー
 	NeedColumnName = errors.New("NeedColumnName")
