@@ -52,7 +52,7 @@ func (tc *TableCreator) Create() (table *Table, err error) {
 		return
 	}
 	if tc.key == nil {
-		err = NeedToSetAKey
+		err = ErrNeedToSetAKey
 		return
 	}
 	var dataSize uint64 = 0

@@ -81,7 +81,7 @@ var (
 	ErrInvalidOperation = errors.New("ErrInvalidOperation")
 
 	// テーブル作成時にキーが設定されないままテーブルの生成処理が実行されたときのエラー
-	NeedToSetAKey = errors.New("NeedToSetAKey")
+	ErrNeedToSetAKey = errors.New("ErrNeedToSetAKey")
 
 	// テーブル作成時に固定長タイプのカラム型でサイズに0が指定されたときのエラー
 	SizeMustBePositiveValue = errors.New("SizeMustBePositiveValue")
