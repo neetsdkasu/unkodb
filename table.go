@@ -182,7 +182,7 @@ func (table *Table) Find(key any) (r *Record, err error) {
 
 func (table *Table) deleteAll() (err error) {
 	if table.isIterating() {
-		err = InvalidOperation
+		err = ErrInvalidOperation
 		return
 	}
 	var tree *tableTree
@@ -207,7 +207,7 @@ func (table *Table) deleteAll() (err error) {
 // それ以外のエラー(IOエラーなど)がある場合は戻り値エラーにnil以外が返る。（たいていプログラムの実行に致命的なエラー）
 func (table *Table) Delete(key any) (err error) {
 	if table.isIterating() {
-		err = InvalidOperation
+		err = ErrInvalidOperation
 		return
 	}
 	if !debugMode {
@@ -276,7 +276,7 @@ func (table *Table) NextCounterID() (CounterType, error) {
 //	fmt.Println("idは", r.Key(), "になりました")
 func (table *Table) Insert(data any) (r *Record, err error) {
 	if table.isIterating() {
-		err = InvalidOperation
+		err = ErrInvalidOperation
 		return
 	}
 	if !debugMode {
@@ -349,7 +349,7 @@ func (table *Table) Insert(data any) (r *Record, err error) {
 //	table.Replace(m)
 func (table *Table) Replace(data any) (r *Record, err error) {
 	if table.isIterating() {
-		err = InvalidOperation
+		err = ErrInvalidOperation
 		return
 	}
 	if !debugMode {

@@ -48,7 +48,7 @@ func (tc *TableCreator) Create() (table *Table, err error) {
 		defer catchError(&err)
 	}
 	if tc.created {
-		err = InvalidOperation
+		err = ErrInvalidOperation
 		return
 	}
 	if tc.key == nil {
@@ -85,7 +85,7 @@ func (tc *TableCreator) has(columnName string) bool {
 
 func (tc *TableCreator) setKey(column keyColumn) error {
 	if tc.created {
-		return InvalidOperation
+		return ErrInvalidOperation
 	}
 	if tc.key != nil {
 		return ErrKeyAlreadyExists
@@ -107,7 +107,7 @@ func (tc *TableCreator) setKey(column keyColumn) error {
 
 func (tc *TableCreator) addColumn(column Column) error {
 	if tc.created {
-		return InvalidOperation
+		return ErrInvalidOperation
 	}
 	if len(tc.columns) >= MaximumColumnCountWithoutKey {
 		return ColumnCountIsFull

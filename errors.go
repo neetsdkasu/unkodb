@@ -78,7 +78,7 @@ var (
 
 	// 不正にメソッドを呼び出しされたときのエラー
 	// 例えば、イテレーション中にテーブルを変更するメソッドを呼び出したときなど
-	InvalidOperation = errors.New("InvalidOperation")
+	ErrInvalidOperation = errors.New("ErrInvalidOperation")
 
 	// テーブル作成時にキーが設定されないままテーブルの生成処理が実行されたときのエラー
 	NeedToSetAKey = errors.New("NeedToSetAKey")
