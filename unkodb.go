@@ -473,7 +473,7 @@ func (db *UnkoDB) loadTableSpec(tableName string, columnsSpecBuf []byte) (err er
 			return
 		}
 		if !dataSeparationState(dataSeparation).IsValid() {
-			err = ErrWrongFileFormat{"invalid dataSeparation"}
+			err = &ErrWrongFileFormat{"invalid dataSeparation"}
 			return
 		}
 	}
@@ -492,7 +492,7 @@ func (db *UnkoDB) loadTableSpec(tableName string, columnsSpecBuf []byte) (err er
 		key, ok = col.(keyColumn)
 		if !ok {
 			// TODO ちゃんとしたエラー作る
-			err = ErrWrongFileFormat{fmt.Sprintf("invalid key in %s", tableName)}
+			err = &ErrWrongFileFormat{fmt.Sprintf("invalid key in %s", tableName)}
 			return
 		}
 		var colCount uint8
