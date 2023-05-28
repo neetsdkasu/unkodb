@@ -169,19 +169,19 @@ func (tree *idleSegmentTree) loadNode(address int) *idleSegmentTreeNode {
 	err = r.Int32(&leftChildAddress)
 	if err != nil {
 		// TODO ちゃんと記述する
-		panic(ErrWrongFileFormat{err.Error()}) // 不正なファイル(segmentのサイズ情報が壊れている、など)
+		panic(&ErrWrongFileFormat{err.Error()}) // 不正なファイル(segmentのサイズ情報が壊れている、など)
 	}
 	var rightChildAddress int32
 	err = r.Int32(&rightChildAddress)
 	if err != nil {
 		// TODO ちゃんと記述する
-		panic(ErrWrongFileFormat{err.Error()}) // 不正なファイル(segmentのサイズ情報が壊れている、など)
+		panic(&ErrWrongFileFormat{err.Error()}) // 不正なファイル(segmentのサイズ情報が壊れている、など)
 	}
 	var height uint8
 	err = r.Uint8(&height)
 	if err != nil {
 		// TODO ちゃんと記述する
-		panic(ErrWrongFileFormat{err.Error()}) // 不正なファイル(segmentのサイズ情報が壊れている、など)
+		panic(&ErrWrongFileFormat{err.Error()}) // 不正なファイル(segmentのサイズ情報が壊れている、など)
 	}
 	node := &idleSegmentTreeNode{
 		tree:              tree,

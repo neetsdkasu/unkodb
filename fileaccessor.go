@@ -53,7 +53,7 @@ func readFile(file io.ReadWriteSeeker) (*fileAccessor, error) {
 		idleSegmentListRootAddress: nullAddress,
 	}
 	if fileSize < fileHeaderByteSize {
-		return nil, ErrWrongFileFormat{"Wrong file size"}
+		return nil, &ErrWrongFileFormat{"Wrong file size"}
 	}
 	if err = newFile.readHeader(); err != nil {
 		return nil, err
@@ -110,7 +110,7 @@ func (file *fileAccessor) readHeader() error {
 			bug.Panic(err) // ここに到達する場合はバグがある
 		}
 		if !bytes.Equal(sig[:], fileSignature()) {
-			return ErrWrongFileFormat{"Wrong Signature in File Header"}
+			return &ErrWrongFileFormat{"Wrong Signature in File Header"}
 		}
 	}
 	{
@@ -119,7 +119,7 @@ func (file *fileAccessor) readHeader() error {
 			bug.Panic(err) // ここに到達する場合はバグがある
 		}
 		if version != fileFormatVersion {
-			return ErrWrongFileFormat{fmt.Sprintf("Unsupported FileFormatVersion (%d)", version)}
+			return &ErrWrongFileFormat{fmt.Sprintf("Unsupported FileFormatVersion (%d)", version)}
 		}
 		file.version = int(version)
 	}
@@ -129,7 +129,7 @@ func (file *fileAccessor) readHeader() error {
 			bug.Panic(err) // ここに到達する場合はバグがある
 		}
 		if nextNewSegmentAddress < firstNewSegmentAddress {
-			return ErrWrongFileFormat{"Wrong NextNewSegmentAddress"}
+			return &ErrWrongFileFormat{"Wrong NextNewSegmentAddress"}
 		}
 		file.nextNewSegmentAddress = int(nextNewSegmentAddress)
 	}
@@ -139,7 +139,7 @@ func (file *fileAccessor) readHeader() error {
 			bug.Panic(err) // ここに到達する場合はバグがある
 		}
 		if reserveAreaAddress != nullAddress {
-			return ErrWrongFileFormat{"Wrong ReserveAreaAddress"}
+			return &ErrWrongFileFormat{"Wrong ReserveAreaAddress"}
 		}
 	}
 	{
@@ -148,7 +148,7 @@ func (file *fileAccessor) readHeader() error {
 			bug.Panic(err) // ここに到達する場合はバグがある
 		}
 		if tableListRootAddress < 0 {
-			return ErrWrongFileFormat{"Wrong TableListRootAddress"}
+			return &ErrWrongFileFormat{"Wrong TableListRootAddress"}
 		}
 		file.tableListRootAddress = int(tableListRootAddress)
 	}
@@ -158,7 +158,7 @@ func (file *fileAccessor) readHeader() error {
 			bug.Panic(err) // ここに到達する場合はバグがある
 		}
 		if idleSegmentListRootAddress < 0 {
-			return ErrWrongFileFormat{"Wrong IdleSegmentTreeRootAddress"}
+			return &ErrWrongFileFormat{"Wrong IdleSegmentTreeRootAddress"}
 		}
 		file.idleSegmentListRootAddress = int(idleSegmentListRootAddress)
 	}

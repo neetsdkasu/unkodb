@@ -12,28 +12,28 @@ var (
 // InsertやReplaceなどでテーブルのデータに必要なカラムが不足しているときのエラー
 type ErrNotFoundColumnName struct{ Column }
 
-func (err ErrNotFoundColumnName) Error() string {
+func (err *ErrNotFoundColumnName) Error() string {
 	return "ErrNotFoundColumnName: " + err.Name()
 }
 
 // テーブルに定義されたカラム型に対応しないGoの型で値を受け取ったときのエラー
 type ErrUnmatchColumnValueType struct{ Column }
 
-func (err ErrUnmatchColumnValueType) Error() string {
+func (err *ErrUnmatchColumnValueType) Error() string {
 	return "ErrUnmatchColumnValueType: " + err.Name() + " " + ColumnTypeHint(err)
 }
 
 // unkodbタグにおけるタグの記述に関するエラー
 type ErrWrongTag struct{ inner error }
 
-func (err ErrWrongTag) Error() string {
+func (err *ErrWrongTag) Error() string {
 	return "ErrWrongTag: " + err.inner.Error()
 }
 
 // 壊れているunkodbファイルあるいは無関係なファイルを読み込んだときのエラー
 type ErrWrongFileFormat struct{ description string }
 
-func (err ErrWrongFileFormat) Error() string {
+func (err *ErrWrongFileFormat) Error() string {
 	return "ErrWrongFileFormat: " + err.description
 }
 
